@@ -213,7 +213,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Chaoyu Wang - [![LinkedIn][linkedin-shield]][linkedin-url] - [GitHub](https://github.com/ChaoyuWang04)
+Chaoyu Wang - [Linkedin](https://www.linkedin.com/in/samwang04/) - [PersonalWeb](https://chaoyuwang04.github.io/)
 
 Project Link: [https://github.com/ChaoyuWang04/AdCampaignAgent-SFT](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT)
 
