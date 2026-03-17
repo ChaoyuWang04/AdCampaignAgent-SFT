@@ -654,7 +654,7 @@ class AdDatasetGenerator:
         # ── Save ──
         if output_path is None:
             script_dir = Path(__file__).parent
-            data_dir = script_dir / "data"
+            data_dir = script_dir.parent/ "data"
             data_dir.mkdir(exist_ok=True)
             output_path = data_dir / f"ad_agent_seeds_{datetime.now().strftime('%Y%m%d_%H%M%S')}_en.json"
         with open(output_path, "w", encoding="utf-8") as f:

@@ -11,6 +11,9 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
+  <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT">
+    <img src="images/logo.jpg" alt="Logo" width="80" height="80">
+  </a>
 
 <h3 align="center">AdCampaignAgent-SFT</h3>
 
