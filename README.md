@@ -7,18 +7,14 @@
 
 <h3 align="center">AdCampaignAgent-SFT</h3>
 
-  <p align="center">
-    A rule-based synthetic SFT dataset for training tool-calling agents in mobile game user acquisition (UA) — grounded in real ad operations, ROAS/Retention safety baselines, and multi-turn reasoning chains.
-    <br />
-    <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT">🤗 HuggingFace Dataset</a>
-    &middot;
-    <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    &middot;
-    <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-  </p>
+<p align="center">
+  A rule-based synthetic SFT dataset for training tool-calling agents in mobile game user acquisition (UA) — grounded in real ad operations, ROAS/Retention safety baselines, and multi-turn reasoning chains.
+  <br /><br />
+  | <a href="https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT">🤗 HuggingFace Dataset</a> |
+  <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=bug&template=bug-report---.md">Report Bug</a> |
+  <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a> |
+</p>
+
 </div>
 
 <!-- TABLE OF CONTENTS -->
