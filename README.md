@@ -41,7 +41,7 @@ AdCampaignAgent-SFT is an open-source pipeline for generating high-quality **Sup
 
 The generation pipeline is fully **rule-based** — no LLM API calls required. Each conversation is constructed from a seed record (workflow type, scene tag, ROAS/Retention baselines) through deterministic mock tool execution, ensuring internal data consistency across all tool results within a single dialogue.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 ### Built With
 
@@ -51,7 +51,7 @@ The generation pipeline is fully **rule-based** — no LLM API calls required. E
 [![Matplotlib][Matplotlib-badge]][Matplotlib-url]
 [![Seaborn][Seaborn-badge]][Seaborn-url]
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -107,7 +107,7 @@ pip install matplotlib seaborn pandas tqdm
    └── README.md
    ```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- USAGE EXAMPLES -->
 ## Usage
@@ -161,7 +161,7 @@ for m in sample:
 "
 ```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- ROADMAP -->
 ## Roadmap
@@ -179,7 +179,7 @@ for m in sample:
 
 See the [open issues](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues) for a full list of proposed features and known issues.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -195,7 +195,7 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 ### Top contributors:
 
@@ -208,7 +208,7 @@ Don't forget to give the project a star! Thanks again!
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- CONTACT -->
 ## Contact
@@ -219,7 +219,7 @@ Project Link: [https://github.com/ChaoyuWang04/AdCampaignAgent-SFT](https://gith
 
 Dataset Link: [https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT](https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
@@ -228,7 +228,7 @@ Dataset Link: [https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT](
 * [Qwen3](https://huggingface.co/Qwen) — base model for fine-tuning experiments
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template) — README structure
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [contributors-shield]: https://img.shields.io/github/contributors/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
