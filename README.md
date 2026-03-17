@@ -23,7 +23,7 @@
     <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://huggingface.co/datasets/ChaoyuWang04/AdCampaignAgent-SFT">🤗 HuggingFace Dataset</a>
+    <a href="https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT">🤗 HuggingFace Dataset</a>
     &middot;
     <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
@@ -256,7 +256,7 @@ Chaoyu Wang - [![LinkedIn][linkedin-shield]][linkedin-url] - [GitHub](https://gi
 
 Project Link: [https://github.com/ChaoyuWang04/AdCampaignAgent-SFT](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT)
 
-Dataset Link: [https://huggingface.co/datasets/ChaoyuWang04/AdCampaignAgent-SFT](https://huggingface.co/datasets/ChaoyuWang04/AdCampaignAgent-SFT)
+Dataset Link: [https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT](https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
