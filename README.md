@@ -117,12 +117,29 @@ pip install matplotlib seaborn pandas tqdm
 3. Verify project structure
    ```
    AdCampaignAgent-SFT/
-   ├── data/                  # input / output JSON datasets
-   ├── checker/               # auto-generated quality reports
+   ├── checker/               # auto-generated quality reports and figures
+   │   ├── ad_agent_sft_*_cn_message/
+   │   └── ad_agent_sft_*_cn_sharegpt/
+   ├── data/                  # generated seeds and SFT datasets
+   │   ├── ad_agent_seeds_*_cn.json
+   │   ├── ad_agent_sft_*_cn_message.json
+   │   └── ad_agent_sft_*_cn_sharegpt.json
+   ├── docs/
+   │   └── 0_Summary.md
+   ├── images/
+   │   ├── logo.png
+   │   └── screenshot.png
    ├── src/
-   │   ├── 1_ad_gen_data.py       # Stage 1: seed generation
-   │   ├── 2_ad_gen_conversation.py  # Stage 2: conversation generation
-   │   └── 3_analyze_dataset.py   # Stage 3: quality analysis & report
+   │   ├── 1.1_ad_gen_data_cn.py
+   │   ├── 1.2_ad_gen_data_en.py
+   │   ├── 2.1_convert_dataset_sharegpt_cn.py
+   │   ├── 2.2_convert_dataset_sharegpt_en.py
+   │   ├── 2.3_convert_data_message_cn.py
+   │   ├── 2.4_convert_data_message_en.py
+   │   └── 3_dataquality_check.py
+   ├── tools/
+   │   └── 0_all_tools.json
+   ├── LICENSE
    └── README.md
    ```
 
@@ -261,7 +278,7 @@ Dataset Link: [https://huggingface.co/datasets/ChaoyuWang04/AdCampaignAgent-SFT]
 [license-shield]: https://img.shields.io/github/license/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
 [license-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/blob/master/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/chaoyu-wang-04
+[linkedin-url]: https://www.linkedin.com/in/samwang04/
 
 [Python-badge]: https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white
 [Python-url]: https://www.python.org/
