@@ -18,6 +18,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 
@@ -118,7 +120,7 @@ def make_output_dir(input_path: Path) -> Path:
 
 
 # ─────────────────────────────────────────────────────────────
-# 1. 格式检测 & 归一化（与上一版相同）
+# 1. 格式检测 & 归一化
 # ─────────────────────────────────────────────────────────────
 
 _SHAREGPT_ROLE_MAP = {"system":"system","human":"user","gpt":"assistant","tool":"tool"}
@@ -172,7 +174,7 @@ def load_and_normalize(path: Path):
 
 
 # ─────────────────────────────────────────────────────────────
-# 2. 统计计算（纯数据，不打印）
+# 2. 统计计算
 # ─────────────────────────────────────────────────────────────
 
 def count_tokens_approx(text: str) -> int:
@@ -276,36 +278,51 @@ def compute_stats(data: list) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────
-# 3. 图表生成
+# 3. 图表生成  ← 只改这一节
 # ─────────────────────────────────────────────────────────────
 
-PALETTE = {
-    "blue_main": "#0F4D92",
-    "blue_secondary": "#3775BA",
-    "green_1": "#DDF3DE",
-    "green_2": "#AADCA9",
-    "green_3": "#8BCF8B",
-    "red_1": "#F6CFCB",
-    "red_2": "#E9A6A1",
-    "red_strong": "#B64342",
-    "neutral": "#CFCECE",
-    "neutral_dark": "#4D4D4D",
-    "highlight": "#FFD700",
-    "teal": "#42949E",
-    "violet": "#9A4D8E",
-}
-DEFAULT_COLORS = [
-    PALETTE["blue_main"],
-    PALETTE["green_3"],
-    PALETTE["red_strong"],
-    PALETTE["teal"],
-    PALETTE["violet"],
-    PALETTE["neutral_dark"],
+# ── 颜色系统 ──────────────────────────────────────────────────
+# 语义色：danger / safe / highlight
+DANGER_DARK   = "#B71C1C"
+DANGER_LIGHT  = "#FFCDD2"
+SAFE_DARK     = "#006064"
+SAFE_LIGHT    = "#B2EBF2"
+
+# 箱线图三色：蓝 / 橙 / 绿，每色一套 (浅填充 + 深描边)
+BOX_STYLES = [
+    {"face": "#90CAF9", "edge": "#1565C0", "text": "#1565C0"},   # blue
+    {"face": "#FFCC80", "edge": "#E65100", "text": "#E65100"},   # deep orange
+    {"face": "#A5D6A7", "edge": "#1B5E20", "text": "#1B5E20"},   # forest green
 ]
-BG_COLOR = "#FFFFFF"
-GRID_COLOR = "#D9D9D9"
+
+# 定性色板：platform / genre 每个 bar 独占一色
+QUAL_COLORS = [
+    "#1E88E5", "#43A047", "#FB8C00", "#E53935",
+    "#8E24AA", "#00ACC1", "#F4511E", "#6D4C41",
+]
+
+BG_COLOR   = "#FFFFFF"
+GRID_COLOR = "#E8E8E8"
 TEXT_COLOR = "#272727"
-AXIS_COLOR = "#4D4D4D"
+AXIS_COLOR = "#5A5A5A"
+
+# ── 保留旧 PALETTE 以避免其他地方引用报错 ──────────────────────
+PALETTE = {
+    "blue_main":      "#1565C0",
+    "blue_secondary": "#42A5F5",
+    "green_1":        "#C8E6C9",
+    "green_2":        "#81C784",
+    "green_3":        "#43A047",
+    "red_1":          "#FFCDD2",
+    "red_2":          "#EF9A9A",
+    "red_strong":     "#B71C1C",
+    "neutral":        "#CFD8DC",
+    "neutral_dark":   "#455A64",
+    "highlight":      "#FFD600",
+    "teal":           "#00838F",
+    "violet":         "#7B1FA2",
+}
+DEFAULT_COLORS = [v for v in PALETTE.values()]
 
 
 @dataclass(frozen=True)
@@ -320,15 +337,12 @@ def _resolve_font_family(style: FigureStyle) -> list[str]:
     preferred = []
     if DETECTED_CJK_FONT:
         preferred.append(DETECTED_CJK_FONT)
-
     current = matplotlib.rcParams.get("font.family", [])
     if isinstance(current, str):
         preferred.append(current)
     else:
         preferred.extend(current)
-
     preferred.extend(style.font_family)
-
     seen = set()
     resolved = []
     for font in preferred:
@@ -341,24 +355,24 @@ def _resolve_font_family(style: FigureStyle) -> list[str]:
 def apply_publication_style(style: FigureStyle | None = None):
     style = style or FigureStyle()
     matplotlib.rcParams.update({
-        "font.family": _resolve_font_family(style),
-        "font.size": style.font_size,
-        "axes.spines.right": False,
-        "axes.spines.top": False,
-        "axes.linewidth": style.axes_linewidth,
-        "axes.edgecolor": AXIS_COLOR,
-        "axes.labelcolor": TEXT_COLOR,
-        "axes.titlecolor": TEXT_COLOR,
-        "xtick.color": AXIS_COLOR,
-        "ytick.color": AXIS_COLOR,
-        "legend.frameon": False,
-        "legend.fontsize": style.font_size - 2,
-        "figure.facecolor": BG_COLOR,
-        "axes.facecolor": BG_COLOR,
-        "savefig.facecolor": BG_COLOR,
-        "savefig.transparent": False,
-        "svg.fonttype": "none",
-        "text.usetex": style.use_tex,
+        "font.family":          _resolve_font_family(style),
+        "font.size":            style.font_size,
+        "axes.spines.right":    False,
+        "axes.spines.top":      False,
+        "axes.linewidth":       style.axes_linewidth,
+        "axes.edgecolor":       AXIS_COLOR,
+        "axes.labelcolor":      TEXT_COLOR,
+        "axes.titlecolor":      TEXT_COLOR,
+        "xtick.color":          AXIS_COLOR,
+        "ytick.color":          AXIS_COLOR,
+        "legend.frameon":       False,
+        "legend.fontsize":      style.font_size - 2,
+        "figure.facecolor":     BG_COLOR,
+        "axes.facecolor":       BG_COLOR,
+        "savefig.facecolor":    BG_COLOR,
+        "savefig.transparent":  False,
+        "svg.fonttype":         "none",
+        "text.usetex":          style.use_tex,
     })
     matplotlib.rcParams["axes.unicode_minus"] = False
 
@@ -374,10 +388,9 @@ def finalize_figure(fig, out_path: Path, formats=None, dpi=300, close=True, pad=
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if formats is None:
         formats = [out_path.suffix.lstrip(".")] if out_path.suffix else ["png"]
-
     saved = []
     for fmt in formats:
-        target = out_path.with_suffix(f".{fmt}") if out_path.suffix else out_path.with_suffix(f".{fmt}")
+        target = out_path.with_suffix(f".{fmt}")
         fig.savefig(target, dpi=dpi, bbox_inches="tight", pad_inches=pad, **kwargs)
         saved.append(target)
     if close:
@@ -392,26 +405,23 @@ def _style_ax(ax, title: str, xlabel: str | None = None, ylabel: str | None = No
     ax.spines["left"].set_color(AXIS_COLOR)
     ax.spines["bottom"].set_color(AXIS_COLOR)
     if grid_axis == "x":
-        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
         ax.yaxis.grid(False)
     elif grid_axis == "y":
-        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
         ax.xaxis.grid(False)
     elif grid_axis == "both":
-        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
-        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
     else:
         ax.grid(False)
     ax.set_axisbelow(True)
-    if xlabel:
-        ax.set_xlabel(xlabel, fontsize=12, color=TEXT_COLOR)
-    if ylabel:
-        ax.set_ylabel(ylabel, fontsize=12, color=TEXT_COLOR)
+    if xlabel: ax.set_xlabel(xlabel, fontsize=12, color=TEXT_COLOR)
+    if ylabel: ax.set_ylabel(ylabel, fontsize=12, color=TEXT_COLOR)
 
 
 def _expand_upper_limit(max_value: float, ratio: float = 0.15) -> float:
-    if max_value <= 0:
-        return 1.0
+    if max_value <= 0: return 1.0
     return max_value * (1.0 + ratio)
 
 
@@ -425,11 +435,8 @@ def _annotate_barh(ax, bars, values, total=None, offset=0.01, fontsize=10):
         ax.text(
             bar.get_width() + x_pad,
             bar.get_y() + bar.get_height() / 2,
-            label,
-            va="center",
-            ha="left",
-            fontsize=fontsize,
-            color=TEXT_COLOR,
+            label, va="center", ha="left",
+            fontsize=fontsize, color=TEXT_COLOR,
         )
 
 
@@ -448,12 +455,9 @@ def make_grouped_bar(ax, categories, series, labels, ylabel="Value", colors=None
     for idx in range(n_groups):
         last_bars = ax.bar(
             x + (idx - (n_groups - 1) / 2) * width,
-            series_arr[idx],
-            width=width,
-            label=labels[idx],
-            color=colors[idx % len(colors)],
-            edgecolor="black",
-            linewidth=1.2,
+            series_arr[idx], width=width,
+            label=labels[idx], color=colors[idx % len(colors)],
+            edgecolor="white", linewidth=1.0,
         )
         if annotate:
             for bar in last_bars:
@@ -461,10 +465,7 @@ def make_grouped_bar(ax, categories, series, labels, ylabel="Value", colors=None
                     bar.get_x() + bar.get_width() / 2,
                     bar.get_height(),
                     f"{bar.get_height():.2f}",
-                    ha="center",
-                    va="bottom",
-                    fontsize=9,
-                    color=TEXT_COLOR,
+                    ha="center", va="bottom", fontsize=9, color=TEXT_COLOR,
                 )
     ax.set_xticks(x)
     ax.set_xticklabels(categories)
@@ -473,78 +474,101 @@ def make_grouped_bar(ax, categories, series, labels, ylabel="Value", colors=None
 
 
 def make_histogram(ax, values, bins, color, xlabel, ylabel="Count"):
-    ax.hist(
-        values,
-        bins=bins,
-        color=color,
-        edgecolor="black",
-        linewidth=1.1,
-        alpha=0.9,
-    )
+    ax.hist(values, bins=bins, color=color, edgecolor="white", linewidth=0.6, alpha=0.9)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
 
 def make_box_summary(ax, values, color, title):
+    """保留接口兼容，实际由 fig_token_dist 内联调用更丰富版本"""
     box = ax.boxplot(
-        values,
-        vert=True,
-        patch_artist=True,
-        widths=0.4,
+        values, vert=True, patch_artist=True, widths=0.4,
         boxprops=dict(facecolor=color, edgecolor="black", linewidth=1.5),
-        medianprops=dict(color="black", linewidth=1.8),
-        whiskerprops=dict(color="black", linewidth=1.3),
+        medianprops=dict(color="white", linewidth=2.2),
+        whiskerprops=dict(color="black", linewidth=1.3, linestyle="--"),
         capprops=dict(color="black", linewidth=1.3),
-        flierprops=dict(marker="o", markersize=4, markerfacecolor=color, markeredgecolor="black", alpha=0.45),
+        flierprops=dict(marker=".", markersize=3, markerfacecolor=color,
+                        markeredgecolor="none", alpha=0.35),
     )
     ax.set_title(title, fontsize=13, fontweight="bold", pad=10)
     ax.set_xticks([])
     return box
 
+
+# ── 辅助：生成渐变色列表 ─────────────────────────────────────
+def _gradient_colors(values, cmap_name_or_colors, vmin_ratio=0.4):
+    """给一组数值生成对应的渐变色列表（values 可以是 pd.Series 或 list）"""
+    vals = np.asarray(values, dtype=float)
+    vmin = vals.min() * vmin_ratio if vals.min() >= 0 else vals.min()
+    norm = Normalize(vmin=vmin, vmax=vals.max())
+    if isinstance(cmap_name_or_colors, (list, tuple)):
+        cmap = LinearSegmentedColormap.from_list("_custom", cmap_name_or_colors)
+    else:
+        cmap = plt.get_cmap(cmap_name_or_colors)
+    return [cmap(norm(v)) for v in vals]
+
+
+# ── Fig 1: Workflow — 单色蓝渐变条形图 ───────────────────────
 def fig_workflow(s: dict, out: Path) -> Path:
     wf = s["wf_counter"]
     df = pd.DataFrame(wf.items(), columns=["workflow", "count"]).sort_values("count")
+
+    colors = _gradient_colors(df["count"], ["#BDD7EE", "#0D47A1"], vmin_ratio=0.3)
+
     fig, axes = create_subplots(figsize=(9.5, 4.8))
     ax = axes[0]
-    bars = ax.barh(
-        df["workflow"],
-        df["count"],
-        color=PALETTE["blue_main"],
-        edgecolor="black",
-        linewidth=1.2,
-        height=0.62,
-    )
+    bars = ax.barh(df["workflow"], df["count"], color=colors,
+                   edgecolor="white", linewidth=0.7, height=0.62)
     _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.015, fontsize=10)
     _style_ax(ax, "Workflow Distribution", xlabel="Number of conversations", grid_axis="x")
-    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.24))
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.26))
     fig.tight_layout(pad=1.2)
     p = out / "fig1_workflow.png"
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
+
+# ── Fig 2: Scene — danger 红渐变 / other 青渐变 ──────────────
 def fig_scene(s: dict, out: Path) -> Path:
     sc = s["scene_counter"]
     df = pd.DataFrame(sc.items(), columns=["scene", "count"]).sort_values("count")
-    colors = [
-        PALETTE["red_strong"] if "danger" in scene else PALETTE["blue_secondary"]
-        for scene in df["scene"]
-    ]
+
+    danger_mask = df["scene"].str.contains("danger", case=False)
+
+    # 分别算两组渐变
+    danger_vals = df.loc[danger_mask, "count"]
+    other_vals  = df.loc[~danger_mask, "count"]
+
+    danger_cmap = LinearSegmentedColormap.from_list("d", [DANGER_LIGHT, DANGER_DARK])
+    other_cmap  = LinearSegmentedColormap.from_list("o", [SAFE_LIGHT,   SAFE_DARK])
+
+    def _norm_colors(vals, cmap):
+        if len(vals) == 0: return []
+        n = Normalize(vmin=vals.min() * 0.3, vmax=vals.max())
+        return [cmap(n(v)) for v in vals]
+
+    d_colors = _norm_colors(danger_vals, danger_cmap)
+    o_colors = _norm_colors(other_vals, other_cmap)
+
+    # 按 df 顺序重组颜色
+    colors = []
+    di, oi = 0, 0
+    for is_danger in danger_mask:
+        if is_danger:
+            colors.append(d_colors[di]); di += 1
+        else:
+            colors.append(o_colors[oi]); oi += 1
+
     fig, axes = create_subplots(figsize=(10.8, 7.2))
     ax = axes[0]
-    bars = ax.barh(
-        df["scene"],
-        df["count"],
-        color=colors,
-        edgecolor="black",
-        linewidth=1.0,
-        height=0.68,
-    )
+    bars = ax.barh(df["scene"], df["count"], color=colors,
+                   edgecolor="white", linewidth=0.7, height=0.68)
     _annotate_barh(ax, bars, df["count"], offset=0.012, fontsize=9.5)
     _style_ax(ax, "Scene Tag Distribution", xlabel="Count", grid_axis="x")
-    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.18))
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.20))
     legend = [
-        mpatches.Patch(facecolor=PALETTE["red_strong"], edgecolor="black", label="Danger scenarios"),
-        mpatches.Patch(facecolor=PALETTE["blue_secondary"], edgecolor="black", label="Other scenarios"),
+        mpatches.Patch(facecolor=DANGER_DARK, edgecolor="white", label="Danger scenarios"),
+        mpatches.Patch(facecolor=SAFE_DARK,   edgecolor="white", label="Other scenarios"),
     ]
     ax.legend(handles=legend, loc="lower right")
     fig.tight_layout(pad=1.2)
@@ -552,94 +576,129 @@ def fig_scene(s: dict, out: Path) -> Path:
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
+
+# ── Fig 3: Turn dist — 按频率高低染色直方图 ──────────────────
 def fig_turn_dist(s: dict, out: Path) -> Path:
     turns = s["turn_len_list"]
+    bins  = np.arange(min(turns) - 0.5, max(turns) + 1.5, 1)
+
     fig, axes = create_subplots(figsize=(8.4, 4.6))
     ax = axes[0]
-    make_histogram(
-        ax,
-        turns,
-        bins=np.arange(min(turns) - 0.5, max(turns) + 1.5, 1),
-        color=PALETTE["blue_secondary"],
-        xlabel="Number of messages",
-    )
-    ax.axvline(
-        statistics.mean(turns),
-        color=PALETTE["red_strong"],
-        linestyle="--",
-        lw=2,
-        label=f"Mean = {statistics.mean(turns):.1f}",
-    )
-    ax.axvline(
-        statistics.median(turns),
-        color=PALETTE["teal"],
-        linestyle="--",
-        lw=2,
-        label=f"Median = {statistics.median(turns):.1f}",
-    )
-    _style_ax(ax, "Conversation Length Distribution", xlabel="Number of messages", ylabel="Count", grid_axis="y")
-    ax.legend(loc="upper right")
+
+    # 先画出各 bin 频率，再按高度染色
+    n, bin_edges, patches = ax.hist(turns, bins=bins, edgecolor="white", linewidth=0.5, alpha=0.92)
+    cmap_hist = LinearSegmentedColormap.from_list("hist", ["#FFF9C4", "#F57F17"])
+    norm_hist  = Normalize(vmin=0, vmax=n.max())
+    for count, patch in zip(n, patches):
+        patch.set_facecolor(cmap_hist(0.25 + 0.75 * norm_hist(count)))
+
+    mean_val   = statistics.mean(turns)
+    median_val = statistics.median(turns)
+    ax.axvline(mean_val,   color="#1565C0", linestyle="--", lw=2,   label=f"Mean = {mean_val:.1f}")
+    ax.axvline(median_val, color="#2E7D32", linestyle=":",  lw=2.2, label=f"Median = {median_val:.1f}")
+
+    _style_ax(ax, "Conversation Length Distribution",
+              xlabel="Number of messages", ylabel="Count", grid_axis="y")
+    ax.legend(loc="upper right", fontsize=10)
     fig.tight_layout(pad=1.2)
     p = out / "fig3_turn_dist.png"
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
+
+# ── Fig 4: Token dist — 三色箱线图 + jitter ─────────────────
 def fig_token_dist(s: dict, out: Path) -> Path:
     fig, axes = create_subplots(1, 3, figsize=(12.6, 4.4))
     sets = [
-        (s["token_list"], "Total tokens / conv", PALETTE["blue_main"]),
-        (s["user_token_list"], "User turn tokens", PALETTE["green_3"]),
-        (s["asst_token_list"], "Assistant turn tokens", PALETTE["red_2"]),
+        (s["token_list"],      "Total tokens / conv",  BOX_STYLES[0]),
+        (s["user_token_list"], "User turn tokens",      BOX_STYLES[1]),
+        (s["asst_token_list"], "Assistant turn tokens", BOX_STYLES[2]),
     ]
-    for ax, (lst, title, color) in zip(axes, sets):
-        make_box_summary(ax, lst, color, title)
-        ax.spines["bottom"].set_visible(False)
-        ax.spines["left"].set_color(AXIS_COLOR)
-        ax.tick_params(labelsize=10, colors=AXIS_COLOR)
-        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
-        med = statistics.median(lst)
-        ax.axhline(med, color=PALETTE["neutral_dark"], linestyle=":", linewidth=1.5)
-        x_right = ax.get_xlim()[1]  # 当前 x 轴右边界
-        ax.text(
-            x_right * 1.02,          # 比右边界再出去一点
-            med,
-            f"median = {med:.0f}",
-            va="center",
-            ha="left",
-            fontsize=9.5,
-            color=TEXT_COLOR,
-            clip_on=False,            # 允许文字超出 axes 边界显示
+    rng = np.random.default_rng(42)
+
+    for ax, (lst, title, style) in zip(axes, sets):
+        face = style["face"]
+        edge = style["edge"]
+        txt  = style["text"]
+
+        # 箱线图
+        ax.boxplot(
+            lst, vert=True, patch_artist=True, widths=0.45,
+            boxprops=dict(facecolor=face, edgecolor=edge, linewidth=1.8),
+            medianprops=dict(color="white", linewidth=2.8),     # 白色中位线更醒目
+            whiskerprops=dict(color=edge, linewidth=1.3, linestyle="--"),
+            capprops=dict(color=edge, linewidth=1.8),
+            flierprops=dict(marker=".", markersize=3, markerfacecolor=edge,
+                            markeredgecolor="none", alpha=0.3),
         )
-    fig.suptitle("Token Distribution (approx.)", fontsize=16, fontweight="bold", y=1.02, color=TEXT_COLOR)
+
+        # jitter 散点叠加，展示原始分布
+        x_jitter = rng.normal(1, 0.07, size=len(lst))
+        ax.scatter(x_jitter, lst, alpha=0.15, s=5, color=edge,
+                   edgecolors="none", zorder=3)
+
+        ax.set_title(title, fontsize=13, fontweight="bold", pad=10, color=TEXT_COLOR)
+        ax.set_xticks([])
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_color(edge)
+        ax.spines["left"].set_linewidth(1.6)
+        ax.tick_params(labelsize=10, colors=AXIS_COLOR)
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
+        ax.set_axisbelow(True)
+
+        # 中位线标注 — 用 yaxis transform 固定在轴右侧，不会压到 box
+        med = statistics.median(lst)
+        ax.text(
+            1.06, med,
+            f"med = {med:.0f}",
+            transform=ax.get_yaxis_transform(),
+            va="center", ha="left",
+            fontsize=9, color=txt, fontweight="bold",
+            clip_on=False,
+        )
+
+    fig.suptitle("Token Distribution (approx.)", fontsize=16,
+                 fontweight="bold", y=1.02, color=TEXT_COLOR)
     fig.tight_layout(pad=1.2)
     p = out / "fig4_token_dist.png"
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
+
+# ── Fig 5: Tool freq — 灰→蓝渐变，Top5 用暖色高亮 ───────────
 def fig_tool_freq(s: dict, out: Path) -> Path:
     tc = s["tool_counter"]
     df = pd.DataFrame(tc.items(), columns=["tool", "count"]).sort_values("count")
+
     top_n_start = max(len(df) - 5, 0)
-    colors = [
-        PALETTE["blue_main"] if idx >= top_n_start else PALETTE["neutral"]
-        for idx in range(len(df))
-    ]
+
+    # 底部（非 Top5）：冷灰渐变
+    base_cmap   = LinearSegmentedColormap.from_list("base", ["#CFD8DC", "#607D8B"])
+    base_norm   = Normalize(vmin=df["count"].iloc[:top_n_start].min() if top_n_start > 0 else 0,
+                            vmax=df["count"].iloc[:top_n_start].max() if top_n_start > 0 else 1)
+    # Top5：暖橙渐变
+    accent_cmap = LinearSegmentedColormap.from_list("accent", ["#FFB300", "#BF360C"])
+    accent_norm = Normalize(vmin=df["count"].iloc[top_n_start:].min(),
+                            vmax=df["count"].iloc[top_n_start:].max())
+
+    colors = []
+    for idx, val in enumerate(df["count"]):
+        if idx >= top_n_start:
+            colors.append(accent_cmap(accent_norm(val)))
+        else:
+            colors.append(base_cmap(base_norm(val)) if top_n_start > 0
+                          else base_cmap(0.5))
+
     fig, axes = create_subplots(figsize=(10.4, 6.2))
     ax = axes[0]
-    bars = ax.barh(
-        df["tool"],
-        df["count"],
-        color=colors,
-        edgecolor="black",
-        linewidth=1.0,
-        height=0.64,
-    )
+    bars = ax.barh(df["tool"], df["count"], color=colors,
+                   edgecolor="white", linewidth=0.7, height=0.64)
     _annotate_barh(ax, bars, df["count"], offset=0.014, fontsize=9.5)
     _style_ax(ax, "Tool Call Frequency", xlabel="Total calls", grid_axis="x")
-    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.2))
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.22))
     legend = [
-        mpatches.Patch(facecolor=PALETTE["blue_main"], edgecolor="black", label="Top 5 tools"),
-        mpatches.Patch(facecolor=PALETTE["neutral"], edgecolor="black", label="Other tools"),
+        mpatches.Patch(facecolor="#BF360C", edgecolor="white", label="Top 5 tools"),
+        mpatches.Patch(facecolor="#607D8B", edgecolor="white", label="Other tools"),
     ]
     ax.legend(handles=legend, loc="lower right")
     fig.tight_layout(pad=1.2)
@@ -647,29 +706,28 @@ def fig_tool_freq(s: dict, out: Path) -> Path:
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
+
+# ── Fig 6: Platform & Genre — 定性色板，每 bar 独立色 ────────
 def fig_platform_genre(s: dict, out: Path) -> Path:
     fig, axes = create_subplots(1, 2, figsize=(12.0, 5.2))
     panels = [
-        (axes[0], s["platform_counter"], "Platform Distribution", PALETTE["teal"]),
-        (axes[1], s["genre_counter"], "Game Genre Distribution", PALETTE["violet"]),
+        (axes[0], s["platform_counter"], "Platform Distribution"),
+        (axes[1], s["genre_counter"],    "Game Genre Distribution"),
     ]
-    for ax, counter, title, color in panels:
+    for ax, counter, title in panels:
         df = pd.DataFrame(counter.items(), columns=["label", "count"]).sort_values("count")
-        bars = ax.barh(
-            df["label"],
-            df["count"],
-            color=color,
-            edgecolor="black",
-            linewidth=1.0,
-            height=0.62,
-        )
+        # 每个 bar 独立颜色，从 QUAL_COLORS 循环取
+        colors = [QUAL_COLORS[i % len(QUAL_COLORS)] for i in range(len(df))]
+        bars = ax.barh(df["label"], df["count"], color=colors,
+                       edgecolor="white", linewidth=0.7, height=0.62)
         _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.02, fontsize=9.5)
         _style_ax(ax, title, xlabel="Count", grid_axis="x")
-        ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.24))
+        ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.26))
     fig.tight_layout(pad=1.2, w_pad=1.8)
     p = out / "fig6_platform_genre.png"
     finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
+
 
 def generate_all_figures(s: dict, out: Path) -> dict:
     print("🎨 Generating figures...")
@@ -697,21 +755,16 @@ def write_markdown(s: dict, fmt: str, input_path: Path,
     tokens    = s["token_list"]
     now       = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    # ── tool chain top15 표 데이터 ──────────────────────────
     top_chains = s["chain_combos"].most_common(15)
 
-    # ── scene 표 ──────────────────────────────────────────
     scene_rows = "\n".join(
         f"| `{sc}` | {cnt} | {100*cnt/total:.1f}% |"
         for sc, cnt in sorted(s["scene_counter"].items(), key=lambda x: -x[1])
     )
-
-    # ── tool 표 ──────────────────────────────────────────
     tool_rows = "\n".join(
         f"| `{tool}` | {cnt} | {100*cnt/s['has_tool_count']:.1f}% |"
         for tool, cnt in sorted(s["tool_counter"].items(), key=lambda x: -x[1])
     )
-
     chain_rows = "\n".join(
         f"| `{combo[:60]}{'...' if len(combo)>60 else ''}` | {cnt} |"
         for combo, cnt in top_chains

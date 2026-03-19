@@ -1,6 +1,6 @@
 # Ad Campaign Agent SFT Dataset — Quality Report
 
-> Generated: 2026-03-18 20:44
+> Generated: 2026-03-18 20:51
 > Source file: `ad_agent_sft_20260316_214235_cn_message.json`
 > Format detected: **OPENAI** → normalized to OpenAI Messages
 

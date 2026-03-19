@@ -58,11 +58,11 @@ The generation pipeline is fully **rule-based** — no LLM API calls required. E
 
 ### Prerequisites
 
-- Python 3.10+
-- pip
+- Python 3.13+
+- uv
 
 ```sh
-pip install matplotlib seaborn pandas tqdm
+uv --version
 ```
 
 ### Installation
@@ -73,12 +73,22 @@ pip install matplotlib seaborn pandas tqdm
    cd AdCampaignAgent-SFT
    ```
 
-2. Install dependencies
+2. Initialize the uv project metadata if needed
    ```sh
-   pip install -r requirements.txt
+   uv init
    ```
 
-3. Verify project structure
+3. Create the virtual environment
+   ```sh
+   uv venv
+   ```
+
+4. Install dependencies from `pyproject.toml` and `uv.lock`
+   ```sh
+   uv sync
+   ```
+
+5. Verify project structure
    ```
    AdCampaignAgent-SFT/
    ├── checker/               # auto-generated quality reports and figures
@@ -119,9 +129,9 @@ The pipeline runs in three sequential stages:
 Produces 1,000 structured seed records covering 7 workflows and 22 scene tags, with pre-computed ROAS/Retention baselines per platform × genre.
 
 ```sh
-python src/1.1_ad_gen_data_cn.py
+uv run python src/1.1_ad_gen_data_cn.py
 # or
-python src/1.2_ad_gen_data_en.py
+uv run python src/1.2_ad_gen_data_en.py
 # Output: data/ad_agent_seeds_<timestamp>.json
 ```
 
@@ -130,13 +140,13 @@ python src/1.2_ad_gen_data_en.py
 Converts each seed into a full multi-turn dialogue in OpenAI Messages format. Tool results are mock-generated deterministically from the seed's `scene_tag` and baselines, ensuring all metrics within a single conversation are internally consistent.
 
 ```sh
-python src/2.3_convert_data_message_cn.py
+uv run python src/2.3_convert_data_message_cn.py
 # or
-python src/2.4_convert_data_message_en.py
+uv run python src/2.4_convert_data_message_en.py
 # or generate ShareGPT format:
-python src/2.1_convert_dataset_sharegpt_cn.py
+uv run python src/2.1_convert_dataset_sharegpt_cn.py
 # or
-python src/2.2_convert_dataset_sharegpt_en.py
+uv run python src/2.2_convert_dataset_sharegpt_en.py
 # Then enter the seed file name when prompted, e.g.:
 # ad_agent_seeds_<timestamp>_cn.json
 # Output examples:
@@ -151,7 +161,7 @@ python src/2.2_convert_dataset_sharegpt_en.py
 Auto-detects format (OpenAI Messages or ShareGPT), runs full quality checks, and generates 6 publication-style figures plus a `dataset_card.md` ready for HuggingFace upload.
 
 ```sh
-python src/3_dataquality_check.py
+uv run python src/3_dataquality_check.py
 # Input JSON file name examples:
 #   ad_agent_sft_<timestamp>_cn_message.json
 #   ad_agent_sft_<timestamp>_en_message.json
@@ -170,7 +180,7 @@ python src/3_dataquality_check.py
 **Quick format validation (no full report)**
 
 ```sh
-python -c "
+uv run python -c "
 import json
 data = json.load(open('data/ad_agent_sft_<timestamp>.json'))
 sample = data[50]['messages']
