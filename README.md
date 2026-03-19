@@ -119,7 +119,9 @@ The pipeline runs in three sequential stages:
 Produces 1,000 structured seed records covering 7 workflows and 22 scene tags, with pre-computed ROAS/Retention baselines per platform × genre.
 
 ```sh
-python src/1_ad_gen_data.py
+python src/1.1_ad_gen_data_cn.py
+# or
+python src/1.2_ad_gen_data_en.py
 # Output: data/ad_agent_seeds_<timestamp>.json
 ```
 
@@ -128,8 +130,20 @@ python src/1_ad_gen_data.py
 Converts each seed into a full multi-turn dialogue in OpenAI Messages format. Tool results are mock-generated deterministically from the seed's `scene_tag` and baselines, ensuring all metrics within a single conversation are internally consistent.
 
 ```sh
-python src/2_ad_gen_conversation.py data/ad_agent_seeds_<timestamp>.json data/ad_agent_sft_<timestamp>.json
-# Output: data/ad_agent_sft_<timestamp>.json
+python src/2.3_convert_data_message_cn.py
+# or
+python src/2.4_convert_data_message_en.py
+# or generate ShareGPT format:
+python src/2.1_convert_dataset_sharegpt_cn.py
+# or
+python src/2.2_convert_dataset_sharegpt_en.py
+# Then enter the seed file name when prompted, e.g.:
+# ad_agent_seeds_<timestamp>_cn.json
+# Output examples:
+#   data/ad_agent_sft_<timestamp>_cn_message.json
+#   data/ad_agent_sft_<timestamp>_en_message.json
+#   data/ad_agent_sft_<timestamp>_cn_sharegpt.json
+#   data/ad_agent_sft_<timestamp>_en_sharegpt.json
 ```
 
 **Stage 3 — Quality analysis & report**
@@ -137,8 +151,12 @@ python src/2_ad_gen_conversation.py data/ad_agent_seeds_<timestamp>.json data/ad
 Auto-detects format (OpenAI Messages or ShareGPT), runs full quality checks, generates 6 figures and a `dataset_card.md` ready for HuggingFace upload.
 
 ```sh
-python src/3_analyze_dataset.py
-# Input JSON file name: ad_agent_sft_<timestamp>.json
+python src/3_dataquality_check.py
+# Input JSON file name examples:
+#   ad_agent_sft_<timestamp>_cn_message.json
+#   ad_agent_sft_<timestamp>_en_message.json
+#   ad_agent_sft_<timestamp>_cn_sharegpt.json
+#   ad_agent_sft_<timestamp>_en_sharegpt.json
 # Output: checker/ad_agent_sft_<timestamp>/
 #           ├── dataset_card.md
 #           ├── fig1_workflow.png

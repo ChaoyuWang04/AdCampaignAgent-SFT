@@ -3,7 +3,7 @@
 """
 Ad Campaign Agent - Phase 2: Conversation Generator
 Format: OpenAI Messages (role/content/tool_calls/tool_call_id)
-Input:  ad_agent_seeds_*.json  (from 1_ad_gen_data.py)
+Input:  ad_agent_seeds_*.json  (from 1.1_ad_gen_data_cn.py / 1.2_ad_gen_data_en.py)
 Output: ad_agent_sft_dataset.json (HuggingFace / LLaMA Factory ready)
 """
 

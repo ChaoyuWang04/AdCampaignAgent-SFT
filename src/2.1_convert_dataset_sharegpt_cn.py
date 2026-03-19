@@ -1,6 +1,6 @@
 """
 Ad Campaign Agent - Phase 2: Conversation Generator
-Input:  seed JSON (from 1_ad_gen_data.py)
+Input:  seed JSON (from 1.1_ad_gen_data_cn.py / 1.2_ad_gen_data_en.py)
 Output: ShareGPT format JSON (HuggingFace / LLaMA Factory ready)
 """
 
