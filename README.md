@@ -148,7 +148,7 @@ python src/2.2_convert_dataset_sharegpt_en.py
 
 **Stage 3 — Quality analysis & report**
 
-Auto-detects format (OpenAI Messages or ShareGPT), runs full quality checks, generates 6 figures and a `dataset_card.md` ready for HuggingFace upload.
+Auto-detects format (OpenAI Messages or ShareGPT), runs full quality checks, and generates 6 publication-style figures plus a `dataset_card.md` ready for HuggingFace upload.
 
 ```sh
 python src/3_dataquality_check.py

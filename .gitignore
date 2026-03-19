@@ -19,6 +19,7 @@ htmlcov/
 venv/
 env/
 ENV/
+.python-version
 
 # Build and packaging artifacts
 build/
@@ -40,3 +41,5 @@ pip-wheel-metadata/
 
 # Jupyter
 .ipynb_checkpoints/
+
+figures4papers-main/

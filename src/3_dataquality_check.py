@@ -10,6 +10,7 @@ import sys
 import re
 import statistics
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import matplotlib.font_manager as fm
@@ -17,16 +18,20 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import seaborn as sns
+import numpy as np
 import pandas as pd
 
 # ─────────────────────────────────────────────────────────────
 # 0. 路径扫描
 # ─────────────────────────────────────────────────────────────
 
+DETECTED_CJK_FONT = None
+
+
 #import Chinese Font
 def _setup_chinese_font():
     """按优先级查找系统中文字体，找到即应用"""
+    global DETECTED_CJK_FONT
     candidates = [
         "PingFang HK",           # 你系统上有，首选
         "Heiti TC",              # 你系统上有
@@ -40,7 +45,8 @@ def _setup_chinese_font():
     available = {f.name for f in fm.fontManager.ttflist}
     for font in candidates:
         if font in available:
-            matplotlib.rcParams["font.family"]       = font
+            DETECTED_CJK_FONT = font
+            matplotlib.rcParams["font.family"] = [font]
             matplotlib.rcParams["axes.unicode_minus"] = False
             print(f"   🔤 Chinese font applied: {font}")
             return font
@@ -54,7 +60,8 @@ def _setup_chinese_font():
         if Path(path).exists():
             fm.fontManager.addfont(path)
             prop = fm.FontProperties(fname=path)
-            matplotlib.rcParams["font.family"]       = prop.get_name()
+            DETECTED_CJK_FONT = prop.get_name()
+            matplotlib.rcParams["font.family"] = [prop.get_name()]
             matplotlib.rcParams["axes.unicode_minus"] = False
             print(f"   🔤 Chinese font loaded from path: {path}")
             return prop.get_name()
@@ -272,153 +279,401 @@ def compute_stats(data: list) -> dict:
 # 3. 图表生成
 # ─────────────────────────────────────────────────────────────
 
-PALETTE   = sns.color_palette("Blues_r", 12)
-BG_COLOR  = "#F8FAFC"
-GRID_COLOR= "#E2E8F0"
-BAR_COLOR = "#2563EB"
-ACCENT    = "#F59E0B"
+PALETTE = {
+    "blue_main": "#0F4D92",
+    "blue_secondary": "#3775BA",
+    "green_1": "#DDF3DE",
+    "green_2": "#AADCA9",
+    "green_3": "#8BCF8B",
+    "red_1": "#F6CFCB",
+    "red_2": "#E9A6A1",
+    "red_strong": "#B64342",
+    "neutral": "#CFCECE",
+    "neutral_dark": "#4D4D4D",
+    "highlight": "#FFD700",
+    "teal": "#42949E",
+    "violet": "#9A4D8E",
+}
+DEFAULT_COLORS = [
+    PALETTE["blue_main"],
+    PALETTE["green_3"],
+    PALETTE["red_strong"],
+    PALETTE["teal"],
+    PALETTE["violet"],
+    PALETTE["neutral_dark"],
+]
+BG_COLOR = "#FFFFFF"
+GRID_COLOR = "#D9D9D9"
+TEXT_COLOR = "#272727"
+AXIS_COLOR = "#4D4D4D"
 
-def _style_ax(ax, title: str):
-    ax.set_facecolor(BG_COLOR)
-    ax.set_title(title, fontsize=13, fontweight="bold", pad=12, color="#1E293B")
-    ax.tick_params(colors="#475569", labelsize=9)
-    ax.spines[["top","right","left"]].set_visible(False)
-    ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
-    ax.yaxis.grid(False)
+
+@dataclass(frozen=True)
+class FigureStyle:
+    font_size: int = 16
+    axes_linewidth: float = 2.5
+    use_tex: bool = False
+    font_family: tuple[str, ...] = ("Arial", "Helvetica", "DejaVu Sans", "sans-serif")
+
+
+def _resolve_font_family(style: FigureStyle) -> list[str]:
+    preferred = []
+    if DETECTED_CJK_FONT:
+        preferred.append(DETECTED_CJK_FONT)
+
+    current = matplotlib.rcParams.get("font.family", [])
+    if isinstance(current, str):
+        preferred.append(current)
+    else:
+        preferred.extend(current)
+
+    preferred.extend(style.font_family)
+
+    seen = set()
+    resolved = []
+    for font in preferred:
+        if font and font not in seen:
+            resolved.append(font)
+            seen.add(font)
+    return resolved
+
+
+def apply_publication_style(style: FigureStyle | None = None):
+    style = style or FigureStyle()
+    matplotlib.rcParams.update({
+        "font.family": _resolve_font_family(style),
+        "font.size": style.font_size,
+        "axes.spines.right": False,
+        "axes.spines.top": False,
+        "axes.linewidth": style.axes_linewidth,
+        "axes.edgecolor": AXIS_COLOR,
+        "axes.labelcolor": TEXT_COLOR,
+        "axes.titlecolor": TEXT_COLOR,
+        "xtick.color": AXIS_COLOR,
+        "ytick.color": AXIS_COLOR,
+        "legend.frameon": False,
+        "legend.fontsize": style.font_size - 2,
+        "figure.facecolor": BG_COLOR,
+        "axes.facecolor": BG_COLOR,
+        "savefig.facecolor": BG_COLOR,
+        "savefig.transparent": False,
+        "svg.fonttype": "none",
+        "text.usetex": style.use_tex,
+    })
+    matplotlib.rcParams["axes.unicode_minus"] = False
+
+
+def create_subplots(nrows=1, ncols=1, figsize=None, **kwargs):
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, **kwargs)
+    axes = np.atleast_1d(axes).ravel()
+    return fig, axes
+
+
+def finalize_figure(fig, out_path: Path, formats=None, dpi=300, close=True, pad=0.06, **kwargs):
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    if formats is None:
+        formats = [out_path.suffix.lstrip(".")] if out_path.suffix else ["png"]
+
+    saved = []
+    for fmt in formats:
+        target = out_path.with_suffix(f".{fmt}") if out_path.suffix else out_path.with_suffix(f".{fmt}")
+        fig.savefig(target, dpi=dpi, bbox_inches="tight", pad_inches=pad, **kwargs)
+        saved.append(target)
+    if close:
+        plt.close(fig)
+    return saved
+
+
+def _style_ax(ax, title: str, xlabel: str | None = None, ylabel: str | None = None,
+              grid_axis: str = "x", title_pad: int = 12):
+    ax.set_title(title, fontsize=16, fontweight="bold", pad=title_pad, color=TEXT_COLOR)
+    ax.tick_params(labelsize=11, colors=AXIS_COLOR)
+    ax.spines["left"].set_color(AXIS_COLOR)
+    ax.spines["bottom"].set_color(AXIS_COLOR)
+    if grid_axis == "x":
+        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.yaxis.grid(False)
+    elif grid_axis == "y":
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.xaxis.grid(False)
+    elif grid_axis == "both":
+        ax.xaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
+    else:
+        ax.grid(False)
+    ax.set_axisbelow(True)
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=12, color=TEXT_COLOR)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=12, color=TEXT_COLOR)
+
+
+def _expand_upper_limit(max_value: float, ratio: float = 0.15) -> float:
+    if max_value <= 0:
+        return 1.0
+    return max_value * (1.0 + ratio)
+
+
+def _annotate_barh(ax, bars, values, total=None, offset=0.01, fontsize=10):
+    max_width = max((bar.get_width() for bar in bars), default=1.0)
+    x_pad = max_width * offset
+    for bar, val in zip(bars, values):
+        label = f"{val}"
+        if total:
+            label += f" ({100 * val / total:.1f}%)"
+        ax.text(
+            bar.get_width() + x_pad,
+            bar.get_y() + bar.get_height() / 2,
+            label,
+            va="center",
+            ha="left",
+            fontsize=fontsize,
+            color=TEXT_COLOR,
+        )
+
+
+def make_grouped_bar(ax, categories, series, labels, ylabel="Value", colors=None, annotate=False):
+    categories = list(categories)
+    series_arr = np.asarray(series, dtype=float)
+    if series_arr.ndim != 2:
+        raise ValueError("series must be a 2D array-like")
+    if series_arr.shape[1] != len(categories):
+        raise ValueError("len(categories) must match series columns")
+    n_groups = series_arr.shape[0]
+    colors = colors or DEFAULT_COLORS[:n_groups]
+    x = np.arange(len(categories))
+    width = 0.8 / max(n_groups, 1)
+    last_bars = None
+    for idx in range(n_groups):
+        last_bars = ax.bar(
+            x + (idx - (n_groups - 1) / 2) * width,
+            series_arr[idx],
+            width=width,
+            label=labels[idx],
+            color=colors[idx % len(colors)],
+            edgecolor="black",
+            linewidth=1.2,
+        )
+        if annotate:
+            for bar in last_bars:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height(),
+                    f"{bar.get_height():.2f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                    color=TEXT_COLOR,
+                )
+    ax.set_xticks(x)
+    ax.set_xticklabels(categories)
+    ax.set_ylabel(ylabel)
+    return last_bars
+
+
+def make_histogram(ax, values, bins, color, xlabel, ylabel="Count"):
+    ax.hist(
+        values,
+        bins=bins,
+        color=color,
+        edgecolor="black",
+        linewidth=1.1,
+        alpha=0.9,
+    )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+
+def make_box_summary(ax, values, color, title):
+    box = ax.boxplot(
+        values,
+        vert=True,
+        patch_artist=True,
+        widths=0.4,
+        boxprops=dict(facecolor=color, edgecolor="black", linewidth=1.5),
+        medianprops=dict(color="black", linewidth=1.8),
+        whiskerprops=dict(color="black", linewidth=1.3),
+        capprops=dict(color="black", linewidth=1.3),
+        flierprops=dict(marker="o", markersize=4, markerfacecolor=color, markeredgecolor="black", alpha=0.45),
+    )
+    ax.set_title(title, fontsize=13, fontweight="bold", pad=10)
+    ax.set_xticks([])
+    return box
 
 def fig_workflow(s: dict, out: Path) -> Path:
-    wf   = s["wf_counter"]
-    df   = pd.DataFrame(wf.items(), columns=["workflow","count"]).sort_values("count")
-    fig, ax = plt.subplots(figsize=(9,4), facecolor=BG_COLOR)
-    bars = ax.barh(df["workflow"], df["count"], color=BAR_COLOR, height=0.55)
-    for bar, val in zip(bars, df["count"]):
-        ax.text(bar.get_width()+2, bar.get_y()+bar.get_height()/2,
-                f"{val} ({100*val/s['total']:.1f}%)",
-                va="center", fontsize=8.5, color="#334155")
-    _style_ax(ax, "Workflow Distribution")
-    ax.set_xlabel("Number of Conversations", color="#475569", fontsize=9)
-    ax.set_xlim(0, df["count"].max()*1.22)
-    plt.tight_layout()
-    p = out/"fig1_workflow.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    wf = s["wf_counter"]
+    df = pd.DataFrame(wf.items(), columns=["workflow", "count"]).sort_values("count")
+    fig, axes = create_subplots(figsize=(9.5, 4.8))
+    ax = axes[0]
+    bars = ax.barh(
+        df["workflow"],
+        df["count"],
+        color=PALETTE["blue_main"],
+        edgecolor="black",
+        linewidth=1.2,
+        height=0.62,
+    )
+    _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.015, fontsize=10)
+    _style_ax(ax, "Workflow Distribution", xlabel="Number of conversations", grid_axis="x")
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.24))
+    fig.tight_layout(pad=1.2)
+    p = out / "fig1_workflow.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def fig_scene(s: dict, out: Path) -> Path:
-    sc  = s["scene_counter"]
-    df  = pd.DataFrame(sc.items(), columns=["scene","count"]).sort_values("count")
-    colors = [ACCENT if "danger" in x else BAR_COLOR for x in df["scene"]]
-    fig, ax = plt.subplots(figsize=(10,7), facecolor=BG_COLOR)
-    bars = ax.barh(df["scene"], df["count"], color=colors, height=0.65)
-    for bar, val in zip(bars, df["count"]):
-        ax.text(bar.get_width()+0.5, bar.get_y()+bar.get_height()/2,
-                f"{val}", va="center", fontsize=8, color="#334155")
-    _style_ax(ax, "Scene Tag Distribution  (🟡 = danger scenarios)")
-    ax.set_xlabel("Count", color="#475569", fontsize=9)
-    ax.set_xlim(0, df["count"].max()*1.18)
-    legend = [mpatches.Patch(color=ACCENT, label="danger scenarios"),
-              mpatches.Patch(color=BAR_COLOR, label="other")]
-    ax.legend(handles=legend, fontsize=8, loc="lower right")
-    plt.tight_layout()
-    p = out/"fig2_scene.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    sc = s["scene_counter"]
+    df = pd.DataFrame(sc.items(), columns=["scene", "count"]).sort_values("count")
+    colors = [
+        PALETTE["red_strong"] if "danger" in scene else PALETTE["blue_secondary"]
+        for scene in df["scene"]
+    ]
+    fig, axes = create_subplots(figsize=(10.8, 7.2))
+    ax = axes[0]
+    bars = ax.barh(
+        df["scene"],
+        df["count"],
+        color=colors,
+        edgecolor="black",
+        linewidth=1.0,
+        height=0.68,
+    )
+    _annotate_barh(ax, bars, df["count"], offset=0.012, fontsize=9.5)
+    _style_ax(ax, "Scene Tag Distribution", xlabel="Count", grid_axis="x")
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.18))
+    legend = [
+        mpatches.Patch(facecolor=PALETTE["red_strong"], edgecolor="black", label="Danger scenarios"),
+        mpatches.Patch(facecolor=PALETTE["blue_secondary"], edgecolor="black", label="Other scenarios"),
+    ]
+    ax.legend(handles=legend, loc="lower right")
+    fig.tight_layout(pad=1.2)
+    p = out / "fig2_scene.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def fig_turn_dist(s: dict, out: Path) -> Path:
     turns = s["turn_len_list"]
-    fig, ax = plt.subplots(figsize=(8,4), facecolor=BG_COLOR)
-    ax.set_facecolor(BG_COLOR)
-    sns.histplot(turns, bins=range(min(turns), max(turns)+2),
-                 color=BAR_COLOR, alpha=0.85, ax=ax, edgecolor="white")
-    ax.axvline(statistics.mean(turns),  color=ACCENT,    linestyle="--", lw=1.5, label=f"mean={statistics.mean(turns):.1f}")
-    ax.axvline(statistics.median(turns),color="#10B981", linestyle="--", lw=1.5, label=f"median={statistics.median(turns):.1f}")
-    _style_ax(ax, "Conversation Length Distribution (message turns)")
-    ax.set_xlabel("Number of Messages", color="#475569", fontsize=9)
-    ax.set_ylabel("Count", color="#475569", fontsize=9)
-    ax.spines["left"].set_visible(True)
-    ax.spines["left"].set_color(GRID_COLOR)
-    ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
-    ax.xaxis.grid(False)
-    ax.legend(fontsize=8)
-    plt.tight_layout()
-    p = out/"fig3_turn_dist.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    fig, axes = create_subplots(figsize=(8.4, 4.6))
+    ax = axes[0]
+    make_histogram(
+        ax,
+        turns,
+        bins=np.arange(min(turns) - 0.5, max(turns) + 1.5, 1),
+        color=PALETTE["blue_secondary"],
+        xlabel="Number of messages",
+    )
+    ax.axvline(
+        statistics.mean(turns),
+        color=PALETTE["red_strong"],
+        linestyle="--",
+        lw=2,
+        label=f"Mean = {statistics.mean(turns):.1f}",
+    )
+    ax.axvline(
+        statistics.median(turns),
+        color=PALETTE["teal"],
+        linestyle="--",
+        lw=2,
+        label=f"Median = {statistics.median(turns):.1f}",
+    )
+    _style_ax(ax, "Conversation Length Distribution", xlabel="Number of messages", ylabel="Count", grid_axis="y")
+    ax.legend(loc="upper right")
+    fig.tight_layout(pad=1.2)
+    p = out / "fig3_turn_dist.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def fig_token_dist(s: dict, out: Path) -> Path:
-    fig, axes = plt.subplots(1, 3, figsize=(13,4), facecolor=BG_COLOR)
+    fig, axes = create_subplots(1, 3, figsize=(12.6, 4.4))
     sets = [
-        (s["token_list"],      "Total tokens / conv",   "#2563EB"),
-        (s["user_token_list"], "User turn tokens",      "#10B981"),
-        (s["asst_token_list"], "Assistant turn tokens", "#F59E0B"),
+        (s["token_list"], "Total tokens / conv", PALETTE["blue_main"]),
+        (s["user_token_list"], "User turn tokens", PALETTE["green_3"]),
+        (s["asst_token_list"], "Assistant turn tokens", PALETTE["red_2"]),
     ]
     for ax, (lst, title, color) in zip(axes, sets):
-        ax.set_facecolor(BG_COLOR)
-        sns.boxplot(y=lst, ax=ax, color=color, width=0.4,
-                    flierprops=dict(marker="o", markersize=3, alpha=0.4))
-        ax.set_title(title, fontsize=10, fontweight="bold", color="#1E293B", pad=8)
-        ax.tick_params(colors="#475569", labelsize=8)
-        ax.spines[["top","right","bottom"]].set_visible(False)
-        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.8)
+        make_box_summary(ax, lst, color, title)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["left"].set_color(AXIS_COLOR)
+        ax.tick_params(labelsize=10, colors=AXIS_COLOR)
+        ax.yaxis.grid(True, color=GRID_COLOR, linewidth=0.9)
         med = statistics.median(lst)
-        ax.text(0.55, med, f"  median={med:.0f}", va="center",
-                fontsize=8, color="#334155", transform=ax.get_yaxis_transform())
-    fig.suptitle("Token Distribution (approx)", fontsize=13,
-                 fontweight="bold", color="#1E293B", y=1.02)
-    plt.tight_layout()
-    p = out/"fig4_token_dist.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+        ax.axhline(med, color=PALETTE["neutral_dark"], linestyle=":", linewidth=1.5)
+        x_right = ax.get_xlim()[1]  # 当前 x 轴右边界
+        ax.text(
+            x_right * 1.02,          # 比右边界再出去一点
+            med,
+            f"median = {med:.0f}",
+            va="center",
+            ha="left",
+            fontsize=9.5,
+            color=TEXT_COLOR,
+            clip_on=False,            # 允许文字超出 axes 边界显示
+        )
+    fig.suptitle("Token Distribution (approx.)", fontsize=16, fontweight="bold", y=1.02, color=TEXT_COLOR)
+    fig.tight_layout(pad=1.2)
+    p = out / "fig4_token_dist.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def fig_tool_freq(s: dict, out: Path) -> Path:
-    tc  = s["tool_counter"]
-    df  = pd.DataFrame(tc.items(), columns=["tool","count"]).sort_values("count")
-    fig, ax = plt.subplots(figsize=(10,6), facecolor=BG_COLOR)
-    colors  = [BAR_COLOR if i >= len(df)-5 else "#93C5FD" for i in range(len(df))]
-    bars    = ax.barh(df["tool"], df["count"], color=colors, height=0.6)
-    for bar, val in zip(bars, df["count"]):
-        ax.text(bar.get_width()+1, bar.get_y()+bar.get_height()/2,
-                str(val), va="center", fontsize=8.5, color="#334155")
-    _style_ax(ax, "Tool Call Frequency  (darker = top 5)")
-    ax.set_xlabel("Total Calls", color="#475569", fontsize=9)
-    ax.set_xlim(0, df["count"].max()*1.18)
-    plt.tight_layout()
-    p = out/"fig5_tool_freq.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    tc = s["tool_counter"]
+    df = pd.DataFrame(tc.items(), columns=["tool", "count"]).sort_values("count")
+    top_n_start = max(len(df) - 5, 0)
+    colors = [
+        PALETTE["blue_main"] if idx >= top_n_start else PALETTE["neutral"]
+        for idx in range(len(df))
+    ]
+    fig, axes = create_subplots(figsize=(10.4, 6.2))
+    ax = axes[0]
+    bars = ax.barh(
+        df["tool"],
+        df["count"],
+        color=colors,
+        edgecolor="black",
+        linewidth=1.0,
+        height=0.64,
+    )
+    _annotate_barh(ax, bars, df["count"], offset=0.014, fontsize=9.5)
+    _style_ax(ax, "Tool Call Frequency", xlabel="Total calls", grid_axis="x")
+    ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.2))
+    legend = [
+        mpatches.Patch(facecolor=PALETTE["blue_main"], edgecolor="black", label="Top 5 tools"),
+        mpatches.Patch(facecolor=PALETTE["neutral"], edgecolor="black", label="Other tools"),
+    ]
+    ax.legend(handles=legend, loc="lower right")
+    fig.tight_layout(pad=1.2)
+    p = out / "fig5_tool_freq.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def fig_platform_genre(s: dict, out: Path) -> Path:
-    fig, axes = plt.subplots(1, 2, figsize=(11,5), facecolor=BG_COLOR)
-    for ax, counter, title in [
-        (axes[0], s["platform_counter"], "Platform Distribution"),
-        (axes[1], s["genre_counter"],    "Game Genre Distribution"),
-    ]:
-        labels = list(counter.keys())
-        values = list(counter.values())
-        colors = sns.color_palette("Blues_r", len(labels))
-        wedges, texts, autotexts = ax.pie(
-            values, labels=labels, autopct="%1.1f%%",
-            colors=colors, startangle=90,
-            wedgeprops=dict(edgecolor="white", linewidth=1.5),
-            textprops=dict(fontsize=9, color="#1E293B"),
+    fig, axes = create_subplots(1, 2, figsize=(12.0, 5.2))
+    panels = [
+        (axes[0], s["platform_counter"], "Platform Distribution", PALETTE["teal"]),
+        (axes[1], s["genre_counter"], "Game Genre Distribution", PALETTE["violet"]),
+    ]
+    for ax, counter, title, color in panels:
+        df = pd.DataFrame(counter.items(), columns=["label", "count"]).sort_values("count")
+        bars = ax.barh(
+            df["label"],
+            df["count"],
+            color=color,
+            edgecolor="black",
+            linewidth=1.0,
+            height=0.62,
         )
-        for at in autotexts: at.set_fontsize(8)
-        ax.set_facecolor(BG_COLOR)
-        ax.set_title(title, fontsize=12, fontweight="bold",
-                     color="#1E293B", pad=10)
-    fig.patch.set_facecolor(BG_COLOR)
-    plt.tight_layout()
-    p = out/"fig6_platform_genre.png"
-    fig.savefig(p, dpi=150, bbox_inches="tight")
-    plt.close(fig)
+        _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.02, fontsize=9.5)
+        _style_ax(ax, title, xlabel="Count", grid_axis="x")
+        ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.24))
+    fig.tight_layout(pad=1.2, w_pad=1.8)
+    p = out / "fig6_platform_genre.png"
+    finalize_figure(fig, p, dpi=300, pad=0.04)
     return p
 
 def generate_all_figures(s: dict, out: Path) -> dict:
     print("🎨 Generating figures...")
+    apply_publication_style(FigureStyle(font_size=16, axes_linewidth=2.2))
     figs = {}
     figs["workflow"]       = fig_workflow(s, out)
     figs["scene"]          = fig_scene(s, out)
