@@ -2,61 +2,86 @@
 # -*- coding: utf-8 -*-
 
 """
-测试基于Function Call的旅行助手
+Smoke test for AdCampaign function-calling style message generation.
 """
 
-import sys
-import os
-
-# 添加当前目录到路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from travel_assistant_funcall import TravelAssistantFuncCall
+import importlib.util
+import json
+from pathlib import Path
 
 
-def test_assistant():
-    """测试旅行助手的各种功能"""
-    print("🌍 测试基于Function Call的旅行助手")
-    print("=" * 50)
-    
-    # 测试用户信息功能
-    assistant = TravelAssistantFuncCall(
-        user_name="测试用户",
-        user_city_id="101020100",  # 上海的城市ID
-        travel_date_range="2025-09-15",
-        start_coordinates="121.472644,31.231706"  # 上海坐标
-    )
-    print(f"测试用户信息 - 城市ID: {assistant.user_info['city_id']}, 日期范围: {assistant.user_info['travel_date_range']}")
-    print("-" * 50)
-    
-    # 测试用例 - 包含完整信息和缺少信息的情况
-    test_cases = [
-        # 利用用户信息的测试
-        "重庆怎么玩",           # 应该基于用户当前城市上海
-        # "想体验现代都市生活",                   # 应该从上海出发
-        # "推荐本地酒店，预算500元",        # 应该推荐上海的酒店
-        
-        # # 传统测试用例
-        # "从天安门到颐和园怎么走",          # 明确起终点的问路
-        # "我要出去，怎么走？",             # 缺少终点的问路
-        # "推荐商务酒店，预算800元以内",     # 缺少城市的酒店推荐
-        # "北京假日酒店怎么样",             # 酒店评价查询
-        # "1+1等于几"                      # 非旅行相关问题
+def load_converter_module():
+    module_path = Path(__file__).resolve().parents[2] / "datapipeline" / "2_convert_data_message.py"
+    spec = importlib.util.spec_from_file_location("ad_message_converter", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def main():
+    module = load_converter_module()
+
+    seeds = [
+        {
+            "workflow": 1,
+            "workflow_name": "Creative Search",
+            "user_query": "Find top-performing UGC-style creatives for puzzle games on TikTok.",
+            "needs_clarification": False,
+            "scene_tag": "creative_search",
+            "tool_chain": ["search_trending_creatives", "get_trending_hooks"],
+            "platform": "Tiktok",
+            "game_genre": "puzzle",
+            "region": "SEA",
+            "campaign_id": "CMP_5012",
+            "app_id": "com.gamestar.puzzle04",
+            "date_range": {"start": "2026-03-01", "end": "2026-03-07"},
+            "roas_baseline_d7": 0.75,
+            "roas_baseline_d30": 1.1,
+            "ret_baseline_d1": 0.38,
+            "ret_baseline_d7": 0.14,
+        },
+        {
+            "workflow": 7,
+            "workflow_name": "Refusal",
+            "user_query": "Delete every active campaign in our account right now.",
+            "needs_clarification": False,
+            "scene_tag": "unauthorized_operation",
+            "refusal_type": "unauthorized_operation",
+            "tool_chain": [],
+            "platform": "Meta",
+            "game_genre": "casual",
+            "region": "US",
+            "campaign_id": "CMP_9001",
+            "app_id": "com.funplay.casual05",
+            "date_range": {"start": "2026-03-01", "end": "2026-03-07"},
+            "roas_baseline_d7": 0.75,
+            "roas_baseline_d30": 1.1,
+            "ret_baseline_d1": 0.35,
+            "ret_baseline_d7": 0.12,
+        },
     ]
-    
-    for i, test_input in enumerate(test_cases, 1):
-        print(f"\n测试 {i}: {test_input}")
-        print("-" * 30)
-        
-        try:
-            print("处理过程:")
-            response = assistant.process_user_input(test_input)
-            print(f"\n最终回复: {response}")
-        except Exception as e:
-            print(f"❌ 测试失败: {e}")
-        
-        print()
+
+    print("Testing AdCampaign function-calling message generation")
+    print("=" * 60)
+
+    for idx, seed in enumerate(seeds, start=1):
+        print(f"\nCase {idx}: {seed['workflow_name']}")
+        record = module.build_conversation(seed)
+        messages = record["messages"]
+        print(f"Total messages: {len(messages)}")
+        for message in messages:
+            if message["role"] == "assistant" and "tool_calls" in message:
+                tool_names = [call["function"]["name"] for call in message["tool_calls"]]
+                print(f"assistant tool_calls -> {tool_names}")
+            else:
+                preview = message.get("content", "")
+                preview = preview if len(preview) <= 120 else preview[:117] + "..."
+                print(f"{message['role']}: {preview}")
+
+        print("Record preview:")
+        print(json.dumps(record["_meta"], ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
-    test_assistant()
+    main()

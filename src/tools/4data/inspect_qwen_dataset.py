@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import inspect as _inspect
+from pathlib import Path
 from typing import List, Tuple, Any, Dict, Optional
 
 import torch
@@ -268,7 +269,7 @@ def parse_args() -> argparse.Namespace:
 	--local_files_only: 仅本地加载分词器（离线）
 	"""
 	parser = argparse.ArgumentParser(description="Inspect Qwen SFT dataset: visualize assistant-only mask and converted tensors (standalone)")
-	parser.add_argument("--data_file", type=str, default="/root/autodl-tmp/merged_for_training_prompted.json",help="Path to JSON/JSONL file")
+	parser.add_argument("--data_file", type=str, default="", help="Path to JSON/JSONL file")
 	parser.add_argument("--model_name_or_path", type=str, default="qwen3-4b-instruct", help="Tokenizer source")
 	parser.add_argument("--max_seq_length", type=int, default=20000)
 	parser.add_argument("--num_samples", type=int, default=1, help="Number of samples to print")
@@ -282,7 +283,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument("--show_full_decoded", action="store_true", help="Show full decoded text per sample")
 	parser.add_argument("--only_last_assistant", action="store_true", help="Only mask the last assistant segment for loss")
 	# Global tools injection for samples missing tools
-	parser.add_argument("--tools_file", type=str, default="/root/autodl-tmp/all_tools.json", help="Path to JSON file with a list of tools to inject when sample.tools is missing")
+	parser.add_argument("--tools_file", type=str, default="", help="Path to JSON file with a list of tools to inject when sample.tools is missing")
 	parser.add_argument("--tools_json", type=str, default="", help="Inline JSON string (list) of tools to inject when sample.tools is missing")
 	return parser.parse_args()
 
@@ -372,6 +373,9 @@ def main() -> None:
 	- 可选导出处理后的张量
 	"""
 	args = parse_args()
+	if not args.data_file:
+		repo_root = Path(__file__).resolve().parents[3]
+		raise SystemExit(f"Please provide --data_file. Example dataset location: {repo_root / 'data'}")
 
 	print(f"Loading tokenizer: {args.model_name_or_path}")
 	tokenizer = AutoTokenizer.from_pretrained(

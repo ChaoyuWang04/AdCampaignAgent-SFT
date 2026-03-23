@@ -2,29 +2,39 @@
 # -*- coding: utf-8 -*-
 
 """
-测试数据生成
+Smoke test for the AdCampaign seed-data generator.
 """
 
+import importlib.util
 import json
-from src.generate_dataset import DatasetGenerator
+from pathlib import Path
+
+
+def load_seed_module():
+    module_path = Path(__file__).resolve().parents[2] / "datapipeline" / "1_ad_gen_data.py"
+    spec = importlib.util.spec_from_file_location("ad_seed_generator", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
 
 def main():
-    print("测试数据生成...")
-    generator = DatasetGenerator()
-    
-    # 生成少量测试数据
+    module = load_seed_module()
+    generator = module.AdDatasetGenerator("en")
+
+    print("Testing AdCampaign seed generation...")
     test_data = []
-    test_data.extend(generator.generate_travel_planning_no_ask(2))
-    test_data.extend(generator.generate_travel_planning_ask(1))
-    test_data.extend(generator.generate_route_no_ask(1))
-    test_data.extend(generator.generate_hotel_no_ask(1))
-    
-    print(f"生成了 {len(test_data)} 条测试数据")
-    
-    # 显示前几条数据
-    for i, item in enumerate(test_data[:3]):
-        print(f"\n示例 {i+1}:")
+    test_data.extend(generator.gen_workflow1_creative_search(2))
+    test_data.extend(generator.gen_workflow3_single_query(1))
+    test_data.extend(generator.gen_workflow4_deep_analysis(1))
+    test_data.extend(generator.gen_workflow7_refusal(1))
+
+    print(f"Generated {len(test_data)} seed records")
+    for i, item in enumerate(test_data[:3], start=1):
+        print(f"\nSample {i}:")
         print(json.dumps(item, ensure_ascii=False, indent=2))
+
 
 if __name__ == "__main__":
     main()

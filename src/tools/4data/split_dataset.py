@@ -2,126 +2,66 @@
 # -*- coding: utf-8 -*-
 
 """
-数据集划分脚本
-将数据集按类型划分为80%训练集和20%测试集
+Split an AdCampaign dataset into stratified train/test sets by workflow and scene.
 """
 
+import argparse
 import json
 import random
 from collections import defaultdict
+from pathlib import Path
 
-def split_dataset():
-    # 读取原始数据集
-    with open('travel_assistant_dataset_20250914_112354.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    print("开始划分数据集...")
-    print(f"原始数据总量: {len(data)}条")
-    
-    # 按类型分组数据
-    grouped_data = defaultdict(list)
-    
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Split AdCampaign dataset into train/test subsets")
+    parser.add_argument("--input", required=True, help="Path to source JSON dataset")
+    parser.add_argument("--train-output", default="", help="Optional train output path")
+    parser.add_argument("--test-output", default="", help="Optional test output path")
+    parser.add_argument("--train-ratio", type=float, default=0.8, help="Train split ratio")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    return parser.parse_args()
+
+
+def _group_key(item):
+    meta = item.get("_meta", {})
+    workflow = meta.get("workflow_name") or item.get("workflow_name") or "unknown_workflow"
+    scene = meta.get("scene_tag") or item.get("scene_tag") or "unknown_scene"
+    return workflow, scene
+
+
+def main():
+    args = parse_args()
+    input_path = Path(args.input)
+    data = json.loads(input_path.read_text(encoding="utf-8"))
+
+    grouped = defaultdict(list)
     for item in data:
-        workflow = item['工作流']
-        ask = item['是否追问']
-        
-        if workflow == 1:  # 旅行规划
-            if ask == '否':
-                key = '旅行规划（不需要反问）'
-            else:
-                key = '旅行规划（需要反问）'
-        elif workflow == 2:  # 问路
-            if ask == '否':
-                key = '问路（不需要反问）'
-            else:
-                key = '问路（需要反问）'
-        elif workflow == 3:  # 查询酒店
-            if ask == '否':
-                key = '查询酒店（不需要反问）'
-            else:
-                key = '查询酒店（需要反问）'
-        elif workflow == 4:  # 旅行相关
-            key = '旅行相关'
-        elif workflow == 5:  # 拒答
-            key = '拒答'
-        else:
-            key = f'未知工作流{workflow}'
-        
-        grouped_data[key].append(item)
-    
-    # 显示原始数据统计
-    print("\n原始数据统计:")
-    print("=" * 50)
-    for key, items in grouped_data.items():
-        print(f"{key}: {len(items)}条")
-    
-    # 设置随机种子确保可重现
-    random.seed(42)
-    
+        grouped[_group_key(item)].append(item)
+
+    random.seed(args.seed)
     train_data = []
     test_data = []
-    train_stats = {}
-    test_stats = {}
-    
-    # 对每个类型按80:20划分
-    for key, items in grouped_data.items():
-        # 打乱数据
+
+    for items in grouped.values():
         random.shuffle(items)
-        
-        total = len(items)
-        train_size = int(total * 0.8)
-        test_size = total - train_size
-        
-        # 划分训练集和测试集
-        train_items = items[:train_size]
-        test_items = items[train_size:]
-        
-        train_data.extend(train_items)
-        test_data.extend(test_items)
-        
-        train_stats[key] = len(train_items)
-        test_stats[key] = len(test_items)
-    
-    # 打乱最终的训练集和测试集
+        split_idx = int(len(items) * args.train_ratio)
+        if split_idx == 0 and len(items) > 1:
+            split_idx = 1
+        train_data.extend(items[:split_idx])
+        test_data.extend(items[split_idx:])
+
     random.shuffle(train_data)
     random.shuffle(test_data)
-    
-    # 保存训练集
-    train_filename = 'travel_assistant_train_dataset.json'
-    with open(train_filename, 'w', encoding='utf-8') as f:
-        json.dump(train_data, f, ensure_ascii=False, indent=2)
-    
-    # 保存测试集
-    test_filename = 'travel_assistant_test_dataset.json'
-    with open(test_filename, 'w', encoding='utf-8') as f:
-        json.dump(test_data, f, ensure_ascii=False, indent=2)
-    
-    # 显示划分结果
-    print("\n数据集划分完成!")
-    print("=" * 50)
-    print(f"训练集: {len(train_data)}条 -> {train_filename}")
-    print(f"测试集: {len(test_data)}条 -> {test_filename}")
-    
-    print("\n训练集统计:")
-    print("-" * 30)
-    for key in sorted(train_stats.keys()):
-        print(f"{key}: {train_stats[key]}条")
-    
-    print("\n测试集统计:")
-    print("-" * 30)
-    for key in sorted(test_stats.keys()):
-        print(f"{key}: {test_stats[key]}条")
-    
-    print("\n划分比例验证:")
-    print("-" * 30)
-    for key in sorted(train_stats.keys()):
-        total = train_stats[key] + test_stats[key]
-        train_ratio = train_stats[key] / total * 100
-        test_ratio = test_stats[key] / total * 100
-        print(f"{key}: 训练集{train_ratio:.1f}% ({train_stats[key]}/{total}), 测试集{test_ratio:.1f}% ({test_stats[key]}/{total})")
-    
-    print(f"\n总计: 训练集{len(train_data)}条, 测试集{len(test_data)}条")
-    print(f"总体比例: 训练集{len(train_data)/(len(train_data)+len(test_data))*100:.1f}%, 测试集{len(test_data)/(len(train_data)+len(test_data))*100:.1f}%")
+
+    train_output = Path(args.train_output) if args.train_output else input_path.with_name(f"{input_path.stem}_train.json")
+    test_output = Path(args.test_output) if args.test_output else input_path.with_name(f"{input_path.stem}_test.json")
+
+    train_output.write_text(json.dumps(train_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    test_output.write_text(json.dumps(test_data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(f"Train set: {len(train_data)} -> {train_output}")
+    print(f"Test set: {len(test_data)} -> {test_output}")
+
 
 if __name__ == "__main__":
-    split_dataset()
+    main()

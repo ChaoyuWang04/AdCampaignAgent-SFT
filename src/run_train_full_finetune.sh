@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 可按需修改以下三个路径
+# 这是示例脚本：请按本机环境修改以下三个路径
 TRAIN_FILE="/root/autodl-tmp/merged_training_data_20250823_084927.json"
 MODEL_PATH="/root/autodl-tmp/qwen3-0_6b"
 OUTPUT_DIR="/root/autodl-tmp/qwen3-0_6b_fullft_v2_last_assistant"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 mkdir -p "${OUTPUT_DIR}"
 
-python3 /root/autodl-tmp/train_qwen_full_finetune_last_assistant.py \
+python3 "${SCRIPT_DIR}/SFT/train_qwen_full_finetune_last_assistant.py" \
   --train_file "${TRAIN_FILE}" \
   --model_name_or_path "${MODEL_PATH}" \
   --output_dir "${OUTPUT_DIR}" \

@@ -4,6 +4,8 @@
 import argparse
 import os
 import json
+import sys
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 import torch
@@ -15,6 +17,10 @@ from transformers import (
     set_seed,
     TrainerCallback,
 )
+
+TOOLS_4DATA_DIR = Path(__file__).resolve().parents[1] / "tools" / "4data"
+if str(TOOLS_4DATA_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_4DATA_DIR))
 
 from inspect_qwen_dataset import JsonlConversations, DataCollatorForCausal
 

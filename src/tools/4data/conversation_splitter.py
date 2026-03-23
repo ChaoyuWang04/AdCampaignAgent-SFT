@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-对话数据拆分脚本
-功能：对merged_for_training_prompted.json进行操作，对于每一个元素，只要有一个assistant就拆分一次数据
-拆分规则：
-- 从system到第一个assistant的回复（包含）
-- 从system到第二个assistant的回复（包含）
-- 从system到最后一个assistant的回复（包含）
-- 最后一轮的assistant复制2份（一共3份）
+Split multi-turn conversations into assistant-prefix training samples.
 """
 
-import json
+import argparse
 import copy
-from typing import List, Dict, Any
+import json
+from pathlib import Path
 
-def split_conversations(input_file: str, output_file: str):
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Split conversations into assistant-prefix samples")
+    parser.add_argument("--input", required=True, help="Path to source JSON dataset")
+    parser.add_argument("--output", required=True, help="Path to output JSON dataset")
+    parser.add_argument("--duplicate-last", type=int, default=2, help="Extra copies for the final assistant-ending sample")
+    return parser.parse_args()
+
+
+def split_conversations(input_file: str, output_file: str, duplicate_last: int = 2):
     """
     拆分对话数据
     
@@ -33,12 +37,12 @@ def split_conversations(input_file: str, output_file: str):
     result = []
     
     for idx, conversation_data in enumerate(data):
-        if 'conversation' not in conversation_data:
-            print(f"警告: 第 {idx} 个对话没有conversation字段，跳过")
+        conversation = conversation_data.get("messages") or conversation_data.get("conversation")
+        key = "messages" if "messages" in conversation_data else "conversation"
+        if conversation is None:
+            print(f"警告: 第 {idx} 个对话没有 messages/conversation 字段，跳过")
             continue
-            
-        conversation = conversation_data['conversation']
-        
+
         # 检查是否包含任何"role": "tool"的消息
         has_tool_messages = any(message.get('role') == 'tool' for message in conversation)
         if not has_tool_messages:
@@ -62,18 +66,15 @@ def split_conversations(input_file: str, output_file: str):
         # 为每个assistant回复创建一个拆分的对话
         for assistant_idx, end_pos in enumerate(assistant_indices):
             # 创建从开始到当前assistant回复的对话片段
-            split_conversation = {
-                'conversation': conversation[:end_pos + 1]  # 包含当前assistant回复
-            }
+            split_conversation = copy.deepcopy(conversation_data)
+            split_conversation[key] = copy.deepcopy(conversation[:end_pos + 1])
             result.append(split_conversation)
             
             # 如果是最后一个assistant回复，额外复制2份（总共3份）
             if assistant_idx == len(assistant_indices) - 1:
-                # 第二份
-                result.append(copy.deepcopy(split_conversation))
-                # 第三份
-                result.append(copy.deepcopy(split_conversation))
-                print(f"  - 最后一轮assistant回复额外复制了2份")
+                for _ in range(max(duplicate_last, 0)):
+                    result.append(copy.deepcopy(split_conversation))
+                print(f"  - 最后一轮assistant回复额外复制了 {max(duplicate_last, 0)} 份")
     
     print(f"拆分完成，总共生成 {len(result)} 个对话片段")
     
@@ -90,12 +91,9 @@ def split_conversations(input_file: str, output_file: str):
     print(f"扩展倍数: {len(result) / len(data):.2f}")
 
 def main():
-    """主函数"""
-    input_file = "/root/autodl-tmp/Agent+SFT/merged_train_final.json"
-    output_file = "/root/autodl-tmp/Agent+SFT/merged_train_final_multiturn_v2.json"
-    
+    args = parse_args()
     try:
-        split_conversations(input_file, output_file)
+        split_conversations(args.input, args.output, args.duplicate_last)
         print("\n✅ 拆分任务完成！")
     except Exception as e:
         print(f"❌ 处理过程中出现错误: {e}")

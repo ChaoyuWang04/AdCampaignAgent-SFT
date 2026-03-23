@@ -79,10 +79,12 @@ def find_input_file(filename: str) -> Path:
       3. 项目根目录下的 data/ 子目录
     找不到时打印友好提示并退出。
     """
+    repo_root = Path(__file__).resolve().parents[2]
+    data_dir = repo_root / "data"
     candidates = [
         Path(filename),                                    # 1. 直接路径
-        Path(__file__).parent.parent / filename,           # 2. 项目根目录
-        Path(__file__).parent.parent / "data" / filename,  # 3. data/ 子目录
+        repo_root / filename,                              # 2. 项目根目录
+        data_dir / filename,                               # 3. data/ 子目录
     ]
     for p in candidates:
         if p.exists():
@@ -90,7 +92,6 @@ def find_input_file(filename: str) -> Path:
             return p.resolve()
 
     # 未找到：列出 data/ 里有哪些 json 文件给用户参考
-    data_dir = Path(__file__).parent.parent / "data"
     print(f"\n❌ File not found: '{filename}'")
     print(f"   Searched in:")
     for c in candidates:
@@ -112,8 +113,9 @@ def make_output_dir(input_path: Path) -> Path:
     例：data/ad_agent_sft_20260316.json
      → checker/ad_agent_sft_20260316/
     """
-    stem       = input_path.stem
-    checker    = Path(__file__).parent.parent / "checker" / stem
+    repo_root = Path(__file__).resolve().parents[2]
+    stem = input_path.stem
+    checker = repo_root / "checker" / stem
     checker.mkdir(parents=True, exist_ok=True)
     print(f"📁 Report will be saved to: {checker.resolve()}")
     return checker
