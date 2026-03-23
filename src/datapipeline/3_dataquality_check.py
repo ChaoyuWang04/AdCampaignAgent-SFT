@@ -565,7 +565,7 @@ def fig_scene(s: dict, out: Path) -> Path:
     ax = axes[0]
     bars = ax.barh(df["scene"], df["count"], color=colors,
                    edgecolor="white", linewidth=0.7, height=0.68)
-    _annotate_barh(ax, bars, df["count"], offset=0.012, fontsize=9.5)
+    _annotate_barh(ax, bars, df["count"], offset=0.012, fontsize=9)
     _style_ax(ax, "Scene Tag Distribution", xlabel="Count", grid_axis="x")
     ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.20))
     legend = [
@@ -695,7 +695,7 @@ def fig_tool_freq(s: dict, out: Path) -> Path:
     ax = axes[0]
     bars = ax.barh(df["tool"], df["count"], color=colors,
                    edgecolor="white", linewidth=0.7, height=0.64)
-    _annotate_barh(ax, bars, df["count"], offset=0.014, fontsize=9.5)
+    _annotate_barh(ax, bars, df["count"], offset=0.014, fontsize=9)
     _style_ax(ax, "Tool Call Frequency", xlabel="Total calls", grid_axis="x")
     ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.22))
     legend = [
@@ -722,7 +722,7 @@ def fig_platform_genre(s: dict, out: Path) -> Path:
         colors = [QUAL_COLORS[i % len(QUAL_COLORS)] for i in range(len(df))]
         bars = ax.barh(df["label"], df["count"], color=colors,
                        edgecolor="white", linewidth=0.7, height=0.62)
-        _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.02, fontsize=9.5)
+        _annotate_barh(ax, bars, df["count"], total=s["total"], offset=0.02, fontsize=9)
         _style_ax(ax, title, xlabel="Count", grid_axis="x")
         ax.set_xlim(0, _expand_upper_limit(df["count"].max(), 0.26))
     fig.tight_layout(pad=1.2, w_pad=1.8)
