@@ -77,8 +77,6 @@ def split_conversations(input_file: str, output_file: str):
             print(f"警告: 第 {idx} 个对话没有assistant回复，跳过")
             continue
         
-        print(f"处理第 {idx} 个对话，找到 {len(assistant_indices)} 个assistant回复")
-        
         # 为每个assistant回复创建一个拆分的对话
         for assistant_idx, end_pos in enumerate(assistant_indices):
             # 创建从开始到当前assistant回复的对话片段
@@ -93,7 +91,6 @@ def split_conversations(input_file: str, output_file: str):
                 result.append(copy.deepcopy(split_conversation))
                 # 第三份
                 result.append(copy.deepcopy(split_conversation))
-                print(f"  - 最后一轮assistant回复额外复制了2份")
     
     print(f"拆分完成，总共生成 {len(result)} 个对话片段")
     

@@ -60,3 +60,30 @@ def test_main_prompts_for_filename_and_uses_same_directory(monkeypatch, tmp_path
 
     assert captured["input"] == input_path
     assert captured["output"] == expected_output
+
+
+def test_split_conversations_does_not_print_per_conversation_logs(tmp_path, capsys):
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+    input_path.write_text(
+        """
+[
+  {
+    "messages": [
+      {"role": "system", "content": "s"},
+      {"role": "user", "content": "u"},
+      {"role": "assistant", "content": "a1"},
+      {"role": "tool", "content": "t1"},
+      {"role": "assistant", "content": "a2"}
+    ]
+  }
+]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    conversation_splitter.split_conversations(input_path, output_path)
+
+    stdout = capsys.readouterr().out
+    assert "处理第" not in stdout
+    assert "额外复制了2份" not in stdout
