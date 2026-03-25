@@ -894,8 +894,8 @@ class AdDatasetGenerator:
         # ── Save ──
         if output_path is None:
             repo_root = Path(__file__).resolve().parents[2]
-            data_dir = repo_root / "data"
-            data_dir.mkdir(exist_ok=True)
+            data_dir = repo_root / "data" / "raw"
+            data_dir.mkdir(parents=True, exist_ok=True)
             output_path = data_dir / f"ad_agent_seeds_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{self.lang}.json"
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(all_records, f, ensure_ascii=False, indent=2)

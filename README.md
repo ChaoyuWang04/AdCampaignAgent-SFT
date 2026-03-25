@@ -133,25 +133,23 @@ Produces 1,000 structured seed records covering 7 workflows and 22 scene tags, w
 uv run python src/datapipeline/1_ad_gen_data.py
 # Then choose language: zh or en
 # Output examples:
-#   data/ad_agent_seeds_<timestamp>_zh.json
-#   data/ad_agent_seeds_<timestamp>_en.json
+#   data/raw/ad_agent_seeds_<timestamp>_zh.json
+#   data/raw/ad_agent_seeds_<timestamp>_en.json
 ```
 
 **Stage 2 — Generate conversations**
 
-Converts each seed into a full multi-turn dialogue in OpenAI Messages format. Tool results are mock-generated deterministically from the seed's `scene_tag` and baselines, ensuring all metrics within a single conversation are internally consistent.
+Converts each seed into a full multi-turn dialogue in either OpenAI Messages or ShareGPT format. Tool results are mock-generated deterministically from the seed's `scene_tag` and baselines, ensuring all metrics within a single conversation are internally consistent.
 
 ```sh
-uv run python src/datapipeline/2_convert_data_message.py
-# or generate ShareGPT format:
-uv run python src/datapipeline/2_convert_dataset_sharegpt.py
-# Then enter the seed file name when prompted, e.g.:
+uv run python src/datapipeline/convert_dataset.py
+# Then enter the seed file name and choose the output format (message/sharegpt), e.g.:
 # ad_agent_seeds_<timestamp>_en.json
 # Output examples:
-#   data/ad_agent_sft_<timestamp>_zh_message.json
-#   data/ad_agent_sft_<timestamp>_en_message.json
-#   data/ad_agent_sft_<timestamp>_zh_sharegpt.json
-#   data/ad_agent_sft_<timestamp>_en_sharegpt.json
+#   data/ready2train/message/ad_agent_sft_<timestamp>_zh_message.json
+#   data/ready2train/message/ad_agent_sft_<timestamp>_en_message.json
+#   data/ready2train/sharegpt/ad_agent_sft_<timestamp>_zh_sharegpt.json
+#   data/ready2train/sharegpt/ad_agent_sft_<timestamp>_en_sharegpt.json
 ```
 
 **Stage 3 — Quality analysis & report**
@@ -173,6 +171,18 @@ uv run python src/datapipeline/3_dataquality_check.py
 #           ├── fig4_token_dist.png
 #           ├── fig5_tool_freq.png
 #           └── fig6_platform_genre.png
+```
+
+**Optional — Expand message datasets into multiturn samples**
+
+Splits a message-format dataset by assistant turns. The script prompts for the JSON file name, reads it from `data/ready2train/message/`, and writes the result back into the same folder with `_multiturn` appended to the file name.
+
+```sh
+uv run python src/datapipeline/conversation_splitter.py
+# Then enter a JSON file name, e.g.:
+# ad_agent_sft_<timestamp>_en_message.json
+# Output example:
+#   data/ready2train/message/ad_agent_sft_<timestamp>_en_message_multiturn.json
 ```
 
 **Quick format validation (no full report)**

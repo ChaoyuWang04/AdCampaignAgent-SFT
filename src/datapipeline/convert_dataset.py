@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Ad Campaign Agent - Phase 2: Conversation Generator
-Format: OpenAI Messages (role/content/tool_calls/tool_call_id)
-Input:  ad_agent_seeds_*.json  (from 1.1_ad_gen_data_cn.py / 1.2_ad_gen_data_en.py)
-Output: ad_agent_sft_dataset.json (HuggingFace / LLaMA Factory ready)
+Formats: OpenAI Messages or ShareGPT
+Input: ad_agent_seeds_*.json
+Output: ad_agent_sft_*.json
 """
 
 import json
@@ -61,7 +61,9 @@ UI_TEXT = {
         "lang_prompt": "请选择语言 (zh/en): ",
         "invalid_lang": "❌ 语言输入无效，请输入 zh 或 en。",
         "file_prompt": "Input JSON file name: ",
-        "file_not_found": "❌ 数据文件没有找到: {name} (在 {data_dir} 和 {script_dir} 两个路径中)",
+        "format_prompt": "请选择输出格式 (message/sharegpt): ",
+        "invalid_format": "❌ 格式输入无效，请输入 message 或 sharegpt。",
+        "file_not_found": "❌ 数据文件没有找到: {name} (在 {data_dir}、{raw_dir} 和 {script_dir} 三个路径中)",
         "found_input": "📂 Found input: {path}",
         "output_path": "💾 输出的结果已保存至: {path}",
     },
@@ -77,7 +79,9 @@ UI_TEXT = {
         "lang_prompt": "Choose language (zh/en): ",
         "invalid_lang": "❌ Invalid language. Please enter zh or en.",
         "file_prompt": "Input JSON file name: ",
-        "file_not_found": "❌ File not found: {name} (searched in {data_dir} and {script_dir})",
+        "format_prompt": "Choose output format (message/sharegpt): ",
+        "invalid_format": "❌ Invalid format. Please enter message or sharegpt.",
+        "file_not_found": "❌ File not found: {name} (searched in {data_dir}, {raw_dir}, and {script_dir})",
         "found_input": "📂 Found input: {path}",
         "output_path": "💾 Output will be saved to: {path}",
     },
@@ -787,8 +791,10 @@ This campaign has been running for a short time (fewer than 3 days), and current
 
 
 # ─────────────────────────────────────────────────────────────
-# 6. Conversation Builder (OpenAI Messages format)
+# 6. Conversation Builder
 # ─────────────────────────────────────────────────────────────
+
+FORMAT_TYPES = {"message", "sharegpt"}
 
 def make_tool_call_message(tool_name: str, arguments: Dict) -> Tuple[Dict, str]:
     """Generate an assistant tool_call message; returns (message, call_id)"""
@@ -810,6 +816,17 @@ def make_tool_call_message(tool_name: str, arguments: Dict) -> Tuple[Dict, str]:
 def make_tool_result_message(result: str, call_id: str) -> Dict:
     """Generate a tool result message; call_id must strictly match the corresponding tool_call"""
     return {"role": "tool", "content": result, "tool_call_id": call_id}
+
+
+def make_sharegpt_tool_call_turn(tool_name: str, arguments: Dict) -> Dict:
+    return {
+        "from": "gpt",
+        "value": f'<tool_call>{{"name": "{tool_name}", "arguments": {json.dumps(arguments, ensure_ascii=False)}}}</tool_call>',
+    }
+
+
+def make_sharegpt_tool_result_turn(result: str) -> Dict:
+    return {"from": "tool", "value": result}
 
 
 def build_clarify_question(seed: Dict, lang: str) -> str:
@@ -854,7 +871,7 @@ def build_refusal(seed: Dict, lang: str) -> str:
           "Sorry, this request is outside my scope.")
 
 
-def build_conversation(seed: Dict, lang: str) -> Dict:
+def build_message_record(seed: Dict, lang: str) -> Dict:
     executor   = MockToolExecutor(seed, lang)
     tool_chain = seed.get("tool_chain", [])
     workflow   = seed.get("workflow", 0)
@@ -872,7 +889,7 @@ def build_conversation(seed: Dict, lang: str) -> Dict:
     # ── Refusal flow ends immediately ─────────────────────────
     if workflow == 7:
         messages.append({"role": "assistant", "content": build_refusal(seed, lang)})
-        return _wrap(seed, messages)
+        return wrap_record(seed, messages, "message")
 
     # ── Tool chain: each tool gets its own assistant turn + tool turn ─
     for tool_name in tool_chain:
@@ -885,12 +902,41 @@ def build_conversation(seed: Dict, lang: str) -> Dict:
     # ── Final assistant natural language response ─────────────
     messages.append({"role": "assistant", "content": build_final_response(seed, executor)})
 
-    return _wrap(seed, messages)
+    return wrap_record(seed, messages, "message")
 
 
-def _wrap(seed: Dict, messages: List[Dict]) -> Dict:
+def build_sharegpt_record(seed: Dict, lang: str) -> Dict:
+    executor = MockToolExecutor(seed, lang)
+    tool_chain = seed.get("tool_chain", [])
+    workflow = seed.get("workflow", 0)
+
+    conversations: List[Dict] = [{"from": "system", "value": SYSTEM_PROMPTS[lang]}]
+
+    if seed.get("needs_clarification"):
+        conversations.append({"from": "human", "value": seed["user_query"]})
+        conversations.append({"from": "gpt", "value": build_clarify_question(seed, lang)})
+        conversations.append({"from": "human", "value": seed.get("clarification_answer", "")})
+    else:
+        conversations.append({"from": "human", "value": seed["user_query"]})
+
+    if workflow == 7:
+        conversations.append({"from": "gpt", "value": build_refusal(seed, lang)})
+        return wrap_record(seed, conversations, "sharegpt")
+
+    for tool_name in tool_chain:
+        arguments = build_tool_arguments(tool_name, seed)
+        result = executor.execute(tool_name, arguments)
+        conversations.append(make_sharegpt_tool_call_turn(tool_name, arguments))
+        conversations.append(make_sharegpt_tool_result_turn(result))
+
+    conversations.append({"from": "gpt", "value": build_final_response(seed, executor)})
+    return wrap_record(seed, conversations, "sharegpt")
+
+
+def wrap_record(seed: Dict, turns: List[Dict], output_format: str) -> Dict:
+    record_key = "messages" if output_format == "message" else "conversations"
     return {
-        "messages": messages,
+        record_key: turns,
         "_meta": {
             "workflow":      seed.get("workflow"),
             "workflow_name": seed.get("workflow_name"),
@@ -902,13 +948,65 @@ def _wrap(seed: Dict, messages: List[Dict]) -> Dict:
     }
 
 
+def build_record(seed: Dict, lang: str, output_format: str) -> Dict:
+    if output_format == "message":
+        return build_message_record(seed, lang)
+    if output_format == "sharegpt":
+        return build_sharegpt_record(seed, lang)
+    raise ValueError(f"Unsupported output format: {output_format}")
+
+
+def get_turns(record: Dict, output_format: str) -> List[Dict]:
+    if output_format == "message":
+        return record["messages"]
+    if output_format == "sharegpt":
+        return record["conversations"]
+    raise ValueError(f"Unsupported output format: {output_format}")
+
+
+def resolve_input_path(input_name: str) -> Path:
+    script_dir = Path(__file__).resolve().parent
+    repo_root = script_dir.parents[1]
+    data_dir = repo_root / "data"
+    raw_dir = data_dir / "raw"
+
+    for candidate in (raw_dir / input_name, data_dir / input_name, script_dir / input_name):
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        UI_TEXT["en"]["file_not_found"].format(
+            name=input_name,
+            data_dir=data_dir,
+            raw_dir=raw_dir,
+            script_dir=script_dir,
+        )
+    )
+
+
+def derive_output_path(input_path: Path, output_format: str) -> Path:
+    if output_format not in FORMAT_TYPES:
+        raise ValueError(f"Unsupported output format: {output_format}")
+
+    repo_root = Path(__file__).resolve().parents[2]
+    ready_dir = repo_root / "data" / "ready2train" / output_format
+    ready_dir.mkdir(parents=True, exist_ok=True)
+
+    stem = input_path.stem
+    out_stem = stem.replace("seeds", "sft") if "seeds" in stem else f"{stem}_sft"
+    return ready_dir / f"{out_stem}_{output_format}.json"
+
+
 # ─────────────────────────────────────────────────────────────
 # 7. Main
 # ─────────────────────────────────────────────────────────────
 
-def main(input_path: str  = "ad_agent_seeds.json",
-         output_path: str = "ad_agent_sft_dataset.json",
-         lang: str = "en"):
+def main(
+    input_path: str = "ad_agent_seeds.json",
+    output_path: str = "ad_agent_sft_dataset.json",
+    lang: str = "en",
+    output_format: str = "message",
+):
     ui = UI_TEXT[lang]
 
     seeds = json.loads(Path(input_path).read_text(encoding="utf-8"))
@@ -917,7 +1015,7 @@ def main(input_path: str  = "ad_agent_seeds.json",
     records, failed = [], 0
     for seed in tqdm(seeds, desc=ui["desc"]):
         try:
-            records.append(build_conversation(seed, lang))
+            records.append(build_record(seed, lang, output_format))
         except Exception as e:
             failed += 1
             tqdm.write(ui["skip"].format(error=e))
@@ -928,7 +1026,7 @@ def main(input_path: str  = "ad_agent_seeds.json",
         m = r["_meta"]
         wf_cnt[m["workflow_name"]] = wf_cnt.get(m["workflow_name"], 0) + 1
         sc_cnt[m["scene_tag"]]     = sc_cnt.get(m["scene_tag"], 0) + 1
-        turn_lens.append(len(r["messages"]))
+        turn_lens.append(len(get_turns(r, output_format)))
 
     print(ui["done"].format(count=len(records), failed=failed))
     print(ui["avg_turns"].format(value=sum(turn_lens)/max(len(turn_lens),1)))
@@ -953,33 +1051,35 @@ if __name__ == "__main__":
             break
         print(UI_TEXT["en"]["invalid_lang"])
 
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parents[1]
-    data_dir = repo_root / "data"
-
     ui = UI_TEXT[lang]
     inp = input(ui["file_prompt"]).strip()
 
-    # Search in data/ first, then script dir as fallback
-    candidate = data_dir / inp
-    if not candidate.exists():
-        candidate = script_dir / inp
-    if not candidate.exists():
-        print(ui["file_not_found"].format(name=inp, data_dir=data_dir, script_dir=script_dir))
-        exit(1)
+    while True:
+        output_format = input(ui["format_prompt"]).strip().lower()
+        if output_format in FORMAT_TYPES:
+            break
+        print(ui["invalid_format"])
 
-    inp_path = candidate
+    try:
+        inp_path = resolve_input_path(inp)
+    except FileNotFoundError:
+        script_dir = Path(__file__).resolve().parent
+        repo_root = script_dir.parents[1]
+        data_dir = repo_root / "data"
+        raw_dir = data_dir / "raw"
+        print(
+            ui["file_not_found"].format(
+                name=inp,
+                data_dir=data_dir,
+                raw_dir=raw_dir,
+                script_dir=script_dir,
+            )
+        )
+        raise SystemExit(1)
+
     print(ui["found_input"].format(path=inp_path))
 
-    # Auto-derive output path in data/ with same naming convention
-    stem = inp_path.stem  # filename without extension
-    if "seeds" in stem:
-        out_stem = stem.replace("seeds", "sft")
-    else:
-        out_stem = stem + "_sft"
-    
-    data_dir.mkdir(exist_ok=True)
-    out_path = data_dir / f"{out_stem}_message.json"
+    out_path = derive_output_path(inp_path, output_format)
     print(ui["output_path"].format(path=out_path))
 
-    main(str(inp_path), str(out_path), lang)
+    main(str(inp_path), str(out_path), lang, output_format)

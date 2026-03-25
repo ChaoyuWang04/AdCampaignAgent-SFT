@@ -12,6 +12,7 @@
 
 import json
 import copy
+from pathlib import Path
 from typing import List, Dict, Any
 
 if __package__ in {None, ""}:
@@ -19,7 +20,19 @@ if __package__ in {None, ""}:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.common.project_paths import processed_data_dir
+DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[2] / "data" / "ready2train" / "message"
+
+
+def resolve_input_path(input_name: str) -> Path:
+    input_path = DEFAULT_DATASET_DIR / input_name
+    if input_path.exists():
+        return input_path
+
+    raise FileNotFoundError(f"未找到文件: {input_path}")
+
+
+def derive_output_path(input_path: Path) -> Path:
+    return input_path.with_name(f"{input_path.stem}_multiturn{input_path.suffix}")
 
 def split_conversations(input_file: str, output_file: str):
     """
@@ -40,11 +53,11 @@ def split_conversations(input_file: str, output_file: str):
     result = []
     
     for idx, conversation_data in enumerate(data):
-        if 'conversation' not in conversation_data:
-            print(f"警告: 第 {idx} 个对话没有conversation字段，跳过")
+        if "messages" not in conversation_data:
+            print(f"警告: 第 {idx} 个对话没有messages字段，跳过")
             continue
             
-        conversation = conversation_data['conversation']
+        conversation = conversation_data["messages"]
         
         # 检查是否包含任何"role": "tool"的消息
         has_tool_messages = any(message.get('role') == 'tool' for message in conversation)
@@ -70,7 +83,7 @@ def split_conversations(input_file: str, output_file: str):
         for assistant_idx, end_pos in enumerate(assistant_indices):
             # 创建从开始到当前assistant回复的对话片段
             split_conversation = {
-                'conversation': conversation[:end_pos + 1]  # 包含当前assistant回复
+                "messages": conversation[:end_pos + 1]  # 包含当前assistant回复
             }
             result.append(split_conversation)
             
@@ -98,8 +111,9 @@ def split_conversations(input_file: str, output_file: str):
 
 def main():
     """主函数"""
-    input_file = processed_data_dir() / "merged_train_final.json"
-    output_file = processed_data_dir() / "merged_train_final_multiturn_v2.json"
+    input_name = input("请输入要处理的 JSON 文件名: ").strip()
+    input_file = resolve_input_path(input_name)
+    output_file = derive_output_path(input_file)
     
     try:
         split_conversations(input_file, output_file)
