@@ -4,9 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-TRAIN_FILE="${REPO_ROOT}/data/processed/ad_agent_sft_20260324_211651_en_message_multiturn.json"
-MODEL_PATH="${REPO_ROOT}/models/qwen3-0_6b"
-OUTPUT_DIR="${REPO_ROOT}/models/qwen3-0_6b_lora_last_assistant"
+TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260324_211651_en_message_multiturn.json"
+MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base"
+
+# DEBUG 模式：输出到独立目录，避免覆盖正式 checkpoint
+DEBUG=${DEBUG:-0}
+if [ "${DEBUG}" = "1" ]; then
+  OUTPUT_DIR="${REPO_ROOT}/models/debug_output"
+  EXTRA_ARGS="--max_steps 2 --max_seq_length 512 --logging_steps 1 --save_steps 999999"
+  echo "🧪 DEBUG mode — 2 steps only"
+else
+  OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B-Base_lora_last_assistant"
+  EXTRA_ARGS=""
+  echo "🚀 Full training"
+fi
 
 mkdir -p "${OUTPUT_DIR}"
 
@@ -26,4 +37,5 @@ python3 "${REPO_ROOT}/src/train/train_qwen_last_assistant_lora.py" \
   --lr_scheduler_type cosine \
   --bf16 \
   --gradient_checkpointing \
-  --local_files_only 
+  --local_files_only \
+  ${EXTRA_ARGS}
