@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-TRAIN_FILE="${REPO_ROOT}/data/processed/merged_train_final_multiturn_v2.json"
+TRAIN_FILE="${REPO_ROOT}/data/processed/ad_agent_sft_20260324_211651_en_message_multiturn.json"
 MODEL_PATH="${REPO_ROOT}/models/qwen3-0_6b"
 OUTPUT_DIR="${REPO_ROOT}/models/qwen3-0_6b_lora_last_assistant"
 

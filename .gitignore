@@ -47,3 +47,8 @@ rag-system/*.db
 rag-system/*.db.lock
 
 figures4papers-main/
+
+# Ignore everything in models/
+models/**
+# But keep the README
+!models/README.md
