@@ -42,4 +42,8 @@ pip-wheel-metadata/
 # Jupyter
 .ipynb_checkpoints/
 
+# RAG local database artifacts
+rag-system/*.db
+rag-system/*.db.lock
+
 figures4papers-main/
