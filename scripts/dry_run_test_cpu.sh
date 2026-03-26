@@ -12,7 +12,7 @@ mkdir -p "${OUTPUT_DIR}"
 
 echo "🧪 Dry run on CPU — 2 steps only"
 
-python3 "${REPO_ROOT}/src/train/train_qwen_last_assistant_lora_fixed.py" \
+python3 "${REPO_ROOT}/src/train/train_qwen_lora_last_assistant_turn_only.py" \
   --train_file "${TRAIN_FILE}" \
   --model_name_or_path "${MODEL_PATH}" \
   --output_dir "${OUTPUT_DIR}" \

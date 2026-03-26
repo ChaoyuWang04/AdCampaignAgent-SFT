@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
 """
-LoRA fine-tuning script for Qwen3 models.
-只对每条对话的最后一条 assistant 消息计算 loss（last-assistant loss masking）。
+LoRA SFT for Qwen models.
+只对每条对话中的最后一条 assistant 回复计算 loss。
 
 核心思路：
   原始 LLM 训练会对所有 token 计算 loss（包括 user 的输入）。
@@ -84,7 +84,9 @@ class ConsoleLossCallback(TrainerCallback):
 # 命令行参数定义
 # ─────────────────────────────────────────────────────────
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="LoRA fine-tuning for Qwen3 (last-assistant loss only)")
+    parser = argparse.ArgumentParser(
+        description="LoRA fine-tuning for Qwen with loss on the last assistant turn only"
+    )
 
     # ── 数据和模型路径 ──────────────────────────────────────
     parser.add_argument(
@@ -356,7 +358,7 @@ def main():
 
     # ── 7. 加载数据集 ────────────────────────────────────────
     # JsonlConversations 会把对话格式化为模型输入，
-    # 并用 only_last_assistant=True 屏蔽非最后一条 assistant 的 loss
+    # 并用 only_last_assistant=True 只保留最后一条 assistant 回复的 loss
     print(f"Loading dataset: {args.train_file}")
     train_dataset = JsonlConversations(
         args.train_file,

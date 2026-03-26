@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+TRL LoRA SFT for Qwen function-calling.
+使用 completion-only mask，只对 assistant completion 区域计算 loss。
+"""
 
 import os
 import json
@@ -33,7 +37,9 @@ def setup_logging() -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="TRL SFT LoRA training for Qwen3 FC ability")
+    parser = argparse.ArgumentParser(
+        description="TRL LoRA SFT for Qwen function-calling with completion-only loss"
+    )
 
     parser.add_argument(
         "--model_name_or_path",
@@ -398,7 +404,7 @@ def main() -> None:
     logging.info(f"Loading dataset from: {args.dataset_path}")
     train_dataset, dataset_text_field = load_and_prepare_dataset(args.dataset_path, tokenizer, args.min_assistant_chars)
 
-    # collator to only compute loss on assistant response; default response_template fits Qwen ChatML
+    # Completion-only collator: only assistant completion tokens contribute to loss
     data_collator = DataCollatorForCompletionOnlyLM(
         response_template=args.response_template,
         tokenizer=tokenizer,

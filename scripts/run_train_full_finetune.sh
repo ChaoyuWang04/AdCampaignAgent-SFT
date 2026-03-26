@@ -10,7 +10,7 @@ OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B-Base_fullft_last_assistant"
 
 mkdir -p "${OUTPUT_DIR}"
 
-python3 "${REPO_ROOT}/src/train/train_qwen_full_finetune_last_assistant.py" \
+python3 "${REPO_ROOT}/src/train/train_qwen_full_finetune_last_assistant_turn_only.py" \
   --train_file "${TRAIN_FILE}" \
   --model_name_or_path "${MODEL_PATH}" \
   --output_dir "${OUTPUT_DIR}" \

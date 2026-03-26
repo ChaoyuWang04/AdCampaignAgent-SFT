@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # coding: utf-8
+"""
+Function-calling SFT for Qwen models.
+对每条对话中的所有 assistant 回复计算 loss，可选启用 QLoRA。
+"""
 
 import argparse
 import json
@@ -41,7 +45,9 @@ from src.common.project_paths import default_model_dir
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="SFT for Qwen function-calling with assistant-only loss masking")
+    parser = argparse.ArgumentParser(
+        description="Function-calling SFT for Qwen with loss on all assistant turns"
+    )
     parser.add_argument("--train_file", type=str, required=True, help="Path to JSONL or JSON array file. Each sample has {messages|conversation, optional tools}")
     parser.add_argument("--model_name_or_path", type=str, default=str(default_model_dir()), help="Base model path or model id")
     parser.add_argument("--output_dir", type=str, default="./qwen_tooluse_sft")
@@ -170,7 +176,7 @@ class JsonlConversations(Dataset):
             full_ids = self.tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=False)
         total_len = len(full_ids)
 
-        # Build assistant-only mask via prefix-delta method (O(n^2) but robust)
+        # Build a loss mask that keeps all assistant turns
         assistant_mask = torch.zeros(total_len, dtype=torch.bool)
         prev_len = 0
         for i, msg in enumerate(messages):

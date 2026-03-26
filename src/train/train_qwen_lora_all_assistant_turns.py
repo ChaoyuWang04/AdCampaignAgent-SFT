@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 # coding: utf-8
+"""
+LoRA SFT for Qwen models.
+对每条对话中的所有 assistant 回复计算 loss。
+"""
 
 import argparse
 import os
-import json
-from typing import Optional, List, Dict, Any
+from dataclasses import dataclass
+from typing import Optional, Dict
 
 import torch
 from transformers import (
@@ -15,6 +19,7 @@ from transformers import (
     set_seed,
     TrainerCallback,
 )
+from peft import LoraConfig, get_peft_model
 
 if __package__ in {None, ""}:
     import sys
@@ -58,24 +63,26 @@ class ConsoleLossCallback(TrainerCallback):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Full fine-tuning for Qwen3 (last-assistant loss only)")
+    parser = argparse.ArgumentParser(
+        description="LoRA fine-tuning for Qwen with loss on all assistant turns"
+    )
 
     # Data & model
-    parser.add_argument("--train_file", type=str, default=str(processed_data_dir() / "merged_train_final_multiturn_v2.json"), help="Path to JSON/JSONL dataset")
-    parser.add_argument("--model_name_or_path", type=str, default=str(default_model_dir()), help="Base model to fine-tune (full parameters)")
-    parser.add_argument("--output_dir", type=str, default=str(default_model_dir().parent / "qwen3-0_6b_fullft_last_assistant"))
+    parser.add_argument("--train_file", type=str, default=str(processed_data_dir() / "merged_train_final.json"), help="Path to JSON/JSONL or JSON array dataset")
+    parser.add_argument("--model_name_or_path", type=str, default=str(default_model_dir()), help="Base model to fine-tune")
+    parser.add_argument("--output_dir", type=str, default=str(default_model_dir().parent / "qwen_lora_output"))
 
     # Sequence & tokenizer
     parser.add_argument("--max_seq_length", type=int, default=4096)
     parser.add_argument("--local_files_only", action="store_true", help="Load tokenizer/model only from local cache")
 
-    # Training hyperparameters (tuned for full FT; adjust per your resources)
-    parser.add_argument("--learning_rate", type=float, default=2e-5)
-    parser.add_argument("--weight_decay", type=float, default=0.1)
-    parser.add_argument("--num_train_epochs", type=float, default=1.0)
+    # Training hyperparameters
+    parser.add_argument("--learning_rate", type=float, default=2e-4)
+    parser.add_argument("--weight_decay", type=float, default=0.0)
+    parser.add_argument("--num_train_epochs", type=float, default=3.0)
     parser.add_argument("--warmup_ratio", type=float, default=0.03)
     parser.add_argument("--per_device_train_batch_size", type=int, default=1)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=16)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--logging_steps", type=int, default=10)
     parser.add_argument("--save_steps", type=int, default=1000)
     parser.add_argument("--save_total_limit", type=int, default=3)
@@ -93,11 +100,28 @@ def parse_args() -> argparse.Namespace:
     # Logging
     parser.add_argument("--log_file", type=str, default="", help="Optional file to append plain logs")
 
-    # Tools injection (global tools for samples missing tools in data)
-    parser.add_argument("--tools_file", type=str, default="", help="Path to JSON file with a top-level list of tools (OpenAI/Qwen schema)")
-    parser.add_argument("--tools_json", type=str, default="", help="Inline JSON string representing a list of tools")
+    # LoRA config
+    parser.add_argument("--lora_r", type=int, default=32)
+    parser.add_argument("--lora_alpha", type=int, default=64)
+    parser.add_argument("--lora_dropout", type=float, default=0.05)
+    parser.add_argument("--target_modules", type=str, default="q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj")
 
     return parser.parse_args()
+
+
+def build_lora_model(base_model, args: argparse.Namespace):
+    target_modules = [m.strip() for m in args.target_modules.split(",") if m.strip()]
+    lora_cfg = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=target_modules,
+    )
+    lora_model = get_peft_model(base_model, lora_cfg)
+    lora_model.print_trainable_parameters()
+    return lora_model
 
 
 def main():
@@ -115,16 +139,12 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
-    print(f"Loading base model (full fine-tune): {args.model_name_or_path}")
+    print(f"Loading base model: {args.model_name_or_path}")
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path,
         trust_remote_code=True,
         local_files_only=args.local_files_only,
     )
-
-    # Enable grad for all parameters (full FT)
-    for param in model.parameters():
-        param.requires_grad_(True)
 
     if args.gradient_checkpointing:
         model.gradient_checkpointing_enable()
@@ -140,37 +160,12 @@ def main():
     if torch_dtype is not None:
         model = model.to(dtype=torch_dtype)
 
-    # Optional: load global tools list (used if a sample has no tools)
-    default_tools: Optional[List[Dict[str, Any]]] = None
-    if args.tools_file:
-        try:
-            with open(args.tools_file, "r", encoding="utf-8") as f:
-                obj = json.load(f)
-            if isinstance(obj, list):
-                default_tools = obj
-            else:
-                raise ValueError("tools_file must contain a JSON array of tool objects")
-        except Exception as e:
-            raise RuntimeError(f"Failed to load tools_file: {args.tools_file}: {e}")
-    elif args.tools_json:
-        try:
-            obj = json.loads(args.tools_json)
-            if isinstance(obj, list):
-                default_tools = obj
-            else:
-                raise ValueError("tools_json must be a JSON array of tool objects")
-        except Exception as e:
-            raise RuntimeError(f"Failed to parse tools_json: {e}")
+    # Wrap with LoRA adapters
+    model = build_lora_model(model, args)
 
-    # Dataset: only the last assistant message contributes to loss
+    # Dataset: all assistant turns contribute to loss
     print(f"Loading dataset: {args.train_file}")
-    train_dataset = JsonlConversations(
-        args.train_file,
-        tokenizer,
-        args.max_seq_length,
-        only_last_assistant=True,
-        default_tools=default_tools,
-    )
+    train_dataset = JsonlConversations(args.train_file, tokenizer, args.max_seq_length)
 
     data_collator = DataCollatorForCausal(tokenizer=tokenizer)
 
@@ -208,11 +203,12 @@ def main():
 
     trainer.train()
 
+    # Save adapter
     trainer.save_state()
     trainer.save_model(args.output_dir)
 
-    print("Training complete (full fine-tune). Model saved to:", args.output_dir)
+    print("Training complete. Adapter saved to:", args.output_dir)
 
 
 if __name__ == "__main__":
-    main()
+    main() 
