@@ -2,108 +2,294 @@
     {
         "type": "function",
         "function": {
-            "name": "search_travel_guide",
-            "description": "搜索旅行攻略信息，获取目的地的详细旅游信息",
+            "name": "search_trending_creatives",
+            "description": "搜索近期热门广告素材，返回高热度创意列表",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "location": {
+                    "platform": {
                         "type": "string",
-                        "description": "目的地城市名称，如'北京'、'上海'"
+                        "description": "投放平台，如'Meta'、'Google'、'Tiktok'"
                     },
-                    "search_mode": {
+                    "game_genre": {
                         "type": "string",
-                        "description": "搜索模式：vector(向量搜索)、keyword(关键词搜索)、hybrid(混合搜索)",
-                        "enum": ["vector", "keyword", "hybrid"],
-                        "default": "hybrid"
+                        "description": "游戏品类，如'casual'、'puzzle'、'rpg'"
+                    },
+                    "region": {
+                        "type": "string",
+                        "description": "目标地区，如'US'、'JP'、'SEA'",
+                        "default": "US"
                     }
                 },
-                "required": ["location"]
+                "required": ["platform", "game_genre"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "get_weather_info",
-            "description": "查询指定地点和时间段的天气信息",
+            "name": "search_competitor_ads",
+            "description": "查询竞品近期广告投放素材",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "location": {
+                    "competitor_name": {
                         "type": "string",
-                        "description": "城市名称，如'北京'、'上海'，或城市ID如'101010100'"
+                        "description": "竞品名称，如'Playrix'、'Voodoo'"
                     },
-                    "start_date": {
+                    "platform": {
                         "type": "string",
-                        "description": "开始日期，格式YYYY-MM-DD，如'2025-09-15'"
-                    },
-                    "num_days": {
-                        "type": "integer",
-                        "description": "查询天数，默认1天。根据旅行攻略中的行程天数确定"
+                        "description": "投放平台，如'Meta'、'Google'、'Tiktok'"
                     }
                 },
-                "required": ["location", "start_date"]
+                "required": ["competitor_name", "platform"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "query_route",
-            "description": "查询两地之间的路线，包括步行、公交、驾车路线",
+            "name": "get_trending_hooks",
+            "description": "获取当前热门素材常见的开头钩子和hook模式",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "start_location": {
+                    "game_genre": {
                         "type": "string",
-                        "description": "起点坐标，如'116.481028,39.989643'"
-                    },
-                    "end_location": {
-                        "type": "string",
-                        "description": "终点地址，如'颐和园'"
-                    },
-                    "city_code": {
-                        "type": "string",
-                        "description": "城市代码，默认'110000'(北京)",
-                        "default": "110000"
+                        "description": "游戏品类，如'casual'、'puzzle'、'rpg'"
                     }
                 },
-                "required": ["end_location"]
+                "required": ["game_genre"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "recommend_hotels",
-            "description": "根据用户需求推荐酒店",
+            "name": "validate_creative_spec",
+            "description": "校验广告素材文件是否符合平台投放规格",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "requirements": {
+                    "file_path": {
                         "type": "string",
-                        "description": "用户对酒店的需求描述，包括地点、预算、设施等"
+                        "description": "素材文件路径，如'assets/casual_video_01.mp4'"
+                    },
+                    "platform": {
+                        "type": "string",
+                        "description": "投放平台，如'Meta'、'Google'、'Tiktok'"
                     }
                 },
-                "required": ["requirements"]
+                "required": ["file_path", "platform"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "get_hotel_reviews",
-            "description": "获取指定酒店的用户评价信息",
+            "name": "upload_creative_asset",
+            "description": "上传单个广告素材到指定campaign",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "hotel_name": {
+                    "file_path": {
                         "type": "string",
-                        "description": "酒店名称"
+                        "description": "素材文件路径"
+                    },
+                    "campaign_id": {
+                        "type": "string",
+                        "description": "Campaign ID，如'CMP_1024'"
                     }
                 },
-                "required": ["hotel_name"]
+                "required": ["file_path", "campaign_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "batch_upload_creatives",
+            "description": "批量上传多个广告素材到指定campaign",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_paths": {
+                        "type": "array",
+                        "description": "素材文件路径列表",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "campaign_id": {
+                        "type": "string",
+                        "description": "Campaign ID，如'CMP_1024'"
+                    }
+                },
+                "required": ["file_paths", "campaign_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_campaign_metrics",
+            "description": "查询campaign层级的核心投放指标",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "campaign_id": {
+                        "type": "string",
+                        "description": "Campaign ID，如'CMP_1024'"
+                    }
+                },
+                "required": ["campaign_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_creative_performance",
+            "description": "查询素材层级的表现数据",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "campaign_id": {
+                        "type": "string",
+                        "description": "Campaign ID，如'CMP_1024'"
+                    }
+                },
+                "required": ["campaign_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_appsflyer_report",
+            "description": "获取AppsFlyer归因和留存报表",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string",
+                        "description": "App ID，如'APP_2048'"
+                    }
+                },
+                "required": ["app_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_campaigns",
+            "description": "对比多个campaign的关键指标表现",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "campaign_ids": {
+                        "type": "array",
+                        "description": "待对比的Campaign ID列表",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": ["campaign_ids"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_anomalies",
+            "description": "检测campaign关键指标的异常波动",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "campaign_id": {
+                        "type": "string",
+                        "description": "Campaign ID，如'CMP_1024'"
+                    }
+                },
+                "required": ["campaign_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_optimization_playbook",
+            "description": "根据问题类型返回结构化优化建议",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "issue_type": {
+                        "type": "string",
+                        "description": "问题类型，如'low_roas'、'low_ctr'、'creative_fatigue'"
+                    }
+                },
+                "required": ["issue_type"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_knowledge_base",
+            "description": "查询UA和广告投放知识库内容",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "知识问答问题"
+                    }
+                },
+                "required": ["question"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_benchmark_data",
+            "description": "查询行业benchmark数据，如ROAS、Retention、CTR、CPI基准",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metric": {
+                        "type": "string",
+                        "description": "目标指标，如'roas'、'retention_d1'、'ctr'、'cpi'"
+                    },
+                    "game_genre": {
+                        "type": "string",
+                        "description": "游戏品类，如'casual'、'puzzle'、'rpg'"
+                    }
+                },
+                "required": ["metric", "game_genre"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_platform_policy",
+            "description": "查询广告平台政策、格式限制和内容限制",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "platform": {
+                        "type": "string",
+                        "description": "投放平台，如'Meta'、'Google'、'Tiktok'"
+                    },
+                    "policy_type": {
+                        "type": "string",
+                        "description": "政策类型，如'ad_format'、'content_restriction'、'targeting'"
+                    }
+                },
+                "required": ["platform", "policy_type"]
             }
         }
     }
