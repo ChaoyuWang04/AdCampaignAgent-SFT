@@ -411,3 +411,120 @@ Phase 2（完整版，2-3周）：
 Phase 3（论文加分项，可选）：
   S1, S2, S5 → 需要多轮任务测试集，工程量较大
 ```
+
+---
+
+## 当前工程落地方案（v1 implementation）
+
+为了让 benchmark 真正可执行，而不是只停留在指标定义层，当前工程采用如下落地方式：
+
+### 1. 评估对象
+
+评估对象是完整 trace，而不是首轮输出。
+
+也就是说，脚本会实际执行如下流程：
+
+```text
+user -> assistant(tool planning) -> tool -> assistant -> ...
+```
+
+这样才能评估：
+
+- 顺序调用是否合理
+- 并行调用是否成组出现
+- 信息不足时是否追问
+- 越界请求是否拒答
+- 最终是否收敛到完成态回答
+
+### 2. 后端支持
+
+同一套 benchmark case 和 judge 同时支持两种模型后端：
+
+- 本地 `transformers` 模型
+- OpenAI-compatible API 模型
+
+这样可以直接横向对比：
+
+- base model
+- LoRA / SFT model
+- 外部 API baseline
+
+### 3. 数据构造策略
+
+当前采用“双层数据策略”：
+
+- 主体样本：从现有数据分布和工具 schema 半自动扩展
+- 高难样本：人工精标，重点覆盖 OOS、clarify、sequential、parallel
+
+第一版不追求样本数量最大化，而优先保证：
+
+- schema 稳定
+- judge 可复现
+- 报告结构固定
+
+### 4. 工程目录
+
+当前 benchmark 工程目录为：
+
+```text
+tests/benchmark/
+├── run_benchmark.py
+├── benchmark_runner.py
+├── benchmark_schema.py
+├── benchmark_utils.py
+├── eval_format.py
+├── eval_routing.py
+├── eval_content.py
+├── eval_system.py
+├── data/
+└── results/
+```
+
+### 5. 第一版自动评分口径
+
+第一版主流程自动评分包含：
+
+- `F1`
+- `F2`
+- `R1`
+- `R2`
+- `R3`
+- `C1`
+- `C2`
+- `S1`
+- `S2`
+- `S3`
+- `S4`
+- `S5`
+
+`C3` 暂不作为主流程硬依赖，原因是当前 benchmark 的主要目标是 tool-calling trace 的正确性，而不是开放文本生成本身的语言质量。
+
+### 6. 结果输出
+
+默认输出两类文件：
+
+- 聚合报告：`report.json`
+- 样本级明细：`case_results.jsonl`
+
+其中：
+
+- `report.json` 用于论文表格
+- `case_results.jsonl` 用于失败案例分析和 prompt / 数据修正
+
+### 7. 并行与端到端指标口径说明
+
+为避免把“模型能力”和“运行时调度能力”混在一起：
+
+- `S2` 第一版定义为“可并行工具是否在同一 assistant turn 中共同出现”
+- 不要求底层 runtime 真的异步并发执行
+
+`S5` 第一版采用规则化 judge：
+
+- 行为类别正确
+- 必要工具调用正确
+- 关键参数无致命错误
+- 顺序/并行约束满足
+- 对话在合理轮次内收敛
+- 最终有完成态 assistant 回复
+
+如果后续需要更细粒度论文分析，可以在此基础上再叠加人工复核或 LLM-as-judge，但不应取代当前规则化主流程。

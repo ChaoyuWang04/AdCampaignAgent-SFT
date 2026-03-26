@@ -1,0 +1,29 @@
+[
+  {
+    "id": "clarify_001",
+    "case_type": "clarify",
+    "user_input": "帮我创建一个广告活动。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "budget",
+      "target_audience"
+    ],
+    "notes": "missing required inputs for campaign creation"
+  },
+  {
+    "id": "clarify_002",
+    "case_type": "clarify",
+    "user_input": "帮我上传素材。",
+    "context": {
+      "platform": "TikTok"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "platform"
+    ],
+    "notes": "asset path and spec details are intentionally omitted"
+  }
+]

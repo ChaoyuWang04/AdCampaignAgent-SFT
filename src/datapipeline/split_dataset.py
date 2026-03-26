@@ -2,126 +2,103 @@
 # -*- coding: utf-8 -*-
 
 """
-数据集划分脚本
-将数据集按类型划分为80%训练集和20%测试集
+Split Ad Agent seed records into stratified train/test datasets.
 """
 
+import argparse
 import json
 import random
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, List
 
-def split_dataset():
-    # 读取原始数据集
-    with open('travel_assistant_dataset_20250914_112354.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    print("开始划分数据集...")
-    print(f"原始数据总量: {len(data)}条")
-    
-    # 按类型分组数据
-    grouped_data = defaultdict(list)
-    
-    for item in data:
-        workflow = item['工作流']
-        ask = item['是否追问']
-        
-        if workflow == 1:  # 旅行规划
-            if ask == '否':
-                key = '旅行规划（不需要反问）'
-            else:
-                key = '旅行规划（需要反问）'
-        elif workflow == 2:  # 问路
-            if ask == '否':
-                key = '问路（不需要反问）'
-            else:
-                key = '问路（需要反问）'
-        elif workflow == 3:  # 查询酒店
-            if ask == '否':
-                key = '查询酒店（不需要反问）'
-            else:
-                key = '查询酒店（需要反问）'
-        elif workflow == 4:  # 旅行相关
-            key = '旅行相关'
-        elif workflow == 5:  # 拒答
-            key = '拒答'
-        else:
-            key = f'未知工作流{workflow}'
-        
-        grouped_data[key].append(item)
-    
-    # 显示原始数据统计
-    print("\n原始数据统计:")
-    print("=" * 50)
-    for key, items in grouped_data.items():
-        print(f"{key}: {len(items)}条")
-    
-    # 设置随机种子确保可重现
-    random.seed(42)
-    
-    train_data = []
-    test_data = []
-    train_stats = {}
-    test_stats = {}
-    
-    # 对每个类型按80:20划分
-    for key, items in grouped_data.items():
-        # 打乱数据
+
+DEFAULT_INPUT = Path("data/raw/ad_agent_seeds_latest.json")
+DEFAULT_TRAIN = Path("data/processed/ad_agent_seeds_train.json")
+DEFAULT_TEST = Path("data/processed/ad_agent_seeds_test.json")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Split Ad Agent seed dataset into train/test")
+    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help="Input seed JSON file")
+    parser.add_argument("--train-output", type=Path, default=DEFAULT_TRAIN, help="Train JSON output path")
+    parser.add_argument("--test-output", type=Path, default=DEFAULT_TEST, help="Test JSON output path")
+    parser.add_argument("--train-ratio", type=float, default=0.8, help="Train split ratio")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    return parser.parse_args()
+
+
+def stratify_key(item: Dict) -> str:
+    workflow_name = item.get("workflow_name", f"workflow_{item.get('workflow', 'unknown')}")
+    scene_tag = item.get("scene_tag", "unknown_scene")
+    clarify_flag = "clarify" if item.get("needs_clarification") else "direct"
+    return f"{workflow_name} | {scene_tag} | {clarify_flag}"
+
+
+def load_records(path: Path) -> List[Dict]:
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, list):
+        raise ValueError("Input dataset must be a JSON array")
+    return payload
+
+
+def save_records(path: Path, records: List[Dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+
+
+def split_dataset(args: argparse.Namespace) -> None:
+    records = load_records(args.input)
+    print(f"Loaded records: {len(records)}")
+
+    grouped = defaultdict(list)
+    for item in records:
+        grouped[stratify_key(item)].append(item)
+
+    print("\nSource distribution:")
+    print("=" * 72)
+    for key, items in sorted(grouped.items()):
+        print(f"{key}: {len(items)}")
+
+    random.seed(args.seed)
+    train_records: List[Dict] = []
+    test_records: List[Dict] = []
+    train_stats: Dict[str, int] = {}
+    test_stats: Dict[str, int] = {}
+
+    for key, items in grouped.items():
         random.shuffle(items)
-        
-        total = len(items)
-        train_size = int(total * 0.8)
-        test_size = total - train_size
-        
-        # 划分训练集和测试集
-        train_items = items[:train_size]
-        test_items = items[train_size:]
-        
-        train_data.extend(train_items)
-        test_data.extend(test_items)
-        
-        train_stats[key] = len(train_items)
-        test_stats[key] = len(test_items)
-    
-    # 打乱最终的训练集和测试集
-    random.shuffle(train_data)
-    random.shuffle(test_data)
-    
-    # 保存训练集
-    train_filename = 'travel_assistant_train_dataset.json'
-    with open(train_filename, 'w', encoding='utf-8') as f:
-        json.dump(train_data, f, ensure_ascii=False, indent=2)
-    
-    # 保存测试集
-    test_filename = 'travel_assistant_test_dataset.json'
-    with open(test_filename, 'w', encoding='utf-8') as f:
-        json.dump(test_data, f, ensure_ascii=False, indent=2)
-    
-    # 显示划分结果
-    print("\n数据集划分完成!")
-    print("=" * 50)
-    print(f"训练集: {len(train_data)}条 -> {train_filename}")
-    print(f"测试集: {len(test_data)}条 -> {test_filename}")
-    
-    print("\n训练集统计:")
-    print("-" * 30)
-    for key in sorted(train_stats.keys()):
-        print(f"{key}: {train_stats[key]}条")
-    
-    print("\n测试集统计:")
-    print("-" * 30)
-    for key in sorted(test_stats.keys()):
-        print(f"{key}: {test_stats[key]}条")
-    
-    print("\n划分比例验证:")
-    print("-" * 30)
-    for key in sorted(train_stats.keys()):
-        total = train_stats[key] + test_stats[key]
-        train_ratio = train_stats[key] / total * 100
-        test_ratio = test_stats[key] / total * 100
-        print(f"{key}: 训练集{train_ratio:.1f}% ({train_stats[key]}/{total}), 测试集{test_ratio:.1f}% ({test_stats[key]}/{total})")
-    
-    print(f"\n总计: 训练集{len(train_data)}条, 测试集{len(test_data)}条")
-    print(f"总体比例: 训练集{len(train_data)/(len(train_data)+len(test_data))*100:.1f}%, 测试集{len(test_data)/(len(train_data)+len(test_data))*100:.1f}%")
+        train_size = int(len(items) * args.train_ratio)
+        if len(items) > 1:
+            train_size = min(max(train_size, 1), len(items) - 1)
+        train_slice = items[:train_size]
+        test_slice = items[train_size:]
+        train_records.extend(train_slice)
+        test_records.extend(test_slice)
+        train_stats[key] = len(train_slice)
+        test_stats[key] = len(test_slice)
+
+    random.shuffle(train_records)
+    random.shuffle(test_records)
+
+    save_records(args.train_output, train_records)
+    save_records(args.test_output, test_records)
+
+    print("\nSplit complete")
+    print("=" * 72)
+    print(f"Train: {len(train_records)} -> {args.train_output}")
+    print(f"Test : {len(test_records)} -> {args.test_output}")
+
+    print("\nTrain distribution:")
+    for key in sorted(train_stats):
+        print(f"{key}: {train_stats[key]}")
+
+    print("\nTest distribution:")
+    for key in sorted(test_stats):
+        print(f"{key}: {test_stats[key]}")
+
 
 if __name__ == "__main__":
-    split_dataset()
+    split_dataset(parse_args())

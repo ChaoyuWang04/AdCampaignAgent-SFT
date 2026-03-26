@@ -1,0 +1,45 @@
+[
+  {
+    "id": "seq_001",
+    "case_type": "sequential",
+    "user_input": "先分析一下 CMP_2048 上周的表现，再给我一份优化建议。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_optimization_playbook"
+    ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_2048",
+        "date_range": "last_week"
+      }
+    },
+    "expected_sequence": [
+      "get_campaign_metrics",
+      "get_optimization_playbook"
+    ],
+    "notes": "analyze then recommend"
+  },
+  {
+    "id": "seq_002",
+    "case_type": "sequential",
+    "user_input": "先帮我检查这条素材是否合规，如果没问题再上传。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "validate_creative_spec",
+      "upload_creative_asset"
+    ],
+    "expected_sequence": [
+      "validate_creative_spec",
+      "upload_creative_asset"
+    ],
+    "notes": "validate before upload"
+  }
+]

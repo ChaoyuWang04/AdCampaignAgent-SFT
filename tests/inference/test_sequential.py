@@ -1,81 +1,101 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-测试顺序工具调用版本的数据集转换脚本
-"""
+"""Manual sequential tool-chain test for Ad Agent dataset conversion."""
 
-import json
 import os
 import sys
 
 if __package__ in {None, ""}:
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.datapipeline.convert_dataset import DatasetConverter
+from src.datapipeline.convert_dataset import build_record
 
-def test_hotel_sequential():
-    """测试酒店工作流的顺序工具调用"""
-    
-    # 创建酒店查询测试数据
+def test_ad_workflow_sequential():
+    """测试广告投放工作流中的顺序工具调用"""
+
     test_data = [
         {
-            "用户名字": "张伟",
-            "用户所处城市": "101010100",
-            "出发日期": "2025-09-20",
-            "起点坐标": "116.481028,39.989643",
-            "工作流": 3,
-            "用户问题": "推荐一些北京500-800元的酒店",
-            "是否追问": "否",
-            "追问回答": None
+            "workflow": 2,
+            "workflow_name": "素材上传",
+            "user_role": "UA Manager",
+            "platform": "Meta",
+            "game_genre": "casual",
+            "region": "US",
+            "campaign_id": "CMP_2048",
+            "app_id": "APP_9001",
+            "date_range": {"start": "2026-03-01", "end": "2026-03-07"},
+            "roas_baseline_d7": 0.85,
+            "roas_baseline_d30": 1.20,
+            "ret_baseline_d1": 0.35,
+            "ret_baseline_d7": 0.12,
+            "user_query": "把这批新素材上传到 CMP_2048",
+            "needs_clarification": False,
+            "clarification_reason": None,
+            "clarification_answer": None,
+            "scene_tag": "upload_success",
+            "tool_chain": ["validate_creative_spec", "upload_creative_asset"],
+            "refusal_type": None,
         },
         {
-            "用户名字": "李明",
-            "用户所处城市": "101020100",
-            "出发日期": "2025-09-25",
-            "起点坐标": "121.473701,31.230416",
-            "工作流": 3,
-            "用户问题": "如家酒店怎么样？",
-            "是否追问": "否",
-            "追问回答": None
+            "workflow": 5,
+            "workflow_name": "异常诊断与优化",
+            "user_role": "Growth Lead",
+            "platform": "Meta",
+            "game_genre": "puzzle",
+            "region": "US",
+            "campaign_id": "CMP_3099",
+            "app_id": "APP_8221",
+            "date_range": {"start": "2026-03-01", "end": "2026-03-07"},
+            "roas_baseline_d7": 0.80,
+            "roas_baseline_d30": 1.20,
+            "ret_baseline_d1": 0.38,
+            "ret_baseline_d7": 0.14,
+            "user_query": "CMP_3099 最近效果异常，帮我看下原因并给建议。",
+            "needs_clarification": False,
+            "clarification_reason": None,
+            "clarification_answer": None,
+            "scene_tag": "roas_warning",
+            "tool_chain": ["detect_anomalies", "get_optimization_playbook"],
+            "refusal_type": None,
         },
         {
-            "用户名字": "王芳",
-            "用户所处城市": "101280101",
-            "出发日期": "2025-10-01",
-            "起点坐标": "113.280637,23.125178",
-            "工作流": 3,
-            "用户问题": "我需要订酒店",
-            "是否追问": "是",
-            "追问回答": "广州天河区，预算400-600元"
+            "workflow": 4,
+            "workflow_name": "多维深度分析",
+            "user_role": "UA Manager",
+            "platform": "Google",
+            "game_genre": "strategy",
+            "region": "JP",
+            "campaign_id": "CMP_9012",
+            "app_id": "APP_1177",
+            "date_range": {"start": "2026-03-01", "end": "2026-03-07"},
+            "roas_baseline_d7": 0.90,
+            "roas_baseline_d30": 1.40,
+            "ret_baseline_d1": 0.30,
+            "ret_baseline_d7": 0.10,
+            "user_query": "帮我对 CMP_9012 做深度分析，看 campaign、creative 和 benchmark。",
+            "needs_clarification": False,
+            "clarification_reason": None,
+            "clarification_answer": None,
+            "scene_tag": "healthy",
+            "tool_chain": ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"],
+            "refusal_type": None,
         }
     ]
-    
-    # 保存测试数据
-    test_file = "test_sequential_dataset.json"
-    with open(test_file, 'w', encoding='utf-8') as f:
-        json.dump(test_data, f, ensure_ascii=False, indent=2)
-    
-    print("创建酒店工作流测试数据集完成")
-    
-    # 创建转换器
-    converter = DatasetConverter(test_file, "test_sequential_converted")
-    
-    # 测试单个数据转换
-    print("\n测试酒店工作流的顺序工具调用...")
+
+    print("\n测试广告投放工作流的顺序工具调用...")
     for i, item in enumerate(test_data):
         print(f"\n--- 测试数据 {i+1} ---")
-        print(f"用户问题: {item['用户问题']}")
-        print(f"是否追问: {item['是否追问']}")
-        
+        print(f"用户问题: {item['user_query']}")
+        print(f"工具链: {item['tool_chain']}")
+
         try:
-            result = converter.convert_single_item(item)
+            result = build_record(item, lang="zh", output_format="message")
             if result:
                 print("✅ 转换成功")
-                conversation = result["conversation"]
+                conversation = result["messages"]
                 print(f"对话轮数: {len(conversation)}")
-                
-                # 显示对话结构，特别关注工具调用顺序
+
                 tool_call_count = 0
                 for j, msg in enumerate(conversation):
                     role = msg["role"]
@@ -92,32 +112,27 @@ def test_hotel_sequential():
                             print(f"  {j+1}. {role}: {msg['content'][:50]}...")
                     elif role == "tool":
                         print(f"  {j+1}. {role}: [工具结果]")
-                
-                # 检查是否符合顺序调用模式
-                if item["工作流"] == 3 and "推荐" in item["用户问题"]:
-                    assistant_msgs = [msg for msg in conversation if msg["role"] == "assistant" and "tool_calls" in msg]
-                    if len(assistant_msgs) >= 2:
-                        print("✅ 检测到顺序工具调用模式")
-                        first_tools = [tc["function"]["name"] for tc in assistant_msgs[0]["tool_calls"]]
-                        second_tools = [tc["function"]["name"] for tc in assistant_msgs[1]["tool_calls"]]
-                        print(f"    第一轮工具: {first_tools}")
-                        print(f"    第二轮工具: {second_tools}")
-                    else:
-                        print("⚠️  未检测到预期的顺序工具调用")
-                        
+
+                assistant_msgs = [msg for msg in conversation if msg["role"] == "assistant" and "tool_calls" in msg]
+                flattened_tools = []
+                for msg in assistant_msgs:
+                    flattened_tools.extend(tc["function"]["name"] for tc in msg["tool_calls"])
+
+                expected_chain = item["tool_chain"]
+                if flattened_tools[: len(expected_chain)] == expected_chain:
+                    print("✅ 检测到符合预期的顺序工具调用")
+                else:
+                    print("⚠️  工具调用顺序与预期不一致")
+                    print(f"    expected: {expected_chain}")
+                    print(f"    actual:   {flattened_tools}")
             else:
                 print("❌ 转换失败")
-                
         except Exception as e:
             print(f"❌ 转换出错: {e}")
             import traceback
             traceback.print_exc()
-    
-    # 清理测试文件
-    if os.path.exists(test_file):
-        os.remove(test_file)
-    
+
     print("\n测试完成")
 
 if __name__ == "__main__":
-    test_hotel_sequential()
+    test_ad_workflow_sequential()

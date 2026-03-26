@@ -1,0 +1,64 @@
+[
+  {
+    "id": "std_001",
+    "case_type": "standard",
+    "user_input": "帮我看一下 CMP_2048 最近 7 天的投放表现。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048",
+      "region": "US"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics"
+    ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_2048",
+        "date_range": "last_7_days"
+      }
+    },
+    "notes": "single-tool metrics lookup"
+  },
+  {
+    "id": "std_002",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Playrix 最近在 Meta 上投了什么广告。",
+    "context": {
+      "platform": "Meta",
+      "genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads"
+    ],
+    "expected_tool_args": {
+      "search_competitor_ads": {
+        "competitor_name": "Playrix",
+        "platform": "Meta"
+      }
+    },
+    "notes": "single-tool competitor search"
+  },
+  {
+    "id": "std_003",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Meta 上休闲游戏常见的 D7 ROAS benchmark。",
+    "context": {
+      "platform": "Meta",
+      "genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data"
+    ],
+    "expected_tool_args": {
+      "get_benchmark_data": {
+        "platform": "Meta",
+        "genre": "casual",
+        "metric": "D7_ROAS"
+      }
+    },
+    "notes": "single-tool benchmark lookup"
+  }
+]

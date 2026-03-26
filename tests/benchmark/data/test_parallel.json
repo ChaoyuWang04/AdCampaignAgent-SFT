@@ -1,0 +1,42 @@
+[
+  {
+    "id": "par_001",
+    "case_type": "parallel",
+    "user_input": "同时帮我查一下 iOS 和 Android 平台最近 7 天的投放数据。",
+    "context": {
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_campaign_metrics"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_campaign_metrics",
+        "get_campaign_metrics"
+      ]
+    ],
+    "notes": "same tool with different platform args in one assistant turn"
+  },
+  {
+    "id": "par_002",
+    "case_type": "parallel",
+    "user_input": "请同时查一下 Meta 和 TikTok 上这个游戏的热门素材趋势。",
+    "context": {
+      "genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives",
+      "search_trending_creatives"
+    ],
+    "expected_parallel_groups": [
+      [
+        "search_trending_creatives",
+        "search_trending_creatives"
+      ]
+    ],
+    "notes": "parallel same-family searches across platforms"
+  }
+]

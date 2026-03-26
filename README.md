@@ -8,7 +8,7 @@
 <h3 align="center">AdCampaignAgent-SFT</h3>
 
 <p align="center">
-  A rule-based synthetic SFT dataset for training tool-calling agents in mobile game user acquisition (UA) — grounded in real ad operations, ROAS/Retention safety baselines, and multi-turn reasoning chains.
+  A rule-based synthetic SFT dataset and local inference toolkit for mobile game UA tool-calling agents.
   <br /><br />
   | <a href="https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT">🤗 HuggingFace Dataset</a> |
   <a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues/new?labels=bug&template=bug-report---.md">Report Bug</a> |
@@ -17,276 +17,272 @@
 
 </div>
 
+## About
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+AdCampaignAgent-SFT is an open-source pipeline for building **tool-calling training data** and **local inference inspection workflows** for mobile game advertising agents.
 
-AdCampaignAgent-SFT is an open-source pipeline for generating high-quality **Supervised Fine-Tuning (SFT)** datasets targeting LLM-based tool-calling agents in the mobile game advertising domain. It produces structured multi-turn dialogues that reflect real UA (User Acquisition) workflows — from campaign performance analysis to creative asset uploads — grounded in business-realistic ROAS and Retention safety baselines.
+The repository currently focuses on four capabilities:
 
-**Dataset highlights (`AdCampaignAgent-SFT`):**
+1. Generate structured Ad Agent seed records across 7 ad-operation workflows
+2. Convert seeds into tool-call conversations in OpenAI Messages or ShareGPT format
+3. Provide 15 ad-domain tools for local runtime testing
+4. Inspect or interact with local models for tool-calling behavior
+
+The domain is mobile game UA (User Acquisition), with workflows grounded in:
+- campaign performance analysis
+- creative search
+- creative upload
+- anomaly diagnosis
+- benchmark and policy lookup
+- refusal handling for off-topic or unauthorized requests
+
+## Current Scope
+
+### Included in the main flow
+
+- Rule-based seed generation
+- Train/test seed splitting
+- Conversation conversion to SFT-ready records
+- 15 Ad Campaign Agent tools under [src/tools](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools)
+- Local model tool-call inspection under [src/inference](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/inference)
+
+### Not in the current main flow
+
+- [rag-system](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/rag-system) is a legacy travel-guide RAG subsystem kept in the repo as historical material. It is not part of the current Ad Agent training or inference pipeline.
+
+## Dataset Snapshot
 
 | Metric | Value |
 |--------|-------|
 | Total conversations | 1,000 |
-| Format | OpenAI Messages (`role` / `content` / `tool_calls` / `tool_call_id`) |
+| Format | OpenAI Messages / ShareGPT |
 | Unique tools | 15 |
-| Distinct scene tags | 22 |
-| Platforms covered | Google UAC · Meta · TikTok · AppLovin · Unity |
+| Core workflows | 7 |
+| Platforms covered | Google · Meta · TikTok · AppLovin · Unity |
 | Game genres | Casual · Puzzle · Hyper-casual · RPG · Strategy |
-| Avg turns / conversation | 7.2 messages |
-| With tool calls | 900 (90.0%) |
-| With clarification turns | 96 (9.6%) |
-| Refusal conversations | 100 (10.0%) |
-| Format errors | ✅ 0 — clean |
+| Tool-call heavy records | Majority of records |
+| Refusal coverage | Off-topic · Unauthorized · Insufficient-data |
 
-The generation pipeline is fully **rule-based** — no LLM API calls required. Each conversation is constructed from a seed record (workflow type, scene tag, ROAS/Retention baselines) through deterministic mock tool execution, ensuring internal data consistency across all tool results within a single dialogue.
+## Repository Layout
 
+```text
+AdCampaignAgent-SFT/
+├── data/
+│   ├── raw/                 # seed records, e.g. ad_agent_seeds_*.json
+│   ├── intermediate/        # converted batch outputs
+│   ├── processed/           # split datasets and merged outputs
+│   └── ready2train/         # final message/sharegpt datasets
+├── docs/                    # repo documentation
+├── images/                  # project images
+├── models/                  # local checkpoints and training outputs
+├── prompts/                 # reusable prompt assets
+├── src/
+│   ├── common/              # shared path and utility helpers
+│   ├── datapipeline/        # seed generation / split / conversion
+│   ├── inference/           # local inspection and REPL scripts
+│   └── tools/               # 15 ad-domain runtime tools + tool schema
+├── tests/                   # manual smoke tests and external-runner scripts
+├── scripts/                 # shell helpers for training
+└── rag-system/              # legacy travel RAG assets, not in main flow
+```
 
-
-### Built With
-
-[![Python][Python-badge]][Python-url]
-[![HuggingFace][HuggingFace-badge]][HuggingFace-url]
-[![Pandas][Pandas-badge]][Pandas-url]
-[![Matplotlib][Matplotlib-badge]][Matplotlib-url]
-[![Seaborn][Seaborn-badge]][Seaborn-url]
-
-
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-### Prerequisites
+## Requirements
 
 - Python 3.13+
-- uv
+- `uv`
 
 ```sh
 uv --version
 ```
 
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/ChaoyuWang04/AdCampaignAgent-SFT.git
-   cd AdCampaignAgent-SFT
-   ```
-
-2. Initialize the uv project metadata if needed
-   ```sh
-   uv init
-   ```
-
-3. Create the virtual environment
-   ```sh
-   uv venv
-   ```
-
-4. Install dependencies from `pyproject.toml` and `uv.lock`
-   ```sh
-   uv sync
-   ```
-
-5. Verify project structure
-   ```
-   AdCampaignAgent-SFT/
-   ├── checker/               # auto-generated quality reports and figures
-   │   ├── ad_agent_sft_*_cn_message/
-   │   └── ad_agent_sft_*_cn_sharegpt/
-   ├── data/                  # generated seeds and SFT datasets
-   │   ├── ad_agent_seeds_*_cn.json
-   │   ├── ad_agent_sft_*_cn_message.json
-   │   └── ad_agent_sft_*_cn_sharegpt.json
-   ├── docs/
-   │   └── 0_Summary.md
-   ├── images/
-   │   ├── logo.png
-   │   └── screenshot.png
-   ├── src/
-   │   ├── datapipeline/
-   │   │   ├── 1_ad_gen_data.py
-   │   │   ├── 2_convert_data_message.py
-   │   │   ├── 2_convert_dataset_sharegpt.py
-   │   │   └── 3_dataquality_check.py
-   │   ├── SFT/
-   │   ├── Infer/
-   │   ├── tools/
-   │   ├── run_train_full_finetune.sh
-   │   └── run_train_last_assistant.sh
-   ├── LICENSE
-   └── README.md
-   ```
-
-
-
-<!-- USAGE EXAMPLES -->
-## Usage
-
-The pipeline runs in three sequential stages:
-
-**Stage 1 — Generate seed records**
-
-Produces 1,000 structured seed records covering 7 workflows and 22 scene tags, with pre-computed ROAS/Retention baselines per platform × genre.
+## Setup
 
 ```sh
-uv run python src/datapipeline/1_ad_gen_data.py
-# Then choose language: zh or en
-# Output examples:
-#   data/raw/ad_agent_seeds_<timestamp>_zh.json
-#   data/raw/ad_agent_seeds_<timestamp>_en.json
+git clone https://github.com/ChaoyuWang04/AdCampaignAgent-SFT.git
+cd AdCampaignAgent-SFT
+uv venv
+uv sync
 ```
 
-**Stage 2 — Generate conversations**
+## Main Workflow
 
-Converts each seed into a full multi-turn dialogue in either OpenAI Messages or ShareGPT format. Tool results are mock-generated deterministically from the seed's `scene_tag` and baselines, ensuring all metrics within a single conversation are internally consistent.
+### 1. Generate seed records
+
+This creates raw Ad Agent seed data under `data/raw/`.
+
+```sh
+uv run python src/datapipeline/generate_base_dataset.py
+```
+
+Output example:
+
+```text
+data/raw/ad_agent_seeds_20260326_zh.json
+data/raw/ad_agent_seeds_20260326_en.json
+```
+
+### 2. Split seeds into train / test
+
+```sh
+uv run python src/datapipeline/split_dataset.py \
+  --input data/raw/ad_agent_seeds_20260326_zh.json \
+  --train-output data/processed/ad_agent_seeds_train.json \
+  --test-output data/processed/ad_agent_seeds_test.json
+```
+
+The split script currently stratifies by:
+- `workflow_name`
+- `scene_tag`
+- `needs_clarification`
+
+### 3. Convert seeds into tool-call conversations
 
 ```sh
 uv run python src/datapipeline/convert_dataset.py
-# Then enter the seed file name and choose the output format (message/sharegpt), e.g.:
-# ad_agent_seeds_<timestamp>_en.json
-# Output examples:
-#   data/ready2train/message/ad_agent_sft_<timestamp>_zh_message.json
-#   data/ready2train/message/ad_agent_sft_<timestamp>_en_message.json
-#   data/ready2train/sharegpt/ad_agent_sft_<timestamp>_zh_sharegpt.json
-#   data/ready2train/sharegpt/ad_agent_sft_<timestamp>_en_sharegpt.json
 ```
 
-**Stage 3 — Quality analysis & report**
+Typical inputs:
+- `data/processed/ad_agent_seeds_train.json`
+- `data/processed/ad_agent_seeds_test.json`
 
-Auto-detects format (OpenAI Messages or ShareGPT), runs full quality checks, and generates 6 publication-style figures plus a `dataset_card.md` ready for HuggingFace upload.
+Typical outputs:
+- `data/ready2train/message/ad_agent_sft_*_message.json`
+- `data/ready2train/sharegpt/ad_agent_sft_*_sharegpt.json`
 
-```sh
-uv run python src/datapipeline/3_dataquality_check.py
-# Input JSON file name examples:
-#   ad_agent_sft_<timestamp>_zh_message.json
-#   ad_agent_sft_<timestamp>_en_message.json
-#   ad_agent_sft_<timestamp>_zh_sharegpt.json
-#   ad_agent_sft_<timestamp>_en_sharegpt.json
-# Output: checker/ad_agent_sft_<timestamp>/
-#           ├── dataset_card.md
-#           ├── fig1_workflow.png
-#           ├── fig2_scene.png
-#           ├── fig3_turn_dist.png
-#           ├── fig4_token_dist.png
-#           ├── fig5_tool_freq.png
-#           └── fig6_platform_genre.png
-```
-
-**Optional — Expand message datasets into multiturn samples**
-
-Splits a message-format dataset by assistant turns. The script prompts for the JSON file name, reads it from `data/ready2train/message/`, and writes the result back into the same folder with `_multiturn` appended to the file name.
+### 4. Expand message-format data into multiturn samples
 
 ```sh
 uv run python src/datapipeline/conversation_splitter.py
-# Then enter a JSON file name, e.g.:
-# ad_agent_sft_<timestamp>_en_message.json
-# Output example:
-#   data/ready2train/message/ad_agent_sft_<timestamp>_en_message_multiturn.json
 ```
 
-**Quick format validation (no full report)**
+Typical output:
+- `data/ready2train/message/ad_agent_sft_*_message_multiturn.json`
+
+## Tools
+
+The runtime tool schema lives in:
+- [src/tools/all_tools.json](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools/all_tools.json)
+
+The tool implementations live in:
+- [src/tools](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools)
+
+Current tool families:
+- creative search
+- creative upload
+- campaign / creative analytics
+- anomaly diagnosis
+- benchmark / policy / knowledge retrieval
+
+See:
+- [src/tools/README.md](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools/README.md)
+
+## Local Inference
+
+### Local tool-call inspector
+
+Single-shot local model inspection for tool-calling behavior.
 
 ```sh
-uv run python -c "
-import json
-data = json.load(open('data/ad_agent_sft_<timestamp>.json'))
-sample = data[50]['messages']
-for m in sample:
-    print(f\"{m['role']:12} | tool_calls={'tool_calls' in m} | tool_call_id={'tool_call_id' in m}\")
-"
+uv run python src/inference/local_toolcall_inspector.py \
+  --scenario campaign_metrics \
+  --local_files_only
 ```
 
+Useful for:
+- checking chat template rendering
+- checking whether a local model emits tool calls
+- checking parsed tool-call arguments
 
+### Local tool-call REPL
 
-<!-- ROADMAP -->
+Interactive local REPL that can:
+- send user turns to a local model
+- parse tool calls
+- execute local tools
+- feed tool results back to the model
+
+```sh
+uv run python src/inference/local_toolcall_repl.py --local_files_only
+```
+
+The REPL defaults to:
+- tool schema: [src/tools/all_tools.json](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools/all_tools.json)
+- system prompt: [prompts/ad_agent_system_prompt.txt](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/prompts/ad_agent_system_prompt.txt)
+
+You can override the system prompt with:
+
+```sh
+uv run python src/inference/local_toolcall_repl.py \
+  --system-file prompts/ad_agent_system_prompt.txt
+```
+
+or:
+
+```sh
+uv run python src/inference/local_toolcall_repl.py \
+  --system-text "You are a mobile game UA assistant..."
+```
+
+## External Model Runner
+
+For OpenAI-compatible external model tool-call debugging, use:
+
+```sh
+uv run python tests/inference/online_toolcall_runner.py
+```
+
+This is intentionally kept under `tests/inference/` because it is an external-model smoke runner, not part of the local inference core.
+
+## Prompt Assets
+
+Prompt files are stored under:
+- [prompts](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/prompts)
+
+Current default runtime prompt:
+- [prompts/ad_agent_system_prompt.txt](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/prompts/ad_agent_system_prompt.txt)
+
+## Training
+
+This repository already includes training-related scripts under [src/train](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/train) and shell helpers under [scripts](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts).
+
+Typical training flow:
+
+1. Generate seeds
+2. Split train/test
+3. Convert to message/sharegpt data
+4. Optionally expand multiturn message data
+5. Inspect dataset formatting
+6. Run LoRA or full fine-tuning
+
+For detailed paths and script descriptions, see:
+- [docs/仓库使用指南.md](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/docs/仓库使用指南.md)
+
 ## Roadmap
 
-- [x] 7-workflow seed generation with rule-based scene tagging
-- [x] 15-tool mock executor with internally consistent ROAS/Retention metrics
-- [x] OpenAI Messages format with strict `tool_call_id` pairing
-- [x] Auto-format detection (OpenAI Messages / ShareGPT)
-- [x] Automated quality report with 6 figures + Markdown dataset card
-- [ ] Increase `validate_fail` scenes from 17 → 50+ samples
-- [ ] Add `tool_call` last-turn samples (~20 conversations)
-- [ ] Balance `industry_benchmark` and `platform_policy` knowledge scenes to 40+ each
-- [ ] Extend to English-only and bilingual variants
-- [ ] Fine-tuned model checkpoint (Qwen3-0.6B on AdCampaignAgent-SFT)
+- [x] Rule-based Ad Agent seed generation
+- [x] 15-tool ad-domain runtime schema
+- [x] OpenAI Messages / ShareGPT conversion
+- [x] Local tool-call inspector
+- [x] Local tool-call REPL
+- [x] Online tool-call runner for external models
+- [ ] Replace legacy travel RAG with ad-domain knowledge RAG
+- [ ] Expand benchmark and policy retrieval quality
+- [ ] Add stronger local model eval scripts
+- [ ] Publish fine-tuned checkpoints
 
-See the [open issues](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues) for a full list of proposed features and known issues.
-
-
-
-<!-- CONTRIBUTING -->
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Issues and pull requests are welcome. If you want to extend the repo, the highest-leverage areas are:
+- better ad-domain RAG replacement
+- stronger tool-call eval coverage
+- cleaner training / reporting automation
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+## Links
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Project: [https://github.com/ChaoyuWang04/AdCampaignAgent-SFT](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT)
+- Dataset: [https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT](https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT)
+- Author: [Chaoyu Wang](https://www.linkedin.com/in/samwang04/)
 
-
-
-### Top contributors:
-
-<a href="https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ChaoyuWang04/AdCampaignAgent-SFT" alt="contrib.rocks image" />
-</a>
-
-<!-- LICENSE -->
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
-
-
-<!-- CONTACT -->
-## Contact
-
-Chaoyu Wang - [Linkedin](https://www.linkedin.com/in/samwang04/) - [PersonalWeb](https://chaoyuwang04.github.io/)
-
-Project Link: [https://github.com/ChaoyuWang04/AdCampaignAgent-SFT](https://github.com/ChaoyuWang04/AdCampaignAgent-SFT)
-
-Dataset Link: [https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT](https://huggingface.co/datasets/SamWang0405/AdCampaignAgent-SFT)
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-* [LLaMA Factory](https://github.com/hiyouga/LLaMA-Factory) — SFT training framework reference
-* [Qwen3](https://huggingface.co/Qwen) — base model for fine-tuning experiments
-* [Best-README-Template](https://github.com/othneildrew/Best-README-Template) — README structure
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
-[contributors-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
-[forks-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/network/members
-[stars-shield]: https://img.shields.io/github/stars/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
-[stars-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/stargazers
-[issues-shield]: https://img.shields.io/github/issues/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
-[issues-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/issues
-[license-shield]: https://img.shields.io/github/license/ChaoyuWang04/AdCampaignAgent-SFT.svg?style=for-the-badge
-[license-url]: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT/blob/master/LICENSE
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/in/samwang04/
-
-[Python-badge]: https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white
-[Python-url]: https://www.python.org/
-[HuggingFace-badge]: https://img.shields.io/badge/🤗%20HuggingFace-FFD21E?style=for-the-badge
-[HuggingFace-url]: https://huggingface.co/
-[Pandas-badge]: https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white
-[Pandas-url]: https://pandas.pydata.org/
-[Matplotlib-badge]: https://img.shields.io/badge/Matplotlib-11557C?style=for-the-badge&logo=python&logoColor=white
-[Matplotlib-url]: https://matplotlib.org/
-[Seaborn-badge]: https://img.shields.io/badge/Seaborn-4C72B0?style=for-the-badge&logo=python&logoColor=white
-[Seaborn-url]: https://seaborn.pydata.org/

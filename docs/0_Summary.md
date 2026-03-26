@@ -114,18 +114,6 @@ tool_call（还需继续）        ~20%  ← 容易缺失
 下周：写 Dataset Card 初稿，统计 token 分布，上传第一个版本
 
 
-对比旅行助手 vs 你的 Ad Agent
-
-
-| 维度 | 旅行助手 | 你的 Ad Agent |
-|------|----------|---------------|
-| 上下文变量 | 城市ID、坐标、出发日期 | campaign_id、app_id、platform、date_range |
-| 工作流数量 | 5个 | 建议 **7个**（见下） |
-| 单轮 vs 多轮 | 基本单轮 | **必须多轮**，tool chain 是核心 |
-| 追问逻辑 | 目的地不明 → 追问 | 参数缺失 → 追问（更复杂） |
-| 拒答类型 | 完全离题 | 离题 + 越权 + 数据不足（3类） |
-
-
 你的 Ad Agent 应该定义哪 7 个工作流: 
 
 工作流1：素材搜寻          search_trending_creatives / search_competitor_ads
