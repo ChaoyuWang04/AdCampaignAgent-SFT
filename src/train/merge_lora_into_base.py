@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
+"""将 LoRA adapter 合并回 base model，并保存为可直接推理的 merged 模型目录。"""
+
 import argparse
 import os
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
 
 if __package__ in {None, ""}:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.common.project_paths import default_model_dir, models_dir
-
 
 def parse_args() -> argparse.Namespace:
+    """解析 merge 所需参数，要求显式提供 base、adapter 与输出目录。"""
     parser = argparse.ArgumentParser(description="Merge LoRA adapter into base model and save merged model")
-    parser.add_argument("--base_model", type=str, default=str(default_model_dir()), help="Base model name or path")
-    parser.add_argument("--adapter_path", type=str, default=str(models_dir() / "qwen3-0_6b_lora_last_assistant"))
-    parser.add_argument("--output_dir", type=str, default=str(models_dir() / "qwen3-0_6b_merged"), help="Where to save merged model")
+    parser.add_argument("--base_model", type=str, required=True, help="Base model name or path")
+    parser.add_argument("--adapter_path", type=str, required=True, help="Path to LoRA adapter directory")
+    parser.add_argument("--output_dir", type=str, required=True, help="Where to save merged model")
     parser.add_argument("--local_files_only", action="store_true", help="Load only from local cache")
     parser.add_argument("--bf16", action="store_true", help="Load model in bfloat16 for lower memory during merge")
     parser.add_argument("--fp16", action="store_true", help="Load model in float16 for lower memory during merge")
@@ -27,6 +25,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """加载 base model 与 adapter，完成 merge 并保存 merged 模型目录。"""
+    import torch
+    from peft import PeftModel
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
     args = parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
 

@@ -23,6 +23,12 @@
 | `inspect_qwen_dataset.py` | 检查模板化结果、token span 和 loss mask |
 | `merge_lora_into_base.py` | 把 LoRA adapter 合并回基础模型 |
 
+另外，仓库根目录提供了对应的 shell 包装脚本：
+
+- [merge_lora_into_base.sh](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/merge_lora_into_base.sh)
+
+推荐直接编辑脚本顶部配置后执行，而不是手动在命令行里拼很长的 Python 参数。
+
 ## 快速选择
 
 - 想做最常规的 LoRA 多轮训练：`train_qwen_lora_all_assistant_turns.py`
