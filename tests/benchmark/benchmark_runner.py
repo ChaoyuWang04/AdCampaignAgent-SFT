@@ -100,6 +100,10 @@ class LocalHFCaseRunner:
         model_path: str | Path = default_model_dir(),
         max_new_tokens: int = 500,
         temperature: float = 0.0,
+        top_p: float = 1.0,
+        top_k: int = 50,
+        repetition_penalty: float = 1.0,
+        no_repeat_ngram_size: int = 0,
         local_files_only: bool = True,
         max_tool_rounds: int = 4,
         system_text: str = "",
@@ -118,6 +122,10 @@ class LocalHFCaseRunner:
         self.model_path = str(model_path)
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.repetition_penalty = repetition_penalty
+        self.no_repeat_ngram_size = no_repeat_ngram_size
         self.local_files_only = local_files_only
         self.max_tool_rounds = max_tool_rounds
         self.tools = json.loads(tools_schema_path().read_text(encoding="utf-8"))
@@ -213,6 +221,10 @@ class LocalHFCaseRunner:
                 max_new_tokens=self.max_new_tokens,
                 temperature=self.temperature,
                 do_sample=self.temperature > 0,
+                top_p=self.top_p,
+                top_k=self.top_k,
+                repetition_penalty=self.repetition_penalty,
+                no_repeat_ngram_size=self.no_repeat_ngram_size,
                 pad_token_id=self.tokenizer.pad_token_id,
                 eos_token_id=self.tokenizer.eos_token_id,
             )

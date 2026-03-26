@@ -82,6 +82,79 @@ tests/benchmark/
 
 ## 运行方式
 
+### 推荐：使用 shell 脚本
+
+仓库根目录下提供了统一运行脚本：
+
+[`scripts/run_benchmark.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/run_benchmark.sh)
+
+这个脚本支持两种常见模式：
+
+- 跑整套 benchmark
+- 单独跑某一个评测组：`format` / `routing` / `content` / `system`
+- 通过脚本顶部 `CASE_FILES` 只跑指定题集
+
+#### 跑整套 benchmark
+
+```bash
+bash scripts/run_benchmark.sh \
+  # 先在脚本顶部填好 BACKEND / MODEL 等配置
+```
+
+#### 单独跑某一个评测组
+
+```bash
+bash scripts/run_benchmark.sh \
+  # 先把脚本顶部的 EVAL_GROUP 改成 system
+```
+
+#### 只跑你手动指定的 case 文件
+
+```bash
+bash scripts/run_benchmark.sh \
+  # 先把脚本顶部的 CASE_FILES 改成
+  # CASE_FILES=("test_oos.json" "test_clarify.json")
+```
+
+说明：
+
+- 如果不传 `--results-dir`，脚本会自动生成一个带时间戳的结果目录，避免覆盖旧结果
+- 如果 `CASE_FILES` 为空，会按 `EVAL_GROUP` 自动选文件
+- 如果 `CASE_FILES` 不为空，会优先使用你手动指定的文件
+- 本地 `local_hf` 后端的生成参数也在脚本顶部配置，包括：
+  - `MAX_NEW_TOKENS`
+  - `TEMPERATURE`
+  - `TOP_P`
+  - `TOP_K`
+  - `REPETITION_PENALTY`
+  - `NO_REPEAT_NGRAM_SIZE`
+  - `MAX_TOOL_ROUNDS`
+  - `LOCAL_FILES_ONLY`
+- `openai` 后端需要环境变量 `OPENAI_API_KEY`
+- 如果使用兼容 OpenAI 协议的其他服务，还需要设置 `OPENAI_BASE_URL`
+
+### CPU dry run
+
+如果你只想验证 benchmark 流程能否在 CPU 上跑通，而不追求完整评测，可以使用：
+
+[`scripts/dry_run_benchmark_cpu.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/dry_run_benchmark_cpu.sh)
+
+```bash
+bash scripts/dry_run_benchmark_cpu.sh
+```
+
+这个脚本会：
+
+- 固定使用 `local_hf`
+- 固定只跑 1 条 smoke case
+- 把生成参数压到较小
+- 把工具轮数压到 1
+
+注意：
+
+- 这只是 smoke test，不是正式 benchmark
+- 即使如此，`1.7B` 模型在 CPU 上也可能仍然比较慢
+
 ### 本地 HF 模型
 
 ```bash
@@ -110,6 +183,15 @@ uv run python tests/benchmark/run_benchmark.py \
   --backend local_hf \
   --model models/qwen3-0_6b \
   --case-files test_standard.json test_oos.json
+```
+
+### 只跑某一个评测组
+
+```bash
+uv run python tests/benchmark/run_benchmark.py \
+  --backend local_hf \
+  --model models/qwen3-0_6b \
+  --eval-group routing
 ```
 
 ## 输出
