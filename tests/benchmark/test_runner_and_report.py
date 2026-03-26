@@ -30,7 +30,9 @@
 import json
 from pathlib import Path
 
-from tests.benchmark.benchmark_runner import BenchmarkSuiteRunner
+import torch
+
+from tests.benchmark.benchmark_runner import BenchmarkSuiteRunner, LocalHFCaseRunner
 from tests.benchmark.benchmark_schema import BenchmarkCase
 
 
@@ -109,3 +111,29 @@ def test_benchmark_suite_runner_writes_report_and_case_results(tmp_path: Path) -
     lines = (tmp_path / "case_results.jsonl").read_text(encoding="utf-8").strip().splitlines()
     assert saved_report["metrics"]["R1"] == 1.0
     assert len(lines) == 2
+
+
+def test_render_messages_accepts_encoding_like_result() -> None:
+    """本地 runner 应兼容 tokenizer 返回类似 Encoding 的对象。"""
+
+    class DummyEncoding:
+        def __init__(self, ids):
+            self.ids = ids
+
+    class DummyTokenizer:
+        def apply_chat_template(self, messages, **kwargs):
+            _ = messages, kwargs
+            return DummyEncoding([1, 2, 3])
+
+    class DummyModel:
+        device = torch.device("cpu")
+
+    runner = LocalHFCaseRunner.__new__(LocalHFCaseRunner)
+    runner.tokenizer = DummyTokenizer()
+    runner.model = DummyModel()
+    runner.tools = None
+
+    tensor = runner._render_messages([{"role": "user", "content": "hello"}])
+
+    assert isinstance(tensor, torch.Tensor)
+    assert tensor.shape == (1, 3)

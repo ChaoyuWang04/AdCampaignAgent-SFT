@@ -204,11 +204,17 @@ class LocalHFCaseRunner:
         if supports_tools_kw(self.tokenizer):
             template_kwargs["tools"] = self.tools
         input_ids = self.tokenizer.apply_chat_template(messages, **template_kwargs)
-        if not isinstance(input_ids, torch.Tensor):
-            input_ids = torch.tensor(input_ids)
-        if input_ids.ndim == 1:
-            input_ids = input_ids.unsqueeze(0)
-        return input_ids.to(self.model.device)
+        if isinstance(input_ids, torch.Tensor):
+            tensor_input_ids = input_ids
+        elif hasattr(input_ids, "input_ids"):
+            tensor_input_ids = torch.tensor(input_ids.input_ids)
+        elif hasattr(input_ids, "ids"):
+            tensor_input_ids = torch.tensor(input_ids.ids)
+        else:
+            tensor_input_ids = torch.tensor(input_ids)
+        if tensor_input_ids.ndim == 1:
+            tensor_input_ids = tensor_input_ids.unsqueeze(0)
+        return tensor_input_ids.to(self.model.device)
 
     def _generate_once(self, messages: list[dict[str, Any]]) -> str:
         """让本地模型生成单轮 assistant 输出。"""
