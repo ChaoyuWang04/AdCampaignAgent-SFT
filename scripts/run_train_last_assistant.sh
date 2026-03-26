@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260324_211651_en_message_multiturn.json"
+EVAL_PATH="${REPO_ROOT}/data/ready2train/message/你的测试集文件名.json"
 MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base"
 
 # DEBUG 模式：输出到独立目录，避免覆盖正式 checkpoint
@@ -21,7 +22,11 @@ fi
 
 mkdir -p "${OUTPUT_DIR}"
 
-python3 "${REPO_ROOT}/src/train/train_qwen_last_assistant_lora.py" \
+# WandB 配置
+export WANDB_PROJECT="AdCampaignAgent-SFT"
+export WANDB_RUN_NAME="Qwen3-1.7B-lora-$(date +%Y%m%d-%H%M)"
+
+python3 "${REPO_ROOT}/src/train/train_qwen_last_assistant_lora_fixed.py" \
   --train_file "${TRAIN_FILE}" \
   --model_name_or_path "${MODEL_PATH}" \
   --output_dir "${OUTPUT_DIR}" \
@@ -38,4 +43,6 @@ python3 "${REPO_ROOT}/src/train/train_qwen_last_assistant_lora.py" \
   --bf16 \
   --gradient_checkpointing \
   --local_files_only \
+  --eval_file "${EVAL_PATH}" \
+  --eval_steps 100 \
   ${EXTRA_ARGS}

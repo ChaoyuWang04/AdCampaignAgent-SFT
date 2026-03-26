@@ -150,6 +150,10 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument(
+        "--eval_file", type=str, default="",
+        help="测试集路径，为空则不做 eval"
+    )
+    parser.add_argument(
         "--per_device_train_batch_size", type=int, default=1,
         help=(
             "每张 GPU 每次前向传播处理的样本数。"
@@ -363,6 +367,18 @@ def main():
     )
     print(f"Dataset size: {len(train_dataset)} samples")
 
+    # 评估数据集（可选）：如果提供了 eval_file，就加载它用于 eval；否则 eval_dataset 设为 None，Trainer 会跳过 eval
+    eval_dataset = None
+    if args.eval_file:
+        eval_dataset = JsonlConversations(
+            args.eval_file,
+            tokenizer,
+            args.max_seq_length,
+            only_last_assistant=True,
+            default_tools=default_tools,
+        )
+        print(f"Eval dataset size: {len(eval_dataset)} samples")
+
     # DataCollator：把多条样本拼成一个 batch，处理 padding 和 label mask
     data_collator = DataCollatorForCausal(tokenizer=tokenizer)
 
@@ -372,20 +388,27 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         max_steps=args.max_steps,
+        
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
         num_train_epochs=args.num_train_epochs,
         warmup_ratio=args.warmup_ratio,
+        
         logging_steps=args.logging_steps,
         logging_strategy="steps",
         save_steps=args.save_steps,
         save_total_limit=args.save_total_limit,
+        
+        eval_strategy="steps",
+        eval_steps=100,
         lr_scheduler_type=args.lr_scheduler_type,
+        
         optim="adamw_torch",            # AdamW 是 LLM 训练的标准优化器
         bf16=args.bf16,
         fp16=args.fp16 and not args.bf16,  # bf16 和 fp16 互斥，bf16 优先
+        
         dataloader_num_workers=args.dataloader_num_workers,
-        report_to=[],                   # 不上报到 wandb/tensorboard（可按需开启）
+        report_to=["wandb"],                   # 上报到 wandb/tensorboard（可按需开启）
         remove_unused_columns=False,    # 保留数据集中的所有列（包括 label mask）
         seed=args.seed         
     )
