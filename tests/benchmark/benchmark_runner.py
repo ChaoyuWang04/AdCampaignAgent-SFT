@@ -138,11 +138,11 @@ class LocalHFCaseRunner:
         self.tools = json.loads(tools_schema_path().read_text(encoding="utf-8"))
         self.dispatch = {name: getattr(ad_tools, name) for name in ad_tools.__all__}
 
-        torch_dtype = None
+        model_dtype = None
         if self.bf16:
-            torch_dtype = torch.bfloat16
+            model_dtype = torch.bfloat16
         elif self.fp16:
-            torch_dtype = torch.float16
+            model_dtype = torch.float16
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_path,
@@ -155,7 +155,7 @@ class LocalHFCaseRunner:
             self.model_path,
             trust_remote_code=True,
             local_files_only=local_files_only,
-            torch_dtype=torch_dtype,
+            dtype=model_dtype,
             device_map="auto" if self.device_map_auto else None,
         )
         if hasattr(self.model, "config"):

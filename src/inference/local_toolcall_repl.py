@@ -163,11 +163,11 @@ class LocalToolcallREPL:
         self.history: List[Dict[str, Any]] = []
         self.system_prompt = load_system_prompt(args)
 
-        torch_dtype = None
+        model_dtype = None
         if args.bf16:
-            torch_dtype = torch.bfloat16
+            model_dtype = torch.bfloat16
         elif args.fp16:
-            torch_dtype = torch.float16
+            model_dtype = torch.float16
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             args.model_path,
@@ -181,7 +181,7 @@ class LocalToolcallREPL:
             args.model_path,
             trust_remote_code=True,
             local_files_only=args.local_files_only,
-            torch_dtype=torch_dtype,
+            dtype=model_dtype,
             device_map="auto" if args.device_map_auto else None,
         )
         if hasattr(self.model, "config"):
@@ -208,9 +208,19 @@ class LocalToolcallREPL:
         if isinstance(input_ids, torch.Tensor):
             tensor_input_ids = input_ids
         elif hasattr(input_ids, "input_ids"):
-            tensor_input_ids = torch.tensor(input_ids.input_ids)
+            raw_input_ids = input_ids.input_ids
+            tensor_input_ids = (
+                raw_input_ids
+                if isinstance(raw_input_ids, torch.Tensor)
+                else torch.tensor(raw_input_ids)
+            )
         elif hasattr(input_ids, "ids"):
-            tensor_input_ids = torch.tensor(input_ids.ids)
+            raw_input_ids = input_ids.ids
+            tensor_input_ids = (
+                raw_input_ids
+                if isinstance(raw_input_ids, torch.Tensor)
+                else torch.tensor(raw_input_ids)
+            )
         else:
             tensor_input_ids = torch.tensor(input_ids)
         if tensor_input_ids.ndim == 1:
@@ -222,15 +232,16 @@ class LocalToolcallREPL:
         attention_mask = torch.ones_like(input_ids)
         generation_kwargs = {
             "max_new_tokens": self.args.max_new_tokens,
-            "temperature": self.args.temperature,
-            "top_p": self.args.top_p,
-            "top_k": self.args.top_k,
             "repetition_penalty": self.args.repetition_penalty,
             "no_repeat_ngram_size": self.args.no_repeat_ngram_size,
             "do_sample": self.args.do_sample,
             "pad_token_id": self.tokenizer.pad_token_id,
             "eos_token_id": self.tokenizer.eos_token_id,
         }
+        if self.args.do_sample:
+            generation_kwargs["temperature"] = self.args.temperature
+            generation_kwargs["top_p"] = self.args.top_p
+            generation_kwargs["top_k"] = self.args.top_k
         with torch.no_grad():
             output_ids = self.model.generate(
                 input_ids=input_ids,
