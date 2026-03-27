@@ -431,6 +431,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_seq_length", type=int, default=20000)
     parser.add_argument("--num_samples", type=int, default=1, help="Number of samples to print")
     parser.add_argument("--start", type=int, default=0, help="Start index in dataset")
+    parser.add_argument("--show_summary", action="store_true", help="Show per-sample summary section")
+    parser.add_argument("--show_input_ids", action="store_true", help="Show raw input_ids section")
+    parser.add_argument("--show_loss_mask", action="store_true", help="Show visualized loss mask section")
+    parser.add_argument("--show_loss_segments", action="store_true", help="Show decoded segments that contribute to loss")
     parser.add_argument("--show_tokens", action="store_true", help="Show token strings rather than ids")
     parser.add_argument("--max_print_tokens", type=int, default=20000, help="Max tokens to print per sample")
     parser.add_argument("--color", action="store_true", help="Use ANSI colors to highlight loss tokens")
@@ -504,6 +508,41 @@ def _export_sample_json(
         json.dump(data, f, ensure_ascii=False)
 
 
+def format_segment_lines(segments: List[Tuple[int, int, str]]) -> List[str]:
+    """将 segment 渲染为带空行分隔的多行文本，便于终端阅读。"""
+    lines: List[str] = []
+    for idx, (start, end, text) in enumerate(segments):
+        if idx > 0:
+            lines.append("")
+        lines.append(f"  [{start}:{end}] -> {text!r}")
+    return lines
+
+
+def format_section(title: str, body_lines: List[str]) -> List[str]:
+    """将一组输出包装成统一的终端区块，便于快速定位信息类别。"""
+    lines = ["-" * 80, f"[{title}]", "-" * 80]
+    lines.extend(body_lines)
+    return lines
+
+
+def describe_segment(text: str, contributes_to_loss: bool) -> str:
+    """为 segment 生成简短标签，帮助快速判断这段内容在样本中的角色。"""
+    stripped = text.strip()
+    if not stripped:
+        return "空片段"
+    if "<tool_call>" in stripped:
+        return "assistant 工具调用片段" if contributes_to_loss else "上下文中的工具调用片段"
+    if "<tool_response>" in stripped:
+        return "工具返回片段（上下文，不参与 loss）"
+    if "<|im_start|>assistant" in stripped:
+        return "assistant 最终回答片段" if contributes_to_loss else "assistant 片段（不参与 loss）"
+    if "<|im_start|>user" in stripped:
+        return "user 输入片段（上下文，不参与 loss）"
+    if "<|im_start|>system" in stripped:
+        return "system 提示片段（上下文，不参与 loss）"
+    return "参与 loss 的片段" if contributes_to_loss else "不参与 loss 的片段"
+
+
 def main() -> None:
     args = parse_args()
 
@@ -570,58 +609,147 @@ def main() -> None:
 
         print("\n" + "=" * 80)
         print(f"Sample #{idx} / {total}")
-        print(
-            f"seq_len={input_ids.numel()} | "
-            f"loss_tokens={int(loss_mask.sum().item())} | "
-            f"masked_out={int((~loss_mask).sum().item())}"
-        )
+        print(f"数据文件中的样本索引: {idx}")
+
+        if args.show_summary:
+            summary_lines = [
+                "说明: 这一块给出当前样本的整体统计，先看它能快速判断样本长度和监督覆盖范围。",
+                "实际输出:",
+                f"  seq_len={input_ids.numel()}",
+                f"  loss_tokens={int(loss_mask.sum().item())}",
+                f"  masked_out={int((~loss_mask).sum().item())}",
+                f"  attention_tokens={int(attention_mask.sum().item())}",
+                f"  loss_spans={len(_contiguous_true_spans(loss_mask))}",
+            ]
+            for line in format_section("Sample Summary", summary_lines):
+                print(line)
 
         if args.show_tokens:
             tokens = tokenizer.convert_ids_to_tokens(head_input_ids.tolist())
             line = _highlight(tokens, head_loss_mask, args.color)
-            print("Tokens (green or [brackets] = contribute to loss):")
-            print(line)
-        else:
+            token_lines = [
+                "说明: 这一块展示 token 级别的可视化。绿色或方括号表示这些 token 会参与 loss。",
+                "实际输出:",
+                line,
+            ]
+            for section_line in format_section("Tokens", token_lines):
+                print(section_line)
+
+        if args.show_input_ids:
             ids_line = " ".join(str(i) for i in head_input_ids.tolist())
+            input_id_lines = [
+                "说明: 这一块展示传给模型的原始 token id 序列，主要用于排查 tokenizer 或截断问题。",
+                f"实际输出: 前 {head_len} 个 token 的 input_ids",
+                ids_line,
+            ]
+            for section_line in format_section("Input IDs", input_id_lines):
+                print(section_line)
+
+        if args.show_loss_mask:
             mask_line = " ".join("1" if b else "." for b in head_loss_mask.tolist())
-            print("input_ids:")
-            print(ids_line)
-            print("loss_mask (1=loss, .=ignore):")
-            print(mask_line)
+            mask_lines = [
+                "说明: 这一块展示 loss mask。1 表示该 token 参与训练，. 表示只作为上下文输入。",
+                f"实际输出: 前 {head_len} 个 token 的 loss mask",
+                mask_line,
+            ]
+            for section_line in format_section("Loss Mask", mask_lines):
+                print(section_line)
 
         spans = _contiguous_true_spans(loss_mask)
-        if spans:
-            print("Loss segments (decoded with special tokens):")
-            for s, e in spans:
-                segment_ids = input_ids[s:e]
-                text = tokenizer.decode(segment_ids, skip_special_tokens=False)
-                display_text = text if len(text) <= 512 else (text[:509] + "...")
-                print(f"  [{s}:{e}] -> {display_text!r}")
-        else:
-            print("No loss segments found (unexpected for assistant-only masking)")
+        if args.show_loss_segments:
+            if spans:
+                rendered_segments: List[Tuple[int, int, str]] = []
+                for s, e in spans:
+                    segment_ids = input_ids[s:e]
+                    text = tokenizer.decode(segment_ids, skip_special_tokens=False)
+                    display_text = text if len(text) <= 512 else (text[:509] + "...")
+                    rendered_segments.append((s, e, display_text))
+                segment_lines = [
+                    "说明: 这一块展示所有参与 loss 的连续片段。每个 segment 前会先标明它大致是什么角色，再给出真实文本。",
+                    "实际输出:",
+                ]
+                for seg_idx, (s, e, text) in enumerate(rendered_segments, start=1):
+                    if seg_idx > 1:
+                        segment_lines.append("")
+                    segment_lines.append(
+                        f"  Segment {seg_idx}: {describe_segment(text, contributes_to_loss=True)}"
+                    )
+                    segment_lines.append(f"  Token 区间: [{s}:{e}]")
+                    segment_lines.append("  真实内容:")
+                    segment_lines.append(f"  {text!r}")
+                for section_line in format_section("Loss Segments", segment_lines):
+                    print(section_line)
+            else:
+                for section_line in format_section(
+                    "Loss Segments",
+                    [
+                        "说明: 这一块展示所有参与 loss 的连续片段。",
+                        "实际输出:",
+                        "  未找到任何参与 loss 的片段，这通常不符合预期。",
+                    ],
+                ):
+                    print(section_line)
 
         if args.show_ignored_segments:
             ignored_spans = _contiguous_true_spans(~loss_mask)
             if ignored_spans:
-                print("Ignored segments (decoded with special tokens):")
+                rendered_segments = []
                 for s, e in ignored_spans:
                     segment_ids = input_ids[s:e]
                     text = tokenizer.decode(segment_ids, skip_special_tokens=False)
                     display_text = text if len(text) <= 512 else (text[:509] + "...")
-                    print(f"  [{s}:{e}] -> {display_text!r}")
+                    rendered_segments.append((s, e, display_text))
+                ignored_lines = [
+                    "说明: 这一块展示不参与 loss 的上下文片段，通常包括 system、user 和 tool_response。",
+                    "实际输出:",
+                ]
+                for seg_idx, (s, e, text) in enumerate(rendered_segments, start=1):
+                    if seg_idx > 1:
+                        ignored_lines.append("")
+                    ignored_lines.append(
+                        f"  Segment {seg_idx}: {describe_segment(text, contributes_to_loss=False)}"
+                    )
+                    ignored_lines.append(f"  Token 区间: [{s}:{e}]")
+                    ignored_lines.append("  真实内容:")
+                    ignored_lines.append(f"  {text!r}")
+                for section_line in format_section("Ignored Segments", ignored_lines):
+                    print(section_line)
             else:
-                print("No ignored segments (all tokens contribute to loss)")
+                for section_line in format_section(
+                    "Ignored Segments",
+                    [
+                        "说明: 这一块展示不参与 loss 的上下文片段。",
+                        "实际输出:",
+                        "  没有不参与 loss 的片段，说明整条样本都在监督范围内。",
+                    ],
+                ):
+                    print(section_line)
 
         if args.show_full_decoded:
-            print("Full decoded (skip_special_tokens=True):")
-            print(tokenizer.decode(input_ids.tolist(), skip_special_tokens=True))
-            print("Full decoded (skip_special_tokens=False):")
-            print(tokenizer.decode(input_ids.tolist(), skip_special_tokens=False))
+            full_decoded_lines = [
+                "说明: 这一块展示整条样本 decode 后的完整文本，用于检查 tools 注入、消息边界和最终监督目标。",
+                "实际输出:",
+                "  [skip_special_tokens=True]",
+                tokenizer.decode(input_ids.tolist(), skip_special_tokens=True),
+                "",
+                "  [skip_special_tokens=False]",
+                tokenizer.decode(input_ids.tolist(), skip_special_tokens=False),
+            ]
+            for section_line in format_section("Full Decoded", full_decoded_lines):
+                print(section_line)
 
         if args.export_dir:
             out_path = os.path.join(args.export_dir, f"sample_{idx:06d}.json")
             _export_sample_json(out_path, input_ids, attention_mask, labels)
-            print(f"Exported tensors to: {out_path}")
+            for section_line in format_section(
+                "Exported JSON",
+                [
+                    "说明: 这一块给出当前样本导出的张量 JSON 路径，便于离线查看。",
+                    "实际输出:",
+                    f"  {out_path}",
+                ],
+            ):
+                print(section_line)
 
 
 if __name__ == "__main__":

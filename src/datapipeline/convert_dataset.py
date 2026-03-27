@@ -63,7 +63,7 @@ UI_TEXT = {
         "file_prompt": "Input JSON file name: ",
         "format_prompt": "请选择输出格式 (message/sharegpt): ",
         "invalid_format": "❌ 格式输入无效，请输入 message 或 sharegpt。",
-        "file_not_found": "❌ 数据文件没有找到: {name} (在 {data_dir}、{raw_dir} 和 {script_dir} 三个路径中)",
+        "file_not_found": "❌ 数据文件没有找到: {name} (在 {processed_dir} 路径中)",
         "found_input": "📂 Found input: {path}",
         "output_path": "💾 输出的结果已保存至: {path}",
     },
@@ -81,7 +81,7 @@ UI_TEXT = {
         "file_prompt": "Input JSON file name: ",
         "format_prompt": "Choose output format (message/sharegpt): ",
         "invalid_format": "❌ Invalid format. Please enter message or sharegpt.",
-        "file_not_found": "❌ File not found: {name} (searched in {data_dir}, {raw_dir}, and {script_dir})",
+        "file_not_found": "❌ File not found: {name} (searched in {processed_dir})",
         "found_input": "📂 Found input: {path}",
         "output_path": "💾 Output will be saved to: {path}",
     },
@@ -967,19 +967,16 @@ def get_turns(record: Dict, output_format: str) -> List[Dict]:
 def resolve_input_path(input_name: str) -> Path:
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parents[1]
-    data_dir = repo_root / "data"
-    raw_dir = data_dir / "raw"
+    processed_dir = repo_root / "data" / "processed"
 
-    for candidate in (raw_dir / input_name, data_dir / input_name, script_dir / input_name):
+    for candidate in (processed_dir / input_name,):
         if candidate.exists():
             return candidate
 
     raise FileNotFoundError(
         UI_TEXT["en"]["file_not_found"].format(
             name=input_name,
-            data_dir=data_dir,
-            raw_dir=raw_dir,
-            script_dir=script_dir,
+            processed_dir=processed_dir,
         )
     )
 
@@ -1065,14 +1062,11 @@ if __name__ == "__main__":
     except FileNotFoundError:
         script_dir = Path(__file__).resolve().parent
         repo_root = script_dir.parents[1]
-        data_dir = repo_root / "data"
-        raw_dir = data_dir / "raw"
+        processed_dir = repo_root / "data" / "processed"
         print(
             ui["file_not_found"].format(
                 name=inp,
-                data_dir=data_dir,
-                raw_dir=raw_dir,
-                script_dir=script_dir,
+                processed_dir=processed_dir,
             )
         )
         raise SystemExit(1)

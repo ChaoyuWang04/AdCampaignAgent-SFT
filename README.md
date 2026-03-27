@@ -124,16 +124,21 @@ data/raw/ad_agent_seeds_20260326_en.json
 ### 2. Split seeds into train / test
 
 ```sh
-uv run python src/datapipeline/split_dataset.py \
-  --input data/raw/ad_agent_seeds_20260326_zh.json \
-  --train-output data/processed/ad_agent_seeds_train.json \
-  --test-output data/processed/ad_agent_seeds_test.json
+uv run python src/datapipeline/split_dataset.py
+# Then enter the seed file name, for example:
+# ad_agent_seeds_20260326_zh.json
 ```
 
 The split script currently stratifies by:
 - `workflow_name`
 - `scene_tag`
 - `needs_clarification`
+
+Typical outputs:
+- `data/processed/ad_agent_seeds_20260326_zh_train.json`
+- `data/processed/ad_agent_seeds_20260326_zh_test.json`
+- `data/processed/ad_agent_seeds_20260326_en_train.json`
+- `data/processed/ad_agent_seeds_20260326_en_test.json`
 
 ### 3. Convert seeds into tool-call conversations
 
@@ -142,8 +147,10 @@ uv run python src/datapipeline/convert_dataset.py
 ```
 
 Typical inputs:
-- `data/processed/ad_agent_seeds_train.json`
-- `data/processed/ad_agent_seeds_test.json`
+- `data/processed/ad_agent_seeds_20260326_zh_train.json`
+- `data/processed/ad_agent_seeds_20260326_zh_test.json`
+- `data/processed/ad_agent_seeds_20260326_en_train.json`
+- `data/processed/ad_agent_seeds_20260326_en_test.json`
 
 Typical outputs:
 - `data/ready2train/message/ad_agent_sft_*_message.json`

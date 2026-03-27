@@ -4,8 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260324_211651_en_message_multiturn.json"
-EVAL_PATH="${REPO_ROOT}/data/ready2train/message/你的测试集文件名.json"
+TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260326_181224_zh_train_message_multiturn.json"
+EVAL_PATH="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260326_181224_zh_test_message_multiturn.json"
+
 MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base"
 
 # DEBUG 模式：输出到独立目录，避免覆盖正式 checkpoint

@@ -8,21 +8,20 @@ Split Ad Agent seed records into stratified train/test datasets.
 import argparse
 import json
 import random
+import os
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
+if __package__ in {None, ""}:
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-DEFAULT_INPUT = Path("data/raw/ad_agent_seeds_latest.json")
-DEFAULT_TRAIN = Path("data/processed/ad_agent_seeds_train.json")
-DEFAULT_TEST = Path("data/processed/ad_agent_seeds_test.json")
+from src.common.project_paths import repo_root
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Split Ad Agent seed dataset into train/test")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help="Input seed JSON file")
-    parser.add_argument("--train-output", type=Path, default=DEFAULT_TRAIN, help="Train JSON output path")
-    parser.add_argument("--test-output", type=Path, default=DEFAULT_TEST, help="Test JSON output path")
     parser.add_argument("--train-ratio", type=float, default=0.8, help="Train split ratio")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     return parser.parse_args()
@@ -49,8 +48,34 @@ def save_records(path: Path, records: List[Dict]) -> None:
         json.dump(records, f, ensure_ascii=False, indent=2)
 
 
+def prompt_input_file() -> Path:
+    """交互式读取 seed 文件名，并在 data/raw 下解析实际输入路径。"""
+    file_name = input("Input seed JSON file name: ").strip()
+    if not file_name:
+        raise ValueError("Input file name cannot be empty")
+
+    input_path = repo_root() / "data" / "raw" / file_name
+    if not input_path.exists():
+        raise FileNotFoundError(f"Seed file not found: {input_path}")
+    return input_path
+
+
+def build_output_paths(input_path: Path) -> tuple[Path, Path]:
+    """根据输入 seed 文件名自动推导 train/test 输出路径。"""
+    processed_dir = repo_root() / "data" / "processed"
+    stem = input_path.stem
+    return (
+        processed_dir / f"{stem}_train.json",
+        processed_dir / f"{stem}_test.json",
+    )
+
+
 def split_dataset(args: argparse.Namespace) -> None:
-    records = load_records(args.input)
+    input_path = prompt_input_file()
+    train_output, test_output = build_output_paths(input_path)
+
+    records = load_records(input_path)
+    print(f"Loaded file: {input_path}")
     print(f"Loaded records: {len(records)}")
 
     grouped = defaultdict(list)
@@ -83,13 +108,13 @@ def split_dataset(args: argparse.Namespace) -> None:
     random.shuffle(train_records)
     random.shuffle(test_records)
 
-    save_records(args.train_output, train_records)
-    save_records(args.test_output, test_records)
+    save_records(train_output, train_records)
+    save_records(test_output, test_records)
 
     print("\nSplit complete")
     print("=" * 72)
-    print(f"Train: {len(train_records)} -> {args.train_output}")
-    print(f"Test : {len(test_records)} -> {args.test_output}")
+    print(f"Train: {len(train_records)} -> {train_output}")
+    print(f"Test : {len(test_records)} -> {test_output}")
 
     print("\nTrain distribution:")
     for key in sorted(train_stats):

@@ -26,8 +26,22 @@
 另外，仓库根目录提供了对应的 shell 包装脚本：
 
 - [merge_lora_into_base.sh](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/merge_lora_into_base.sh)
+- [inspect_ready2train.sh](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/inspect_ready2train.sh)
+- [run_train_function_calling_all_assistant.sh](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/run_train_function_calling_all_assistant.sh)
 
 推荐直接编辑脚本顶部配置后执行，而不是手动在命令行里拼很长的 Python 参数。
+
+`inspect_ready2train.sh` 现在支持把 `inspect_qwen_dataset.py` 的主要输出块单独开关出来：
+
+- `SHOW_SUMMARY`：样本概览
+- `SHOW_INPUT_IDS`：原始 `input_ids`
+- `SHOW_LOSS_MASK`：`1/.` 形式的 loss mask
+- `SHOW_LOSS_SEGMENTS`：参与 loss 的 decoded 片段
+- `SHOW_IGNORED_SEGMENTS`：不参与 loss 的上下文片段
+- `SHOW_TOKENS`：token 级可视化
+- `SHOW_FULL_DECODED`：整条样本 decode 后文本
+
+无论打开哪些块，终端输出都会按 section 分隔，并在每个 section 内先说明“这块信息代表什么”，再给出“实际输出”。
 
 ## 快速选择
 
@@ -35,4 +49,5 @@
 - 想重点训练最终回答：`train_qwen_lora_last_assistant_turn_only.py`
 - 想做同目标的全参训练：`train_qwen_full_finetune_last_assistant_turn_only.py`
 - 想强化工具调用能力：`train_qwen_function_calling_all_assistant_turns.py`
+  推荐直接配合 [run_train_function_calling_all_assistant.sh](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/run_train_function_calling_all_assistant.sh)
 - 想使用 TRL 的 completion-only 监督：`train_qwen_trl_lora_function_calling_completion_only.py`

@@ -63,3 +63,22 @@ def test_derive_output_path_uses_ready2train_subdirectories(monkeypatch, tmp_pat
 
     assert message_path == repo_root / "data" / "ready2train" / "message" / "ad_agent_sft_demo_en_message.json"
     assert sharegpt_path == repo_root / "data" / "ready2train" / "sharegpt" / "ad_agent_sft_demo_en_sharegpt.json"
+
+
+def test_resolve_input_path_uses_processed_directory(monkeypatch, tmp_path):
+    repo_root = tmp_path / "repo"
+    script_path = repo_root / "src" / "datapipeline" / "convert_dataset.py"
+    script_path.parent.mkdir(parents=True)
+    script_path.write_text("# test stub\n", encoding="utf-8")
+    target_file = repo_root / "data" / "processed" / "ad_agent_seeds_demo_en_train.json"
+    target_file.parent.mkdir(parents=True)
+    target_file.write_text("[]", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "src.datapipeline.convert_dataset.Path.resolve",
+        lambda self: script_path,
+    )
+
+    resolved = convert_dataset.resolve_input_path("ad_agent_seeds_demo_en_train.json")
+
+    assert resolved == target_file
