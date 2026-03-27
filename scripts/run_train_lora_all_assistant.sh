@@ -79,7 +79,7 @@ mkdir -p "${OUTPUT_DIR}"
 
 # WandB 配置
 export WANDB_PROJECT="AdCampaignAgent-SFT"
-export WANDB_RUN_NAME="Qwen3-1.7B-lora-$(date +%Y%m%d-%H%M)"
+export WANDB_RUN_NAME="Qwen3-1.7B-lora-all-$(date +%Y%m%d-%H%M)"
 
 CMD=(
   python3 "${PYTHON_TRAIN_SCRIPT}"
