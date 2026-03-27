@@ -11,11 +11,11 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 #   bash scripts/run_benchmark.sh
 
 BACKEND="local_hf"
-MODEL="${REPO_ROOT}/models/qwen3-0_6b"
+MODEL="${REPO_ROOT}/models/qwen3-1_7b"
 EVAL_GROUP="all"
 DATA_DIR="${REPO_ROOT}/tests/benchmark/data"
 RESULTS_DIR=""
-RUN_NAME="qwen3_0_6b_benchmark"
+RUN_NAME="qwen3_1_7b_benchmark"
 MAX_NEW_TOKENS="500"
 TEMPERATURE="0.0"
 TOP_P="1.0"
@@ -24,6 +24,9 @@ REPETITION_PENALTY="1.0"
 NO_REPEAT_NGRAM_SIZE="0"
 MAX_TOOL_ROUNDS="4"
 LOCAL_FILES_ONLY="true"
+BF16="true"
+FP16="false"
+DEVICE_MAP_AUTO="true"
 CASE_FILES=()
 
 # 如果你只想跑某几个文件，可以直接在这里填写，例如：
@@ -55,6 +58,9 @@ usage() {
   - NO_REPEAT_NGRAM_SIZE
   - MAX_TOOL_ROUNDS
   - LOCAL_FILES_ONLY
+  - BF16
+  - FP16
+  - DEVICE_MAP_AUTO
   - CASE_FILES
 
 示例：
@@ -69,6 +75,7 @@ usage() {
 说明：
   - 如果 CASE_FILES 为空，就按 EVAL_GROUP 自动选择数据文件
   - 如果 CASE_FILES 不为空，就优先使用你手动指定的文件
+  - 本地 `local_hf` 后端如果要真正走 GPU，通常需要 BF16=true 且 DEVICE_MAP_AUTO=true
   - openai 后端需要提前设置 OPENAI_API_KEY
   - 如果不是官方默认接口，还需要设置 OPENAI_BASE_URL
 EOF
@@ -148,6 +155,9 @@ echo "Repetition pen.   : ${REPETITION_PENALTY}"
 echo "No repeat ngram   : ${NO_REPEAT_NGRAM_SIZE}"
 echo "Max tool rounds   : ${MAX_TOOL_ROUNDS}"
 echo "Local files only  : ${LOCAL_FILES_ONLY}"
+echo "BF16              : ${BF16}"
+echo "FP16              : ${FP16}"
+echo "Device map auto   : ${DEVICE_MAP_AUTO}"
 if [[ ${#CASE_FILES[@]} -gt 0 ]]; then
   echo "Case files        : ${CASE_FILES[*]}"
 fi
@@ -164,6 +174,15 @@ CMD+=(
 
 if [[ "${LOCAL_FILES_ONLY}" == "true" ]]; then
   CMD+=(--local-files-only)
+fi
+if [[ "${BF16}" == "true" ]]; then
+  CMD+=(--bf16)
+fi
+if [[ "${FP16}" == "true" ]]; then
+  CMD+=(--fp16)
+fi
+if [[ "${DEVICE_MAP_AUTO}" == "true" ]]; then
+  CMD+=(--device-map-auto)
 fi
 
 "${CMD[@]}"

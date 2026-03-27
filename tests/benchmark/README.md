@@ -130,6 +130,12 @@ bash scripts/run_benchmark.sh \
   - `NO_REPEAT_NGRAM_SIZE`
   - `MAX_TOOL_ROUNDS`
   - `LOCAL_FILES_ONLY`
+  - `BF16`
+  - `FP16`
+  - `DEVICE_MAP_AUTO`
+- 如果你希望本地 benchmark 真正跑在 GPU 上，通常建议：
+  - `BF16="true"`
+  - `DEVICE_MAP_AUTO="true"`
 - `openai` 后端需要环境变量 `OPENAI_API_KEY`
 - 如果使用兼容 OpenAI 协议的其他服务，还需要设置 `OPENAI_BASE_URL`
 

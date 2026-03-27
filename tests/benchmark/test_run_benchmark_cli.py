@@ -63,6 +63,9 @@ def test_build_runner_passes_local_generation_config(monkeypatch) -> None:
         no_repeat_ngram_size=5,
         max_tool_rounds=6,
         local_files_only=False,
+        bf16=True,
+        fp16=False,
+        device_map_auto=True,
     )
     captured = {}
 
@@ -83,3 +86,6 @@ def test_build_runner_passes_local_generation_config(monkeypatch) -> None:
     assert captured["no_repeat_ngram_size"] == 5
     assert captured["max_tool_rounds"] == 6
     assert captured["local_files_only"] is False
+    assert captured["bf16"] is True
+    assert captured["fp16"] is False
+    assert captured["device_map_auto"] is True

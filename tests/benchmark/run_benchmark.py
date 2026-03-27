@@ -132,6 +132,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Load local HF model/tokenizer using only local files",
     )
+    parser.add_argument("--bf16", action="store_true", help="Load local HF model in bfloat16")
+    parser.add_argument("--fp16", action="store_true", help="Load local HF model in float16")
+    parser.add_argument(
+        "--device-map-auto",
+        action="store_true",
+        help="Use transformers device_map='auto' for local HF model loading",
+    )
     parser.add_argument(
         "--eval-group",
         choices=["all", "format", "routing", "content", "system"],
@@ -191,6 +198,9 @@ def build_runner(args: argparse.Namespace):
             repetition_penalty=args.repetition_penalty,
             no_repeat_ngram_size=args.no_repeat_ngram_size,
             local_files_only=args.local_files_only,
+            bf16=args.bf16,
+            fp16=args.fp16,
+            device_map_auto=args.device_map_auto,
             max_tool_rounds=args.max_tool_rounds,
         )
     return OpenAICaseRunner(model_name=args.model, max_tool_rounds=args.max_tool_rounds)

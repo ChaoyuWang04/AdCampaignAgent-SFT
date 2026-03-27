@@ -137,3 +137,34 @@ def test_render_messages_accepts_encoding_like_result() -> None:
 
     assert isinstance(tensor, torch.Tensor)
     assert tensor.shape == (1, 3)
+
+
+def test_execute_tool_filters_extra_arguments_and_does_not_crash() -> None:
+    """工具调用即使带有多余参数，也不应让 benchmark 直接崩溃。"""
+
+    def fake_appsflyer(app_id: str, report_type: str = "retention"):
+        return {"app_id": app_id, "report_type": report_type}
+
+    runner = LocalHFCaseRunner.__new__(LocalHFCaseRunner)
+    runner.dispatch = {"get_appsflyer_report": fake_appsflyer}
+
+    tool_message = runner._execute_tool(
+        {
+            "id": "call_1",
+            "type": "function",
+            "function": {
+                "name": "get_appsflyer_report",
+                "arguments": json.dumps(
+                    {
+                        "app_id": "APP_9001",
+                        "report_type": "retention",
+                        "metrics": ["retention_d1", "retention_d7"],
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        }
+    )
+
+    payload = json.loads(tool_message["content"])
+    assert payload == {"app_id": "APP_9001", "report_type": "retention"}

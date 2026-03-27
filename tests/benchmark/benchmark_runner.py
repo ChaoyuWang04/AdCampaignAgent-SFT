@@ -46,6 +46,7 @@ trace 说明：
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import os
 import sys
@@ -105,6 +106,9 @@ class LocalHFCaseRunner:
         repetition_penalty: float = 1.0,
         no_repeat_ngram_size: int = 0,
         local_files_only: bool = True,
+        bf16: bool = False,
+        fp16: bool = False,
+        device_map_auto: bool = False,
         max_tool_rounds: int = 4,
         system_text: str = "",
     ) -> None:
@@ -127,9 +131,18 @@ class LocalHFCaseRunner:
         self.repetition_penalty = repetition_penalty
         self.no_repeat_ngram_size = no_repeat_ngram_size
         self.local_files_only = local_files_only
+        self.bf16 = bf16
+        self.fp16 = fp16
+        self.device_map_auto = device_map_auto
         self.max_tool_rounds = max_tool_rounds
         self.tools = json.loads(tools_schema_path().read_text(encoding="utf-8"))
         self.dispatch = {name: getattr(ad_tools, name) for name in ad_tools.__all__}
+
+        torch_dtype = None
+        if self.bf16:
+            torch_dtype = torch.bfloat16
+        elif self.fp16:
+            torch_dtype = torch.float16
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_path,
@@ -142,6 +155,8 @@ class LocalHFCaseRunner:
             self.model_path,
             trust_remote_code=True,
             local_files_only=local_files_only,
+            torch_dtype=torch_dtype,
+            device_map="auto" if self.device_map_auto else None,
         )
         if hasattr(self.model, "config"):
             self.model.config.use_cache = True
@@ -207,9 +222,19 @@ class LocalHFCaseRunner:
         if isinstance(input_ids, torch.Tensor):
             tensor_input_ids = input_ids
         elif hasattr(input_ids, "input_ids"):
-            tensor_input_ids = torch.tensor(input_ids.input_ids)
+            raw_input_ids = input_ids.input_ids
+            tensor_input_ids = (
+                raw_input_ids
+                if isinstance(raw_input_ids, torch.Tensor)
+                else torch.tensor(raw_input_ids)
+            )
         elif hasattr(input_ids, "ids"):
-            tensor_input_ids = torch.tensor(input_ids.ids)
+            raw_input_ids = input_ids.ids
+            tensor_input_ids = (
+                raw_input_ids
+                if isinstance(raw_input_ids, torch.Tensor)
+                else torch.tensor(raw_input_ids)
+            )
         else:
             tensor_input_ids = torch.tensor(input_ids)
         if tensor_input_ids.ndim == 1:
@@ -220,19 +245,23 @@ class LocalHFCaseRunner:
         """让本地模型生成单轮 assistant 输出。"""
         input_ids = self._render_messages(messages)
         attention_mask = torch.ones_like(input_ids)
+        generation_kwargs: dict[str, Any] = {
+            "max_new_tokens": self.max_new_tokens,
+            "do_sample": self.temperature > 0,
+            "repetition_penalty": self.repetition_penalty,
+            "no_repeat_ngram_size": self.no_repeat_ngram_size,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+        }
+        if generation_kwargs["do_sample"]:
+            generation_kwargs["temperature"] = self.temperature
+            generation_kwargs["top_p"] = self.top_p
+            generation_kwargs["top_k"] = self.top_k
         with torch.no_grad():
             output_ids = self.model.generate(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                max_new_tokens=self.max_new_tokens,
-                temperature=self.temperature,
-                do_sample=self.temperature > 0,
-                top_p=self.top_p,
-                top_k=self.top_k,
-                repetition_penalty=self.repetition_penalty,
-                no_repeat_ngram_size=self.no_repeat_ngram_size,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
+                **generation_kwargs,
             )
         decoded = self.tokenizer.decode(output_ids[0], skip_special_tokens=False)
         return extract_assistant(decoded)
@@ -261,12 +290,43 @@ class LocalHFCaseRunner:
         """执行本地工具实现，并生成对应的 tool message。"""
         name = tool_call["function"]["name"]
         arguments = json.loads(tool_call["function"]["arguments"])
-        result = self.dispatch[name](**arguments)
+        tool_fn = self.dispatch[name]
+        filtered_arguments = self._filter_tool_arguments(tool_fn, arguments)
+        try:
+            result = tool_fn(**filtered_arguments)
+        except TypeError as exc:
+            result = {
+                "status": "error",
+                "error_type": "tool_argument_error",
+                "tool_name": name,
+                "message": str(exc),
+                "original_arguments": arguments,
+                "filtered_arguments": filtered_arguments,
+            }
         return {
             "role": "tool",
             "tool_call_id": tool_call["id"],
             "content": json.dumps(result, ensure_ascii=False),
         }
+
+    def _filter_tool_arguments(
+        self, tool_fn: Any, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """按真实函数签名过滤模型生成的多余参数，避免 benchmark 直接崩溃。"""
+        try:
+            signature = inspect.signature(tool_fn)
+        except (TypeError, ValueError):
+            return arguments
+        accepted_names = {
+            name
+            for name, parameter in signature.parameters.items()
+            if parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        }
+        return {key: value for key, value in arguments.items() if key in accepted_names}
 
 
 class OpenAICaseRunner:

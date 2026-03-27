@@ -212,6 +212,12 @@ Interactive local REPL that can:
 uv run python src/inference/local_toolcall_repl.py --local_files_only
 ```
 
+You can also use the fixed-config shell wrapper:
+
+```sh
+bash scripts/run_local_toolcall_repl.sh
+```
+
 The REPL defaults to:
 - tool schema: [src/tools/all_tools.json](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/src/tools/all_tools.json)
 - system prompt: [prompts/ad_agent_system_prompt.txt](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/prompts/ad_agent_system_prompt.txt)
