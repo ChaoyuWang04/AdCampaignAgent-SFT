@@ -11,7 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 #   bash scripts/merge_lora_into_base.sh
 
 BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B-Base"
-ADAPTER_PATH="${REPO_ROOT}/models/你的_lora_adapter目录"
+ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base_lora_last_assistant"
 OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B-merged"
 
 LOCAL_FILES_ONLY="true"

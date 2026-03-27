@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # 3. 工具执行、打分、结果写盘流程是否正常
 
 BACKEND="local_hf"
-MODEL="${REPO_ROOT}/models/qwen3-0_6b"
+MODEL="${REPO_ROOT}/models/Qwen3-1.7B-merged"
 EVAL_GROUP="format"
 DATA_DIR="${REPO_ROOT}/tests/benchmark/data"
 RESULTS_DIR=""
@@ -23,7 +23,7 @@ RUN_NAME="cpu_dry_run"
 CASE_FILES=("test_smoke.json")
 
 # 把所有生成相关参数压到尽量小，只求流程跑通。
-MAX_NEW_TOKENS="64"
+MAX_NEW_TOKENS="160"
 TEMPERATURE="0.0"
 TOP_P="1.0"
 TOP_K="1"
