@@ -186,7 +186,7 @@ def main():
         bf16=args.bf16,
         fp16=args.fp16 and not args.bf16,
         dataloader_num_workers=args.dataloader_num_workers,
-        report_to=[],
+        report_to=["wandb"],
         remove_unused_columns=False,
         seed=args.seed,
         save_safetensors=True,
