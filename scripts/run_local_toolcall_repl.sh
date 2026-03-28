@@ -10,13 +10,13 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # 直接修改这里，然后执行：
 #   bash scripts/run_local_toolcall_repl.sh
 
-MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base"
+MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-merged"
 MAX_NEW_TOKENS="500"
 TEMPERATURE="0.0"
 TOP_P="1.0"
 TOP_K="1"
-REPETITION_PENALTY="1.1"
-NO_REPEAT_NGRAM_SIZE="6"
+REPETITION_PENALTY="1.0"
+NO_REPEAT_NGRAM_SIZE="0"
 DO_SAMPLE="false"
 
 BF16="true"

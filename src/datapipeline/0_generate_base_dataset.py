@@ -5,8 +5,6 @@ Generates seed conversation records for SFT training (without final dialogue con
 
 import json
 import random
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -147,7 +145,7 @@ def _make_app_ids():
     return [f"{p}.{g}{random.randint(1,9):02d}"
             for p in prefixes for g in genres]
 
-CAMPAIGN_IDS = _make_campaign_ids(60)
+CAMPAIGN_IDS = _make_campaign_ids(500)
 APP_IDS = _make_app_ids()
 
 
@@ -193,15 +191,13 @@ class AdDatasetGenerator:
         if lang not in {"zh", "en"}:
             raise ValueError("lang must be 'zh' or 'en'")
         self.lang = lang
-        self.lock = threading.Lock()
         self.progress = {"completed": 0, "total": 0}
 
     def _update_progress(self):
-        with self.lock:
-            self.progress["completed"] += 1
-            c = self.progress["completed"]
-            t = self.progress["total"]
-            print(f"\r{TEXT[self.lang]['progress']}: {c}/{t} ({100*c/t:.1f}%)", end="", flush=True)
+        self.progress["completed"] += 1
+        c = self.progress["completed"]
+        t = self.progress["total"]
+        print(f"\r{TEXT[self.lang]['progress']}: {c}/{t} ({100*c/t:.1f}%)", end="", flush=True)
 
     def _base_record(self, workflow: int, ctx: dict) -> dict:
         """Base fields shared by all workflows"""
@@ -860,10 +856,8 @@ class AdDatasetGenerator:
         print(text["start"])
         all_records = []
 
-        with ThreadPoolExecutor(max_workers=7) as executor:
-            futures = {executor.submit(fn, n): fn.__name__ for fn, n in task_plan}
-            for future in as_completed(futures):
-                all_records.extend(future.result())
+        for fn, n in task_plan:
+            all_records.extend(fn(n))
 
         random.shuffle(all_records)
 

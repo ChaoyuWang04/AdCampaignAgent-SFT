@@ -53,6 +53,9 @@ def prompt_input_file() -> Path:
     file_name = input("Input seed JSON file name: ").strip()
     if not file_name:
         raise ValueError("Input file name cannot be empty")
+    # 加一个自动补全
+    if not file_name.endswith(".json"):
+        file_name += ".json"
 
     input_path = repo_root() / "data" / "raw" / file_name
     if not input_path.exists():
@@ -96,8 +99,13 @@ def split_dataset(args: argparse.Namespace) -> None:
     for key, items in grouped.items():
         random.shuffle(items)
         train_size = int(len(items) * args.train_ratio)
-        if len(items) > 1:
-            train_size = min(max(train_size, 1), len(items) - 1)
+        if len(items) == 1:
+            train_records.extend(items)
+            train_stats[key] = 1
+            test_stats[key] = 0
+            continue
+
+        train_size = max(1, min(int(len(items) * args.train_ratio), len(items) - 1))
         train_slice = items[:train_size]
         test_slice = items[train_size:]
         train_records.extend(train_slice)

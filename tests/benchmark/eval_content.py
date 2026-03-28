@@ -46,7 +46,7 @@ def evaluate_content_case(
 ) -> dict[str, float]:
     """对单条 trace 计算 C1/C2 内容指标。"""
     if case.expected_behavior != "tool_call":
-        return {"C1": 0.0, "C2": 0.0}
+        return {}
 
     actual_by_tool: dict[str, list[dict[str, Any]]] = {}
     for call in all_tool_calls(trace):
@@ -70,8 +70,11 @@ def evaluate_content_case(
             1 for key, value in expected_args.items() if actual_args.get(key) == value
         )
         field_scores.append(matched_fields / len(expected_args))
-
+    
+    if not exact_matches:   # ← 加这里
+        return {}
+    
     return {
         "C1": safe_mean(exact_matches),
-        "C2": safe_mean(field_scores),
+        "C2": safe_mean(field_scores) if field_scores else safe_mean(exact_matches),
     }

@@ -172,8 +172,7 @@ class MockToolExecutor:
 
         cr             = self.cfg.get("ctr_range", (0.025, 0.045))
         cm             = self.cfg.get("cpi_mult",  (0.90, 1.10))
-        base_cpi       = {"google_uac": 1.8, "meta": 1.5,
-                          "tiktok": 1.2, "applovin": 1.0}.get(self.platform, 1.5)
+        base_cpi = {"Google": 1.8, "Meta": 1.5, "Tiktok": 1.2, "Applovin": 1.0}.get(self.platform, 1.5)
         self._ctr      = round(random.uniform(*cr), 4)
         self._cpi      = round(base_cpi * random.uniform(*cm), 2)
         self._spend    = round(random.uniform(3000, 28000), 2)
@@ -801,7 +800,7 @@ def make_tool_call_message(tool_name: str, arguments: Dict) -> Tuple[Dict, str]:
     call_id = f"call_{uuid.uuid4().hex[:8]}"
     return {
         "role": "assistant",
-        "content": "",
+        "content": None,
         "tool_calls": [{
             "id":   call_id,
             "type": "function",
@@ -882,7 +881,9 @@ def build_message_record(seed: Dict, lang: str) -> Dict:
     if seed.get("needs_clarification"):
         messages.append({"role": "user",      "content": seed["user_query"]})
         messages.append({"role": "assistant", "content": build_clarify_question(seed, lang)})
-        messages.append({"role": "user",      "content": seed.get("clarification_answer", "")})
+        answer = seed.get("clarification_answer") or ""
+        if answer:
+            messages.append({"role": "user", "content": answer})
     else:
         messages.append({"role": "user", "content": seed["user_query"]})
 

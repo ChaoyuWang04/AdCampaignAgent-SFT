@@ -84,6 +84,17 @@ class CaseRunner(Protocol):
         """执行单条 benchmark case，并返回标准化 trace。"""
         ...
 
+# 在两个 class 定义之前加一个独立函数
+def _filter_tool_arguments(tool_fn, arguments):
+    try:
+        sig = inspect.signature(tool_fn)
+    except (TypeError, ValueError):
+        return arguments
+    accepted = {
+        n for n, p in sig.parameters.items()
+        if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+    return {k: v for k, v in arguments.items() if k in accepted}
 
 class LocalHFCaseRunner:
     """用本地 HuggingFace 兼容模型执行 benchmark case。
@@ -287,11 +298,30 @@ class LocalHFCaseRunner:
         return normalized
 
     def _execute_tool(self, tool_call: dict[str, Any]) -> dict[str, Any]:
-        """执行本地工具实现，并生成对应的 tool message。"""
         name = tool_call["function"]["name"]
         arguments = json.loads(tool_call["function"]["arguments"])
-        tool_fn = self.dispatch[name]
-        filtered_arguments = self._filter_tool_arguments(tool_fn, arguments)
+
+        # 精确匹配，再尝试小写 fallback
+        tool_fn = self.dispatch.get(name)
+        if tool_fn is None:
+            name_lower = name.lower()
+            for key in self.dispatch:
+                if key.lower() == name_lower:
+                    tool_fn = self.dispatch[key]
+                    break
+
+        # 找不到工具，返回 error 而不是崩溃
+        if tool_fn is None:
+            return {
+                "role": "tool",
+                "tool_call_id": tool_call["id"],
+                "content": json.dumps(
+                    {"status": "error", "message": f"Unknown tool: {name}"},
+                    ensure_ascii=False,
+                ),
+            }
+
+        filtered_arguments = _filter_tool_arguments(tool_fn, arguments)
         try:
             result = tool_fn(**filtered_arguments)
         except TypeError as exc:
@@ -300,33 +330,13 @@ class LocalHFCaseRunner:
                 "error_type": "tool_argument_error",
                 "tool_name": name,
                 "message": str(exc),
-                "original_arguments": arguments,
-                "filtered_arguments": filtered_arguments,
             }
         return {
             "role": "tool",
             "tool_call_id": tool_call["id"],
             "content": json.dumps(result, ensure_ascii=False),
-        }
+    }
 
-    def _filter_tool_arguments(
-        self, tool_fn: Any, arguments: dict[str, Any]
-    ) -> dict[str, Any]:
-        """按真实函数签名过滤模型生成的多余参数，避免 benchmark 直接崩溃。"""
-        try:
-            signature = inspect.signature(tool_fn)
-        except (TypeError, ValueError):
-            return arguments
-        accepted_names = {
-            name
-            for name, parameter in signature.parameters.items()
-            if parameter.kind
-            in (
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.KEYWORD_ONLY,
-            )
-        }
-        return {key: value for key, value in arguments.items() if key in accepted_names}
 
 
 class OpenAICaseRunner:
@@ -418,7 +428,9 @@ class OpenAICaseRunner:
             tool_round += 1
             for tool_call in message.tool_calls:
                 arguments = json.loads(tool_call.function.arguments)
-                result = self.dispatch[tool_call.function.name](**arguments)
+                tool_fn = self.dispatch[tool_call.function.name]
+                filtered = _filter_tool_arguments(tool_fn, arguments)
+                result = tool_fn(**filtered)
                 messages.append(
                     {
                         "role": "tool",
@@ -465,6 +477,11 @@ class BenchmarkSuiteRunner:
         self.runner = runner
         self.results_dir = ensure_results_dir(results_dir)
 
+    def _write_case_results(self, case_results):
+        with (self.results_dir / "case_results.jsonl").open("w", encoding="utf-8") as f:
+            for item in case_results:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
     def run(self, cases: list[BenchmarkCase], model_name: str) -> dict[str, Any]:
         """执行全部 case、完成打分，并返回聚合 benchmark 报告。
 
@@ -504,26 +521,9 @@ class BenchmarkSuiteRunner:
             "model": model_name,
             "case_count": len(cases),
             "metrics": {
-                metric_name: safe_mean(
-                    [float(item["scores"].get(metric_name, 0.0)) for item in case_results]
-                )
+                metric_name: safe_mean([float(v) for item in case_results if (v := item["scores"].get(metric_name)) is not None])
                 for metric_name in metric_names
             },
         }
-        self._write_outputs(report, case_results)
+        self._write_case_results(case_results)
         return report
-
-    def _write_outputs(self, report: dict[str, Any], case_results: list[dict[str, Any]]) -> None:
-        """把聚合报告与逐样本结果写入磁盘。
-
-        输出文件：
-        - `report.json`
-        - `case_results.jsonl`
-        """
-        (self.results_dir / "report.json").write_text(
-            json.dumps(report, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        with (self.results_dir / "case_results.jsonl").open("w", encoding="utf-8") as handle:
-            for item in case_results:
-                handle.write(json.dumps(item, ensure_ascii=False) + "\n")

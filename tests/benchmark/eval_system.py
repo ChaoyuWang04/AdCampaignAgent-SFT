@@ -49,37 +49,42 @@ from tests.benchmark.benchmark_schema import BenchmarkCase
 from tests.benchmark.benchmark_utils import (
     all_tool_calls,
     assistant_messages,
-    called_tool_names,
     final_assistant_message,
     infer_behavior,
 )
 from tests.benchmark.eval_content import evaluate_content_case
 from tests.benchmark.eval_routing import evaluate_routing_case
 
+
 SLOT_ALIASES = {
     "budget": ["budget", "预算", "花费", "投放金额"],
     "target_audience": ["target_audience", "目标受众", "受众", "目标用户", "人群"],
     "platform": ["platform", "平台", "投放平台"],
     "campaign_id": ["campaign_id", "活动id", "campaign", "活动编号"],
+    "file_path": ["file_path", "文件", "素材文件", "视频", "图片", "路径"],  # ← 加这行
 }
 
 
-def evaluate_system_case(
-    case: BenchmarkCase,
-    trace: list[dict[str, Any]],
-) -> dict[str, float]:
-    """对单条 trace 计算 S1-S5 系统指标。"""
+def evaluate_system_case(case, trace):
     behavior = infer_behavior(trace)
     routing = evaluate_routing_case(case, trace)
     content = evaluate_content_case(case, trace)
 
-    s1 = _sequential_score(case, trace)
-    s2 = _parallel_score(case, trace)
-    s3 = 1.0 if case.expected_behavior == "reject" and behavior == "reject" else 0.0
-    s4 = _clarify_score(case, trace)
-    s5 = _task_success(case, trace, behavior, routing, content, s1, s2, s3, s4)
+    scores = {}
 
-    return {"S1": s1, "S2": s2, "S3": s3, "S4": s4, "S5": s5}
+    if case.case_type == "sequential":
+        scores["S1"] = _sequential_score(case, trace)
+    if case.case_type == "parallel":
+        scores["S2"] = _parallel_score(case, trace)
+    if case.expected_behavior == "reject":
+        scores["S3"] = 1.0 if behavior == "reject" else 0.0
+    if case.expected_behavior == "clarify":
+        scores["S4"] = _clarify_score(case, trace)
+
+    scores["S5"] = _task_success(case, trace, behavior, routing, content,
+                                  scores.get("S1", 0.0), scores.get("S2", 0.0),
+                                  scores.get("S3", 0.0), scores.get("S4", 0.0))
+    return scores
 
 
 def _sequential_score(case: BenchmarkCase, trace: list[dict[str, Any]]) -> float:
@@ -127,8 +132,8 @@ def _clarify_score(case: BenchmarkCase, trace: list[dict[str, Any]]) -> float:
         return 0.0
     if infer_behavior(trace) != "clarify":
         return 0.0
-    final_message = final_assistant_message(trace)
-    content = str(final_message.get("content", "")) if final_message else ""
+    first_message = assistant_messages(trace)[0] if assistant_messages(trace) else None
+    content = str(first_message.get("content", "")) if first_message else ""
     if not case.required_missing_slots:
         return 1.0
     matched = 0
@@ -161,7 +166,10 @@ def _task_success(
     if case.expected_behavior == "clarify":
         return 1.0 if s4 == 1.0 and not all_tool_calls(trace) else 0.0
     if case.case_type == "sequential":
-        return 1.0 if routing["R1"] and s1 and has_terminal_answer else 0.0
+        return 1.0 if routing.get("R1", 0.0) and s1 and has_terminal_answer else 0.0
     if case.case_type == "parallel":
-        return 1.0 if routing["R1"] and s2 and has_terminal_answer else 0.0
-    return 1.0 if behavior == "tool_call" and routing["R2"] and content["C2"] == 1.0 and has_terminal_answer else 0.0
+        return 1.0 if routing.get("R1", 0.0) and s2 and has_terminal_answer else 0.0
+    return 1.0 if (behavior == "tool_call" 
+               and routing.get("R2", 0.0) 
+               and content.get("C2", 0.0) == 1.0 
+               and has_terminal_answer) else 0.0

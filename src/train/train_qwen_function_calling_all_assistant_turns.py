@@ -105,7 +105,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num_train_epochs", type=float, default=3.0)
     parser.add_argument("--warmup_ratio", type=float, default=0.03)
     parser.add_argument("--eval_file", type=str, default="", help="测试集路径，为空则不做 eval")
+
     parser.add_argument("--eval_steps", type=int, default=100, help="eval 触发间隔")
+    parser.add_argument("--eval_accumulation_steps", type=int, default=4)
+    parser.add_argument("--per_device_eval_batch_size", type=int, default=1)
+
     parser.add_argument("--per_device_train_batch_size", type=int, default=1)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--logging_steps", type=int, default=10)
@@ -217,7 +221,7 @@ def main():
         )
         load_kwargs["device_map"] = "auto"
     else:
-        load_kwargs["dtype"] = torch_dtype
+        load_kwargs["torch_dtype"] = torch_dtype
 
     print(f"Loading base model: {args.model_name_or_path}")
     model = AutoModelForCausalLM.from_pretrained(
@@ -228,12 +232,12 @@ def main():
     if args.qlora:
         model = prepare_model_for_kbit_training(model)
 
-    model = build_lora_model(model, args)
 
     if args.gradient_checkpointing:
-        model.gradient_checkpointing_enable()
+        model.gradient_checkpointing_enable()       # 先开 gc
         if hasattr(model, "config"):
             model.config.use_cache = False
+    model = build_lora_model(model, args)           # 后包 LoRA
 
     default_tools = load_default_tools(args)
 
@@ -273,14 +277,18 @@ def main():
         logging_strategy="steps",
         save_steps=args.save_steps,
         save_total_limit=args.save_total_limit,
+
         eval_strategy="steps" if eval_dataset is not None else "no",
         eval_steps=args.eval_steps,
+        per_device_eval_batch_size=args.per_device_eval_batch_size,
+        eval_accumulation_steps=args.eval_accumulation_steps,
+
         lr_scheduler_type=args.lr_scheduler_type,
         optim="paged_adamw_8bit" if args.qlora else "adamw_torch",
         bf16=args.bf16,
         fp16=args.fp16 and not args.bf16,
         dataloader_num_workers=args.dataloader_num_workers,
-        report_to=[],
+        report_to=["wandb"],
         remove_unused_columns=False,
         seed=args.seed,
     )

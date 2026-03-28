@@ -55,7 +55,7 @@ def evaluate_routing_case(
 
     # 非工具调用类样本只参与顶层行为决策准确率，不参与工具选择评分。
     if case.expected_behavior != "tool_call":
-        return {"R1": r1, "R2": 0.0, "R3": 0.0}
+        return {"R1": r1}
 
     expected_tools = case.expected_tools
     r2 = 1.0 if predicted_tools == expected_tools else 0.0

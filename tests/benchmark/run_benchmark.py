@@ -70,13 +70,9 @@ CASE_FILE_GROUPS = {
     "all": DEFAULT_CASE_FILES,
     "format": [
         "test_standard.json",
-        "test_sequential.json",
-        "test_parallel.json",
     ],
     "routing": [
         "test_standard.json",
-        "test_sequential.json",
-        "test_parallel.json",
         "test_oos.json",
         "test_clarify.json",
     ],
@@ -88,6 +84,7 @@ CASE_FILE_GROUPS = {
         "test_parallel.json",
         "test_oos.json",
         "test_clarify.json",
+        "test_standard.json",
     ],
 }
 

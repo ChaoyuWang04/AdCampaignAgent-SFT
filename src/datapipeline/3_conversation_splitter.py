@@ -52,6 +52,7 @@ def split_conversations(input_file: str, output_file: str):
     
     result = []
     
+    no_tool_count = 0
     for idx, conversation_data in enumerate(data):
         if "messages" not in conversation_data:
             print(f"警告: 第 {idx} 个对话没有messages字段，跳过")
@@ -61,12 +62,13 @@ def split_conversations(input_file: str, output_file: str):
         
         # 检查是否包含任何"role": "tool"的消息
         has_tool_messages = any(message.get('role') == 'tool' for message in conversation)
+        
+        # 循环里
         if not has_tool_messages:
-            print(f"第 {idx} 个对话没有tool消息，保持原样不拆分")
-            # 没有tool消息的对话直接加入结果，不进行拆分
+            no_tool_count += 1
             result.append(conversation_data)
             continue
-        
+
         # 找到所有assistant的位置
         assistant_indices = []
         for i, message in enumerate(conversation):
@@ -81,7 +83,8 @@ def split_conversations(input_file: str, output_file: str):
         for assistant_idx, end_pos in enumerate(assistant_indices):
             # 创建从开始到当前assistant回复的对话片段
             split_conversation = {
-                "messages": conversation[:end_pos + 1]  # 包含当前assistant回复
+                "messages": conversation[:end_pos + 1],
+                "_meta": conversation_data.get("_meta", {})  # 加这一行
             }
             result.append(split_conversation)
             
@@ -91,7 +94,7 @@ def split_conversations(input_file: str, output_file: str):
                 result.append(copy.deepcopy(split_conversation))
                 # 第三份
                 result.append(copy.deepcopy(split_conversation))
-    
+    print(f"无tool消息直接保留: {no_tool_count} 条")
     print(f"拆分完成，总共生成 {len(result)} 个对话片段")
     
     # 保存结果

@@ -11,7 +11,7 @@
       "budget",
       "target_audience"
     ],
-    "notes": "missing required inputs for campaign creation"
+    "notes": "campaign creation missing both budget and target audience; partial credit if model asks one"
   },
   {
     "id": "clarify_002",
@@ -22,8 +22,214 @@
     },
     "expected_behavior": "clarify",
     "required_missing_slots": [
+      "file_path"
+    ],
+    "notes": "platform is already in context; missing info is the actual asset file path"
+  },
+  {
+    "id": "clarify_003",
+    "case_type": "clarify",
+    "user_input": "帮我分析一下最近的投放效果。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "no campaign_id provided, agent should ask which campaign"
+  },
+  {
+    "id": "clarify_004",
+    "case_type": "clarify",
+    "user_input": "ROAS达标了吗？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "ROAS query without any campaign reference"
+  },
+  {
+    "id": "clarify_005",
+    "case_type": "clarify",
+    "user_input": "效果怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "completely ambiguous query, no campaign context"
+  },
+  {
+    "id": "clarify_006",
+    "case_type": "clarify",
+    "user_input": "帮我搜一下最近的热门素材。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
       "platform"
     ],
-    "notes": "asset path and spec details are intentionally omitted"
+    "notes": "creative search requires platform; no platform context provided"
+  },
+  {
+    "id": "clarify_007",
+    "case_type": "clarify",
+    "user_input": "看看竞品最近投了什么广告。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "platform"
+    ],
+    "notes": "competitor ad search requires at least platform info"
+  },
+  {
+    "id": "clarify_008",
+    "case_type": "clarify",
+    "user_input": "帮我把素材传上去。",
+    "context": {
+      "campaign_id": "CMP_1024"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "file_path"
+    ],
+    "notes": "campaign_id is in context but file path is missing"
+  },
+  {
+    "id": "clarify_009",
+    "case_type": "clarify",
+    "user_input": "数据看起来有点问题，帮我看看。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "vague anomaly report with no campaign reference"
+  },
+  {
+    "id": "clarify_010",
+    "case_type": "clarify",
+    "user_input": "留存数据怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "retention query without campaign or app context"
+  },
+  {
+    "id": "clarify_011",
+    "case_type": "clarify",
+    "user_input": "帮我优化一下出价策略。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "bidding optimization requires knowing which campaign"
+  },
+  {
+    "id": "clarify_012",
+    "case_type": "clarify",
+    "user_input": "素材跑得怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "creative performance query with no campaign context"
+  },
+  {
+    "id": "clarify_013",
+    "case_type": "clarify",
+    "user_input": "花了多少预算？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "spend query with no campaign reference"
+  },
+  {
+    "id": "clarify_014",
+    "case_type": "clarify",
+    "user_input": "帮我分析一下这个应用的留存。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "app retention query without app_id or campaign_id"
+  },
+  {
+    "id": "clarify_015",
+    "case_type": "clarify",
+    "user_input": "最近有什么异常吗？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "anomaly detection requires campaign scope"
+  },
+  {
+    "id": "clarify_016",
+    "case_type": "clarify",
+    "user_input": "帮我创建一个新的广告。",
+    "context": {
+      "platform": "Google"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "budget",
+      "target_audience"
+    ],
+    "notes": "platform provided but budget and audience still missing"
+  },
+  {
+    "id": "clarify_017",
+    "case_type": "clarify",
+    "user_input": "CTR为什么这么低？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "CTR diagnosis requires knowing which campaign"
+  },
+  {
+    "id": "clarify_018",
+    "case_type": "clarify",
+    "user_input": "帮我看看上周的数据。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "time range is clear but campaign is unspecified"
+  },
+  {
+    "id": "clarify_019",
+    "case_type": "clarify",
+    "user_input": "投放量怎么掉了？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "volume drop diagnosis requires campaign context"
+  },
+  {
+    "id": "clarify_020",
+    "case_type": "clarify",
+    "user_input": "帮我批量上传这批视频。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "file_path"
+    ],
+    "notes": "both platform and campaign are in context; only file paths are missing"
   }
 ]

@@ -1,0 +1,124 @@
+ 11%|███████▊                                                                  | 100/952 [04:30<30:07,  2.12s/it]Traceback (most recent call last):
+step=10 | loss=3.266835 | lr=6.206897e-06
+{'loss': '3.267', 'grad_norm': '1.518', 'learning_rate': '6.207e-06', 'epoch': '0.02101'}
+step=20 | loss=2.793843 | lr=1.310345e-05
+{'loss': '2.794', 'grad_norm': '1.163', 'learning_rate': '1.31e-05', 'epoch': '0.04203'}
+step=30 | loss=1.561138 | lr=2.000000e-05
+{'loss': '1.561', 'grad_norm': '0.338', 'learning_rate': '2e-05', 'epoch': '0.06304'}
+step=40 | loss=1.009426 | lr=1.999421e-05
+{'loss': '1.009', 'grad_norm': '0.2106', 'learning_rate': '1.999e-05', 'epoch': '0.08406'}
+step=50 | loss=0.843336 | lr=1.997684e-05
+{'loss': '0.8433', 'grad_norm': '0.1135', 'learning_rate': '1.998e-05', 'epoch': '0.1051'}
+step=60 | loss=0.764764 | lr=1.994791e-05
+{'loss': '0.7648', 'grad_norm': '0.1117', 'learning_rate': '1.995e-05', 'epoch': '0.1261'}
+step=70 | loss=0.701455 | lr=1.990746e-05
+{'loss': '0.7015', 'grad_norm': '0.09793', 'learning_rate': '1.991e-05', 'epoch': '0.1471'}
+step=80 | loss=0.610333 | lr=1.985554e-05
+{'loss': '0.6103', 'grad_norm': '0.1131', 'learning_rate': '1.986e-05', 'epoch': '0.1681'}
+step=90 | loss=0.595812 | lr=1.979219e-05
+{'loss': '0.5958', 'grad_norm': '0.0953', 'learning_rate': '1.979e-05', 'epoch': '0.1891'}
+step=100 | loss=0.498062 | lr=1.971751e-05
+{'loss': '0.4981', 'grad_norm': '0.1062', 'learning_rate': '1.972e-05', 'epoch': '0.2101'}
+  File "/workspace/AdCampaign/src/train/train_qwen_function_calling_all_assistant_turns.py", line 306, in <module>
+    main()
+    ~~~~^^
+  File "/workspace/AdCampaign/src/train/train_qwen_function_calling_all_assistant_turns.py", line 298, in main
+    trainer.train()
+    ~~~~~~~~~~~~~^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1424, in train
+    return inner_training_loop(
+        args=args,
+    ...<2 lines>...
+        ignore_keys_for_eval=ignore_keys_for_eval,
+    )
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1506, in _inner_training_loop
+    self._run_epoch(
+    ~~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<9 lines>...
+        steps_trained_in_current_epoch=steps_trained_in_current_epoch,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1775, in _run_epoch
+    self._maybe_log_save_evaluate(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self._tr_loss,
+        ^^^^^^^^^^^^^^
+    ...<6 lines>...
+        learning_rate=learning_rate,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 2081, in _maybe_log_save_evaluate
+    metrics = self._evaluate(trial, ignore_keys_for_eval)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 2988, in _evaluate
+    metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 2575, in evaluate
+    output = self.evaluation_loop(
+        eval_dataloader,
+    ...<5 lines>...
+        metric_key_prefix=metric_key_prefix,
+    )
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 2700, in evaluation_loop
+    losses, logits, labels = self.prediction_step(model, inputs, prediction_loss_only, ignore_keys=ignore_keys)
+                             ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 2954, in prediction_step
+    loss, outputs = self.compute_loss(
+                    ~~~~~~~~~~~~~~~~~^
+        model, inputs, return_outputs=True, num_items_in_batch=num_items_in_batch
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1978, in compute_loss
+    outputs = model(**inputs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/accelerate/utils/operations.py", line 823, in forward
+    return model_forward(*args, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/accelerate/utils/operations.py", line 811, in __call__
+    return convert_to_fp32(self.model_forward(*args, **kwargs))
+                           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/amp/autocast_mode.py", line 44, in decorate_autocast
+    return func(*args, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/peft/peft_model.py", line 1923, in forward
+    return self.base_model(
+           ~~~~~~~~~~~~~~~^
+        input_ids=input_ids,
+        ^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        **kwargs,
+        ^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/peft/tuners/tuners_utils.py", line 311, in forward
+    return self.model.forward(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/utils/generic.py", line 843, in wrapper
+    output = func(self, *args, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/models/qwen3/modeling_qwen3.py", line 524, in forward
+    loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/loss/loss_utils.py", line 66, in ForCausalLMLoss
+    loss = fixed_cross_entropy(logits, shift_labels, num_items_in_batch, ignore_index, **kwargs)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/loss/loss_utils.py", line 36, in fixed_cross_entropy
+    loss = nn.functional.cross_entropy(source, target, ignore_index=ignore_index, reduction=reduction)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/nn/functional.py", line 3504, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        input,
+        ^^^^^^
+    ...<5 lines>...
+        label_smoothing,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 13.96 GiB. GPU 0 has a total capacity of 31.36 GiB of which 4.96 GiB is free. Including non-PyTorch memory, this process has 26.39 GiB memory in use. Of the allocated memory 25.29 GiB is allocated by PyTorch, and 518.26 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

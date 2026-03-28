@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,9 +52,19 @@ class BenchmarkCase:
     notes: str = ""
 
 
+VALID_FIELDS = {f.name for f in dataclasses.fields(BenchmarkCase)}
+
+
 def load_cases(path: str | Path) -> list[BenchmarkCase]:
     """将 JSON 数组格式的样本文件加载成 BenchmarkCase 列表。"""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(payload, list):
         raise ValueError("Benchmark case file must contain a JSON array")
-    return [BenchmarkCase(**item) for item in payload]
+    cases = []
+    for i, item in enumerate(payload):
+        try:
+            filtered = {k: v for k, v in item.items() if k in VALID_FIELDS}
+            cases.append(BenchmarkCase(**filtered))
+        except TypeError as e:
+            raise ValueError(f"Case #{i} (id={item.get('id', 'unknown')}) failed: {e}")
+    return cases

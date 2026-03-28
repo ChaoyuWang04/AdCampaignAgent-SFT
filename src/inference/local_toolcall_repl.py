@@ -41,6 +41,7 @@ DEFAULT_SYSTEM_PROMPT = """你是一个专业的移动游戏广告投放 AI 助�
 - 如果需要工具，直接输出 tool call
 - 如果不需要工具，直接输出简洁自然语言答案
 - 不要输出思维过程
+- 请始终使用简体中文回复
 """
 
 
@@ -271,15 +272,42 @@ class LocalToolcallREPL:
             )
         return normalized
 
-    def _execute_tool(self, tool_call: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_tool(self, tool_call):
         name = tool_call["function"]["name"]
         arguments = json.loads(tool_call["function"]["arguments"])
-        result = self.dispatch[name](**arguments)
+
+        # 先精确匹配，再尝试小写 fallback
+        tool_fn = self.dispatch.get(name)
+        if tool_fn is None:
+            name_lower = name.lower()
+            for key in self.dispatch:
+                if key.lower() == name_lower:
+                    tool_fn = self.dispatch[key]
+                    break
+        if tool_fn is None:
+            return {
+                "role": "tool",
+                "tool_call_id": tool_call["id"],
+                "content": json.dumps({"status": "error", "message": f"Unknown tool: {name}"}, ensure_ascii=False),
+            }
+
+        try:
+            sig = inspect.signature(tool_fn)
+            accepted = {
+                n for n, p in sig.parameters.items()
+                if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+            }
+            arguments = {k: v for k, v in arguments.items() if k in accepted}
+        except (TypeError, ValueError):
+            pass
+
+        result = tool_fn(**arguments)
         return {
             "role": "tool",
             "tool_call_id": tool_call["id"],
             "content": json.dumps(result, ensure_ascii=False),
-        }
+    }
+
 
     def run_turn(self, user_message: str) -> None:
         self.history.append({"role": "user", "content": user_message})

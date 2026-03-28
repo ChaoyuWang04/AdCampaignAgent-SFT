@@ -50,7 +50,10 @@ def evaluate_format_case(
     _ = case
     tool_calls = all_tool_calls(trace)
     if not tool_calls:
-        return {"F1": 0.0, "F2": 0.0}
+        if case.expected_behavior == "tool_call":
+            return {"F1": 0.0, "F2": 0.0}  # 应该调但没调，格式失败
+        else:
+            return {}  # 不该调工具，跳过格式评分
 
     parseable = 1.0
     compliant = 1.0

@@ -11,22 +11,25 @@ PYTHON_TRAIN_SCRIPT="${REPO_ROOT}/src/train/train_qwen_function_calling_all_assi
 # 直接修改这里，然后执行：
 #   bash scripts/run_train_lora_all_assistant.sh
 
-TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260326_181224_zh_train_message.json"
-EVAL_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260326_181224_zh_test_message.json"
-MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B-Base"
-OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B-Base_lora_function_calling_all_assistant"
+TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_train_message_multiturn.json"
+EVAL_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_test_message_multiturn.json"
+MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B"
+OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_function_calling_all_assistant"
 
-MAX_SEQ_LENGTH="20000"
+MAX_SEQ_LENGTH="4096"
 PER_DEVICE_TRAIN_BATCH_SIZE="1"
 GRADIENT_ACCUMULATION_STEPS="8"
 LEARNING_RATE="2e-5"
-NUM_TRAIN_EPOCHS="1"
+NUM_TRAIN_EPOCHS="2"
 WARMUP_RATIO="0.03"
 LOGGING_STEPS="10"
-SAVE_STEPS="1000"
-SAVE_TOTAL_LIMIT="3"
+SAVE_STEPS="200"
+SAVE_TOTAL_LIMIT="10"
 LR_SCHEDULER_TYPE="cosine"
+
 EVAL_STEPS="100"
+EVAL_ACCUMULATION_STEPS="4"
+
 DATALOADER_NUM_WORKERS="2"
 SEED="42"
 LOG_FILE=""
@@ -80,6 +83,7 @@ mkdir -p "${OUTPUT_DIR}"
 # WandB 配置
 export WANDB_PROJECT="AdCampaignAgent-SFT"
 export WANDB_RUN_NAME="Qwen3-1.7B-lora-all-$(date +%Y%m%d-%H%M)"
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 CMD=(
   python3 "${PYTHON_TRAIN_SCRIPT}"
@@ -132,6 +136,7 @@ fi
 if [[ "${QLORA}" == "true" ]]; then
   CMD+=(--qlora)
 fi
+CMD+=(--eval_accumulation_steps "${EVAL_ACCUMULATION_STEPS}")
 
 echo "Run function-calling all-assistant LoRA training"
 echo "Python script      : ${PYTHON_TRAIN_SCRIPT}"
