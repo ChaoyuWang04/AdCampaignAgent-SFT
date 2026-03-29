@@ -10,9 +10,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # 直接改这里，然后执行：
 #   bash scripts/merge_lora_into_base.sh
 
-BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
-ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_function_calling_all_assistant"
-OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B-merged"
+BASE_MODEL="${BASE_MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
+ADAPTER_PATH="${ADAPTER_PATH:-${REPO_ROOT}/models/Qwen3-1.7B_lora_function_calling_all_assistant}"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/models/Qwen3-1.7B-merged}"
 
 LOCAL_FILES_ONLY="true"
 BF16="true"
