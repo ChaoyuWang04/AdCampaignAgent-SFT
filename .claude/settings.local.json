@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"^Qwen3-1.7B$\")",
+      "Bash(grep -v \"^Qwen3-1.7B-Base$\")"
+    ]
+  }
+}
