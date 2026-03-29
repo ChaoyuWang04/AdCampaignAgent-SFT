@@ -19,12 +19,6 @@ run_merge() {
   echo ""
 }
 
-# ── Merge A：multi_all ────────────────────────────
-export BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
-export ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_all_adapter"
-export OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_all"
-run_merge "A: multi_all"
-
 # ── Merge B：multi_last ───────────────────────────
 export BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
 export ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last_adapter"
