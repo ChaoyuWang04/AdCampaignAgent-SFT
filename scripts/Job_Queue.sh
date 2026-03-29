@@ -3,40 +3,35 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-MERGE_SCRIPT="${SCRIPT_DIR}/merge_lora_into_base.sh"
+BENCHMARK_SCRIPT="${SCRIPT_DIR}/benchmark.sh"
 
-run_merge() {
+run_benchmark() {
   local name=$1
+  local model_path=$2
   echo ""
   echo "############################################"
-  echo "# 开始 Merge：${name}"
+  echo "# 开始 Benchmark：${name}"
   echo "# $(date '+%Y-%m-%d %H:%M:%S')"
   echo "############################################"
   echo ""
-  bash "${MERGE_SCRIPT}"
+  MODEL="${model_path}" RUN_NAME="${name}" bash "${BENCHMARK_SCRIPT}"
   echo ""
-  echo "✅ Merge ${name} 完成 — $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "✅ Benchmark ${name} 完成 — $(date '+%Y-%m-%d %H:%M:%S')"
   echo ""
 }
 
-# ── Merge B：multi_last ───────────────────────────
-export BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
-export ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last_adapter"
-export OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last"
-run_merge "B: multi_last"
+# ── Benchmark A: multi_all ────────────────────────
+run_benchmark "multi_all"     "${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_all"
 
-# ── Merge C：nonmulti_all ─────────────────────────
-export BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
-export ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_all_adapter"
-export OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_all"
-run_merge "C: nonmulti_all"
+# ── Benchmark B: multi_last ───────────────────────
+run_benchmark "multi_last"    "${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last"
 
-# ── Merge D：nonmulti_last ────────────────────────
-export BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
-export ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_last_adapter"
-export OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_last"
-run_merge "D: nonmulti_last"
+# ── Benchmark C: nonmulti_all ─────────────────────
+run_benchmark "nonmulti_all"  "${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_all"
+
+# ── Benchmark D: nonmulti_last ────────────────────
+run_benchmark "nonmulti_last" "${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_last"
 
 echo "############################################"
-echo "# 全部 Merge 完成 — $(date '+%Y-%m-%d %H:%M:%S')"
+echo "# 全部 Benchmark 完成 — $(date '+%Y-%m-%d %H:%M:%S')"
 echo "############################################"
