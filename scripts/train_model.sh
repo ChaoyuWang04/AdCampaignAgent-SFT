@@ -58,7 +58,7 @@ FULL_FT="false"
 # 固定配置（一般不需要修改）
 # =============================================================
 
-MODEL_PATH="${REPO_ROOT}/models/Qwen3-1.7B"
+MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/models/Qwen3-1.7B}"
 OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_${EXPERIMENT}"
 PYTHON_TRAIN_SCRIPT="${REPO_ROOT}/src/train/train_qwen_lora.py"
 

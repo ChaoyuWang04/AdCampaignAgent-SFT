@@ -1,0 +1,33 @@
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 126/126 [04:52<00:00,  2.32s/it]
+step=10 | loss=0.193361 | lr=9.958613e-06
+{'loss': '0.1934', 'grad_norm': '0.1992', 'learning_rate': '9.959e-06', 'epoch': '0.16'}
+step=20 | loss=0.222898 | lr=9.631620e-06
+{'loss': '0.2229', 'grad_norm': '0.2741', 'learning_rate': '9.632e-06', 'epoch': '0.32'}
+step=30 | loss=0.129076 | lr=8.999196e-06
+{'loss': '0.1291', 'grad_norm': '0.1532', 'learning_rate': '8.999e-06', 'epoch': '0.48'}
+step=40 | loss=0.147890 | lr=8.103047e-06
+{'loss': '0.1479', 'grad_norm': '0.1494', 'learning_rate': '8.103e-06', 'epoch': '0.64'}
+step=50 | loss=0.093243 | lr=7.002270e-06
+{'loss': '0.09324', 'grad_norm': '0.09845', 'learning_rate': '7.002e-06', 'epoch': '0.8'}
+                                                                                                                                                                                              
+step=50
+{'eval_loss': '0.08204', 'eval_runtime': '7.208', 'eval_samples_per_second': '13.87', 'eval_steps_per_second': '13.87', 'epoch': '0.8'}
+step=60 | loss=0.080642 | lr=5.769453e-06
+{'loss': '0.08064', 'grad_norm': '0.08904', 'learning_rate': '5.769e-06', 'epoch': '0.96'}
+step=70 | loss=0.079247 | lr=4.485895e-06
+{'loss': '0.07925', 'grad_norm': '0.06684', 'learning_rate': '4.486e-06', 'epoch': '1.112'}
+step=80 | loss=0.079390 | lr=3.236240e-06
+{'loss': '0.07939', 'grad_norm': '0.1015', 'learning_rate': '3.236e-06', 'epoch': '1.272'}
+step=90 | loss=0.081060 | lr=2.102895e-06
+{'loss': '0.08106', 'grad_norm': '0.06605', 'learning_rate': '2.103e-06', 'epoch': '1.432'}
+step=100 | loss=0.075003 | lr=1.160598e-06
+{'loss': '0.075', 'grad_norm': '0.171', 'learning_rate': '1.161e-06', 'epoch': '1.592'}
+step=100
+{'eval_loss': '0.05519', 'eval_runtime': '7.215', 'eval_samples_per_second': '13.86', 'eval_steps_per_second': '13.86', 'epoch': '1.592'}
+step=110 | loss=0.061281 | lr=4.714887e-07
+{'loss': '0.06128', 'grad_norm': '0.1013', 'learning_rate': '4.715e-07', 'epoch': '1.752'}
+step=120 | loss=0.072192 | lr=8.101024e-08
+{'loss': '0.07219', 'grad_norm': '0.09785', 'learning_rate': '8.101e-08', 'epoch': '1.912'}
+step=126 | loss=0.108309
+{'train_runtime': '296.5', 'train_samples_per_second': '3.372', 'train_steps_per_second': '0.425', 'train_loss': '0.1083', 'epoch': '2'}
+Training complete [all_assistant]. Adapter saved to: /workspace/AdCampaign/models/Qwen3-1.7B_r2_multi_all

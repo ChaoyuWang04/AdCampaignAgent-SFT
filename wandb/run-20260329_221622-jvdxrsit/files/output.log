@@ -1,0 +1,49 @@
+ 71%|███████████████████████████████████████████████████████████████████████████████████████████████████████████▊                                           | 140/196 [06:42<01:57,  2.10s/it]
+step=10 | loss=0.364234 | lr=9.993850e-06
+{'loss': '0.3642', 'grad_norm': '0.2586', 'learning_rate': '9.994e-06', 'epoch': '0.1027'}
+step=20 | loss=0.235454 | lr=9.884934e-06
+{'loss': '0.2355', 'grad_norm': '0.1158', 'learning_rate': '9.885e-06', 'epoch': '0.2054'}
+step=30 | loss=0.151260 | lr=9.642770e-06
+{'loss': '0.1513', 'grad_norm': '0.08408', 'learning_rate': '9.643e-06', 'epoch': '0.3081'}
+step=40 | loss=0.121008 | lr=9.273964e-06
+{'loss': '0.121', 'grad_norm': '0.1061', 'learning_rate': '9.274e-06', 'epoch': '0.4108'}
+step=50 | loss=0.100113 | lr=8.788574e-06
+{'loss': '0.1001', 'grad_norm': '0.07029', 'learning_rate': '8.789e-06', 'epoch': '0.5135'}
+                                                                                                                                                                                              
+step=50
+{'eval_loss': '0.1133', 'eval_runtime': '18.94', 'eval_samples_per_second': '11.67', 'eval_steps_per_second': '11.67', 'epoch': '0.5135'}
+step=60 | loss=0.074823 | lr=8.199843e-06
+{'loss': '0.07482', 'grad_norm': '0.05156', 'learning_rate': '8.2e-06', 'epoch': '0.6162'}
+step=70 | loss=0.092416 | lr=7.523828e-06
+{'loss': '0.09242', 'grad_norm': '0.05627', 'learning_rate': '7.524e-06', 'epoch': '0.7189'}
+step=80 | loss=0.080515 | lr=6.778969e-06
+{'loss': '0.08052', 'grad_norm': '0.04499', 'learning_rate': '6.779e-06', 'epoch': '0.8216'}
+step=90 | loss=0.083914 | lr=5.985585e-06
+{'loss': '0.08391', 'grad_norm': '0.04247', 'learning_rate': '5.986e-06', 'epoch': '0.9243'}
+step=100 | loss=0.089151 | lr=5.165317e-06
+{'loss': '0.08915', 'grad_norm': '0.08832', 'learning_rate': '5.165e-06', 'epoch': '1.021'}
+step=100
+{'eval_loss': '0.09431', 'eval_runtime': '18.85', 'eval_samples_per_second': '11.72', 'eval_steps_per_second': '11.72', 'epoch': '1.021'}
+step=110 | loss=0.087197 | lr=4.340539e-06
+{'loss': '0.0872', 'grad_norm': '0.06535', 'learning_rate': '4.341e-06', 'epoch': '1.123'}
+step=120 | loss=0.076078 | lr=3.533750e-06
+{'loss': '0.07608', 'grad_norm': '0.0524', 'learning_rate': '3.534e-06', 'epoch': '1.226'}
+step=130 | loss=0.079021 | lr=2.766956e-06
+{'loss': '0.07902', 'grad_norm': '0.03983', 'learning_rate': '2.767e-06', 'epoch': '1.329'}
+step=140 | loss=0.075264 | lr=2.061074e-06
+{'loss': '0.07526', 'grad_norm': '0.05504', 'learning_rate': '2.061e-06', 'epoch': '1.431'}
+step=150 | loss=0.082163 | lr=1.435358e-06
+{'loss': '0.08216', 'grad_norm': '0.05917', 'learning_rate': '1.435e-06', 'epoch': '1.534'}
+step=150
+{'eval_loss': '0.0891', 'eval_runtime': '18.85', 'eval_samples_per_second': '11.72', 'eval_steps_per_second': '11.72', 'epoch': '1.534'}
+step=160 | loss=0.069658 | lr=9.068759e-07
+{'loss': '0.06966', 'grad_norm': '0.06068', 'learning_rate': '9.069e-07', 'epoch': '1.637'}
+step=170 | loss=0.071882 | lr=4.900438e-07
+{'loss': '0.07188', 'grad_norm': '0.05041', 'learning_rate': '4.9e-07', 'epoch': '1.739'}
+step=180 | loss=0.068560 | lr=1.962316e-07
+{'loss': '0.06856', 'grad_norm': '0.04457', 'learning_rate': '1.962e-07', 'epoch': '1.842'}
+step=190 | loss=0.072976 | lr=3.345367e-08
+{'loss': '0.07298', 'grad_norm': '0.04929', 'learning_rate': '3.345e-08', 'epoch': '1.945'}
+step=196 | loss=0.107931
+{'train_runtime': '546.2', 'train_samples_per_second': '2.853', 'train_steps_per_second': '0.359', 'train_loss': '0.1079', 'epoch': '2'}
+Training complete [all_assistant]. Adapter saved to: /workspace/AdCampaign/models/Qwen3-1.7B_r2_multi_last
