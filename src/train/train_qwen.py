@@ -89,6 +89,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--eval_file",           type=str, default="")
     parser.add_argument("--model_name_or_path",  type=str, default=str(default_model_dir()))
     parser.add_argument("--output_dir",          type=str, default="./qwen_lora_output")
+    parser.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default="",
+        help="从指定 checkpoint 路径恢复训练；为空表示从头开始",
+    )
 
     # 核心开关
     parser.add_argument(
@@ -336,7 +342,7 @@ def main():
         ],
     )
 
-    trainer.train()
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint or None)
     trainer.save_state()
     trainer.save_model(args.output_dir)
     print(f"Training complete [{mode_label}]. Adapter saved to: {args.output_dir}")

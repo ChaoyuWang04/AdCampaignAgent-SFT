@@ -15,6 +15,7 @@ NUM_TRAIN_EPOCHS="${NUM_TRAIN_EPOCHS:-2}"
 
 EVAL_STEPS="${EVAL_STEPS:-100}"
 SAVE_STEPS="${SAVE_STEPS:-200}"
+RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-}"
 
 EARLY_STOPPING_PATIENCE="${EARLY_STOPPING_PATIENCE:-5}"
 EARLY_STOPPING_THRESHOLD="${EARLY_STOPPING_THRESHOLD:-0.001}"
@@ -74,6 +75,7 @@ usage() {
   ONLY_LAST_ASSISTANT
   TRAIN_FILE
   EVAL_FILE
+  RESUME_FROM_CHECKPOINT
   MODEL_PATH
   LEARNING_RATE
   NUM_TRAIN_EPOCHS
@@ -147,6 +149,7 @@ CMD=(
 )
 
 if [[ -n "${EVAL_FILE}" ]];   then CMD+=(--eval_file "${EVAL_FILE}"); fi
+if [[ -n "${RESUME_FROM_CHECKPOINT}" ]]; then CMD+=(--resume_from_checkpoint "${RESUME_FROM_CHECKPOINT}"); fi
 if [[ -n "${LOG_FILE}" ]];    then CMD+=(--log_file "${LOG_FILE}"); fi
 if [[ -n "${TOOLS_FILE}" ]];  then CMD+=(--tools_file "${TOOLS_FILE}"); fi
 if [[ -n "${TOOLS_JSON}" ]];  then CMD+=(--tools_json "${TOOLS_JSON}"); fi
@@ -170,6 +173,9 @@ echo " Only last asst     : ${ONLY_LAST_ASSISTANT}"
 echo " Full FT            : ${FULL_FT}"
 echo " Train file         : $(basename ${TRAIN_FILE})"
 echo " Eval file          : $(basename ${EVAL_FILE})"
+if [[ -n "${RESUME_FROM_CHECKPOINT}" ]]; then
+  echo " Resume ckpt        : ${RESUME_FROM_CHECKPOINT}"
+fi
 echo " Model              : $(basename ${MODEL_PATH})"
 echo " Output dir         : ${OUTPUT_DIR}"
 echo " Learning rate      : ${LEARNING_RATE}"
