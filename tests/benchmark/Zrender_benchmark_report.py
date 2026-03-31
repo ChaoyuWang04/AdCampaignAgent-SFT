@@ -6,7 +6,7 @@
 有 .md 的跳过，没有的自动生成。
 
 用法：
-  python tests/benchmark/render_benchmark_report.py
+  python tests/benchmark/Zrender_benchmark_report.py
 """
 
 from __future__ import annotations

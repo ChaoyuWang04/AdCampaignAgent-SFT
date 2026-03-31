@@ -8,10 +8,10 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # 可直接修改的默认配置
 # =========================
 # 你可以只改这里，然后直接执行：
-#   bash scripts/run_benchmark.sh
+#   bash scripts/benchmark.sh
 
 BACKEND="${BACKEND:-local_hf}"
-MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-1.7B-merged}"
+MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
 EVAL_GROUP="${EVAL_GROUP:-all}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/tests/benchmark/data}"
 RESULTS_DIR="${RESULTS_DIR:-}"
@@ -36,7 +36,7 @@ usage() {
   cat <<'EOF'
 用法：
   直接在脚本顶部填写配置后运行
-    bash scripts/run_benchmark.sh
+    bash scripts/benchmark.sh
 
 功能：
   1. 跑整套 benchmark
@@ -65,7 +65,7 @@ usage() {
 
 示例：
   1. 在脚本顶部填好配置后直接运行
-     bash scripts/run_benchmark.sh
+     bash scripts/benchmark.sh
 
   2. 如果只想跑系统层，把脚本中的 EVAL_GROUP 改成 system 后再运行
 
@@ -94,7 +94,7 @@ fi
 
 if [[ -z "${BACKEND}" || -z "${MODEL}" ]]; then
   echo "错误：BACKEND 和 MODEL 不能为空。" >&2
-  echo "请直接编辑 scripts/run_benchmark.sh 顶部配置。" >&2
+  echo "请直接编辑 scripts/benchmark.sh 顶部配置。" >&2
   usage
   exit 1
 fi

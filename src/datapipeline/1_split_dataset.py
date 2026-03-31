@@ -98,20 +98,18 @@ def split_dataset(args: argparse.Namespace) -> None:
 
     for key, items in grouped.items():
         random.shuffle(items)
-        train_size = int(len(items) * args.train_ratio)
         if len(items) == 1:
             train_records.extend(items)
             train_stats[key] = 1
             test_stats[key] = 0
-            continue
-
-        train_size = max(1, min(int(len(items) * args.train_ratio), len(items) - 1))
-        train_slice = items[:train_size]
-        test_slice = items[train_size:]
-        train_records.extend(train_slice)
-        test_records.extend(test_slice)
-        train_stats[key] = len(train_slice)
-        test_stats[key] = len(test_slice)
+        else:
+            train_size = max(1, min(round(len(items) * args.train_ratio), len(items) - 1))
+            train_slice = items[:train_size]
+            test_slice = items[train_size:]
+            train_records.extend(train_slice)
+            test_records.extend(test_slice)
+            train_stats[key] = len(train_slice)
+            test_stats[key] = len(test_slice)
 
     random.shuffle(train_records)
     random.shuffle(test_records)

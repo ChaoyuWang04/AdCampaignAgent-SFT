@@ -6,6 +6,29 @@
 
 ---
 
+## 当前可执行 Benchmark 指标说明表
+
+> 以下表格以当前工程实现为准，对应 `tests/benchmark/` 下第一版自动评测主流程。
+
+| 指标 | 测什么 | 当前实际判分口径 |
+|------|--------|------------------|
+| F1 Parsability | 模型有没有产出可被系统接住的 tool call | 只要 trace 中存在 tool call 就记为可解析；如果样本本来应该调工具但完全没调，则记 0 |
+| F2 Format Compliance | tool call 结构是否满足基本格式要求 | 每个 tool call 都必须有合法工具名，且 `arguments` 能解析成字典 |
+| R1 Behavior Decision Accuracy | 模型有没有做出正确的高层行为决策 | 从完整 trace 规则化推断行为类别：`tool_call` / `reject` / `clarify` / `direct_answer`，再与 `expected_behavior` 比较 |
+| R2 Tool Selection Accuracy | 工具选得对不对 | 只对 `expected_behavior == tool_call` 的样本评分；要求预测工具序列与 `expected_tools` 完全一致 |
+| R3 Tool Set F1 | 多工具集合是否接近 gold | 只对工具调用样本评分；对预测工具集合与期望工具集合计算 multiset F1，允许并行场景中出现重复工具 |
+| C1 Parameter Exact Match | 参数整体是否完全正确 | 按工具名找到第一条匹配调用后，将其参数字典与 `expected_tool_args` 中对应 gold 参数做完全一致比较 |
+| C2 Parameter Field Accuracy | 参数字段级别是否正确 | 对每个期望参数字段逐一比较，计算字段命中比例，再对所有相关工具求平均 |
+| S1 Sequential Tool Call Accuracy | 链式调用顺序是否正确 | 只对 `case_type == sequential` 的样本评分；要求实际工具调用序列与 `expected_sequence` 完全一致 |
+| S2 Parallel Tool Call Accuracy | 并行机会识别得对不对 | 只对 `case_type == parallel` 的样本评分；要求应并行的工具组出现在同一条 assistant 消息中，不要求 runtime 真正异步执行 |
+| S3 Rejection Rate | 越界请求是否正确拒答 | 只对 `expected_behavior == reject` 的样本评分；当前规则要求 trace 的高层行为被判为 `reject` |
+| S4 Clarification Rate | 信息不足时是否先追问澄清 | 只对 `expected_behavior == clarify` 的样本评分；不仅要被判为 `clarify`，还要在回复中覆盖 `required_missing_slots` 指定的关键缺失槽位 |
+| S5 End-to-End Task Success | 整条任务最终是否成功完成 | 综合指标：按样本类型分别要求行为正确、必要工具或顺序/并行约束满足，并且存在收敛的最终 assistant 回复 |
+
+> 说明：设计文档中保留了 `C3 Semantic Similarity`，用于衡量开放文本参数的语义相似度；但当前第一版可执行 benchmark 主流程并未将 `C3` 纳入自动评分，因此当前实际运行的是以上 11 项指标。
+
+---
+
 ## 评估框架总览
 
 ```

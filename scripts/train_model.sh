@@ -4,55 +4,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 EXPERIMENT="${EXPERIMENT:-multi_last}"
-ONLY_LAST_ASSISTANT="${ONLY_LAST_ASSISTANT:-true}"
-TRAIN_FILE="${TRAIN_FILE:-${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_train_message_multiturn.json}"
-EVAL_FILE="${EVAL_FILE:-${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_test_message_multiturn.json}"
+
+ONLY_LAST_ASSISTANT="${ONLY_LAST_ASSISTANT:-false}"
+
+TRAIN_FILE="${TRAIN_FILE:-${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_train_multiturn.json}"
+EVAL_FILE="${EVAL_FILE:-${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_test_multiturn.json}"
+
 LEARNING_RATE="${LEARNING_RATE:-2e-5}"
 NUM_TRAIN_EPOCHS="${NUM_TRAIN_EPOCHS:-2}"
+
 EVAL_STEPS="${EVAL_STEPS:-100}"
 SAVE_STEPS="${SAVE_STEPS:-200}"
+
 EARLY_STOPPING_PATIENCE="${EARLY_STOPPING_PATIENCE:-5}"
 EARLY_STOPPING_THRESHOLD="${EARLY_STOPPING_THRESHOLD:-0.001}"
+FULL_FT="${FULL_FT:-false}"
 
-# =============================================================
-# 核心开关（每次改实验只需要改这里）
-# =============================================================
 
-# 实验标签，自动生成 OUTPUT_DIR 和 WandB run name
-# 建议命名规范：nonmulti_all / nonmulti_last / multi_all / multi_last
-#EXPERIMENT="multi_last"
-
-# --- Loss 策略 ---
-# true  = 只对最后一条 assistant 回复计算 loss（last_assistant_only）
-# false = 对所有 assistant 回复计算 loss（all_assistant）
-#ONLY_LAST_ASSISTANT="true"
-
-# --- 训练模式 ---
-# true  = 全参数微调（不使用 LoRA）
-# false = LoRA 微调（默认）
-# 注意：FULL_FT=true 时 QLORA 必须为 false
-FULL_FT="false"
-
-# --- 数据选择（二选一，取消注释对应行）---
-
-# 非 multiturn（779条）推荐：LR=5e-5  EPOCHS=5  EVAL_STEPS=50  SAVE_STEPS=100
-# TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_train_message.json"
-# EVAL_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_test_message.json"
-
-# multiturn（3807条）推荐：LR=2e-5  EPOCHS=2  EVAL_STEPS=100  SAVE_STEPS=200
-#TRAIN_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_train_message_multiturn.json"
-#EVAL_FILE="${REPO_ROOT}/data/ready2train/message/ad_agent_sft_20260328_041007_zh_test_message_multiturn.json"
-
-# =============================================================
-# 训练超参（根据数据集大小调整，参考上方注释）
-# =============================================================
-
-#LEARNING_RATE="2e-5"
-#NUM_TRAIN_EPOCHS="2"
-#EVAL_STEPS="100"
-#SAVE_STEPS="200"
-#EARLY_STOPPING_PATIENCE="4"    # eval loss 连续4次不降就停
-#EARLY_STOPPING_THRESHOLD="0.001"
 
 # =============================================================
 # 固定配置（一般不需要修改）
@@ -60,11 +28,11 @@ FULL_FT="false"
 
 MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/models/Qwen3-1.7B}"
 OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_lora_${EXPERIMENT}"
-PYTHON_TRAIN_SCRIPT="${REPO_ROOT}/src/train/train_qwen_lora.py"
+PYTHON_TRAIN_SCRIPT="${REPO_ROOT}/src/train/train_qwen.py"
 
 MAX_SEQ_LENGTH="4096"
-PER_DEVICE_TRAIN_BATCH_SIZE="1"
-PER_DEVICE_EVAL_BATCH_SIZE="1"
+PER_DEVICE_TRAIN_BATCH_SIZE="4"
+PER_DEVICE_EVAL_BATCH_SIZE="4"
 GRADIENT_ACCUMULATION_STEPS="8"
 WARMUP_RATIO="0.03"
 LR_SCHEDULER_TYPE="cosine"
@@ -93,27 +61,30 @@ TARGET_MODULES="q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"
 TOOLS_FILE="${REPO_ROOT}/src/tools/all_tools.json"
 TOOLS_JSON=""
 
-# =============================================================
-# 参数校验
-# =============================================================
-
 usage() {
   cat <<'EOF'
 用法：
-  直接在脚本顶部修改配置后运行
-    bash scripts/run_train_lora.sh
+  直接通过环境变量覆盖顶部默认配置后运行
+    bash scripts/train_model.sh
 
-4组实验配置：
-  实验A: 非multiturn + ONLY_LAST_ASSISTANT=false  EXPERIMENT=nonmulti_all
-  实验B: 非multiturn + ONLY_LAST_ASSISTANT=true   EXPERIMENT=nonmulti_last
-  实验C: multiturn   + ONLY_LAST_ASSISTANT=false  EXPERIMENT=multi_all
-  实验D: multiturn   + ONLY_LAST_ASSISTANT=true   EXPERIMENT=multi_last
+常用环境变量：
+  EXPERIMENT
+  ONLY_LAST_ASSISTANT
+  TRAIN_FILE
+  EVAL_FILE
+  MODEL_PATH
+  LEARNING_RATE
+  NUM_TRAIN_EPOCHS
+  FULL_FT
+  QLORA
 
-数据量 vs 超参建议：
-  非multiturn（779条）：LR=5e-5  EPOCHS=5  EVAL_STEPS=50  SAVE_STEPS=100
-  multiturn（3807条）：LR=2e-5  EPOCHS=2  EVAL_STEPS=100 SAVE_STEPS=200
+说明：
+  - 脚本本身不接收命令行参数
+  - 优先使用环境变量覆盖默认值
+  - 实际训练入口是 src/train/train_qwen.py
 EOF
 }
+
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage

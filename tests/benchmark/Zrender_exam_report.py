@@ -8,7 +8,7 @@
 需要同时读取 tests/benchmark/data/ 下的 case 定义文件获取题目原文。
 
 用法：
-  python tests/benchmark/render_exam_report.py
+  python tests/benchmark/Zrender_exam_report.py
 """
 
 from __future__ import annotations

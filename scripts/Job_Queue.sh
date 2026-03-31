@@ -1,18 +1,12 @@
-#!/usr/bin/env bash
-# Round 2 SFT Pipeline — Job Queue
-# 步骤1: 生成数据 → 步骤2: 训练R2 → 步骤3: 合并R2 → 步骤4: Benchmark
-# （Round 1 模型已 merge，无需重复合并）
-# 用法: bash scripts/Job_Queue.sh
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-NTFY_TOPIC="chaoyu-runpod-abc123"
-NTFY_ALERT="chaoyu-runpod-alert"
+#请不要修改NTFY_TOPIC
+NTFY_TOPIC="chaoyu_runpod_status"
+NTFY_ALERT="chaoyu_runpod_alert"
 
-#load_wandb_api
 if [[ -f "${REPO_ROOT}/secrets/wandb.env" ]]; then
   source "${REPO_ROOT}/secrets/wandb.env"
 fi
@@ -28,131 +22,115 @@ notify() {
     "ntfy.sh/${NTFY_TOPIC}" || true
 }
 
-# ─── Error trap ──────────────────────────────────────────────
-trap 'echo ""; echo "❌ 脚本在 $(date) 异常退出"; \
-  curl -s \
-    -H "Title: ❌ Round-2 Pipeline 异常中断" \
-    -H "Priority: urgent" \
-    -H "Tags: warning" \
-    -d "脚本在 $(date) 非正常退出，请检查日志" \
-    "ntfy.sh/${NTFY_ALERT}" || true' ERR
+trap 'notify "❌ Pipeline 异常中断" "脚本在 $(date) 非正常退出，请检查日志" "urgent" "warning"' ERR
 
-R2_EXPERIMENTS=("nonmulti_all" "nonmulti_last" "multi_all" "multi_last")
+# ─── 数据路径 ─────────────────────────────────────────────────
+SFT_TRAIN="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_train.json"
+SFT_TEST="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_test.json"
 
-# ─────────────────────────────────────────────────────────────
-# 步骤 1: 生成 Round 2 训练数据
-# ─────────────────────────────────────────────────────────────
+MULTI_TRAIN="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_train_multiturn.json"
+MULTI_TEST="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_test_multiturn.json"
+
+# ═════════════════════════════════════════════════════════════
+# 步骤 3: 训练 nonmulti_all（完整对话 + all_assistant）
+# ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 1: 生成 Round 2 训练数据"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "════════════════════════════════════════════════════════"
-echo ""
-
-python3 "${REPO_ROOT}/src/datapipeline/round2_data_generator.py"
-
-echo ""
-echo "✅ 步骤1完成 — $(date '+%Y-%m-%d %H:%M:%S')"
-notify "步骤1完成 ✅" "Round-2 数据生成完成
-已写入 data/continue/ 目录
-$(date '+%Y-%m-%d %H:%M:%S')"
-
-# ─────────────────────────────────────────────────────────────
-# 步骤 3: 依次训练 4 组 Round 2 模型（串行）
-# ─────────────────────────────────────────────────────────────
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "  步骤 3: 训练 Round 2 模型（串行）"
+echo "  步骤 3: 训练 nonmulti_all"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
-for exp in "${R2_EXPERIMENTS[@]}"; do
-  echo ""
-  echo "############################################"
-  echo "# 开始 Round 2 训练：${exp}"
-  echo "# $(date '+%Y-%m-%d %H:%M:%S')"
-  echo "############################################"
-  echo ""
+EXPERIMENT="nonmulti_all" \
+ONLY_LAST_ASSISTANT="false" \
+TRAIN_FILE="${SFT_TRAIN}" \
+EVAL_FILE="${SFT_TEST}" \
+LEARNING_RATE="2e-4" \
+NUM_TRAIN_EPOCHS="3" \
+EVAL_STEPS="100" \
+SAVE_STEPS="100" \
+EARLY_STOPPING_PATIENCE="3" \
+  bash "${SCRIPT_DIR}/train_model.sh"
 
-  EXPERIMENT="${exp}" bash "${SCRIPT_DIR}/run_train_r2.sh"
-
-  echo ""
-  echo "✅ Round 2 训练完成：${exp} — $(date '+%Y-%m-%d %H:%M:%S')"
-  notify "训练完成: ${exp} ✅" "Round-2 模型 ${exp} 训练完成
-输出: models/Qwen3-1.7B_r2_${exp}
-$(date '+%Y-%m-%d %H:%M:%S')"
-done
-
-echo ""
 echo "✅ 步骤3完成 — $(date '+%Y-%m-%d %H:%M:%S')"
-notify "步骤3完成 ✅" "4个 Round-2 模型全部训练完成
-$(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤3完成 ✅" "nonmulti_all 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
-# ─────────────────────────────────────────────────────────────
-# 步骤 4: 合并 Round 2 LoRA Adapter（如已存在则跳过）
-# ─────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# 步骤 4: 训练 multi_last（multiturn拆解 + last_assistant_only）
+# ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 4: 合并 Round 2 LoRA Adapter"
+echo "  步骤 4: 训练 multi_last"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
-echo ""
 
-for exp in "${R2_EXPERIMENTS[@]}"; do
-  r2_merged="${REPO_ROOT}/models/Qwen3-1.7B_r2_${exp}-merged"
-  if [[ -d "${r2_merged}" ]]; then
-    echo "  已存在，跳过: $(basename ${r2_merged})"
+EXPERIMENT="multi_last" \
+ONLY_LAST_ASSISTANT="true" \
+TRAIN_FILE="${MULTI_TRAIN}" \
+EVAL_FILE="${MULTI_TEST}" \
+LEARNING_RATE="2e-5" \
+NUM_TRAIN_EPOCHS="2" \
+EVAL_STEPS="200" \
+SAVE_STEPS="200" \
+EARLY_STOPPING_PATIENCE="3" \
+  bash "${SCRIPT_DIR}/train_model.sh"
+
+echo "✅ 步骤4完成 — $(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤4完成 ✅" "multi_last 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+
+# ═════════════════════════════════════════════════════════════
+# 步骤 5: 合并 LoRA Adapter
+# ═════════════════════════════════════════════════════════════
+echo ""
+echo "════════════════════════════════════════════════════════"
+echo "  步骤 5: 合并 LoRA Adapter"
+echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+echo "════════════════════════════════════════════════════════"
+
+for exp in "nonmulti_all" "multi_last"; do
+  merged_dir="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}_merged"
+  if [[ -d "${merged_dir}" ]]; then
+    echo "  已存在，跳过: $(basename ${merged_dir})"
     continue
   fi
 
-  # Round 2 base = Round 1 merged model (实际存放路径，无 -merged 后缀)
-  case "${exp}" in
-    nonmulti_all)  r1_merged="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_all"  ;;
-    nonmulti_last) r1_merged="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_last" ;;
-    multi_all)     r1_merged="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_all"     ;;
-    multi_last)    r1_merged="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last"    ;;
-  esac
-
-  r2_adapter="${REPO_ROOT}/models/Qwen3-1.7B_r2_${exp}"
-
-  echo "  正在合并 R2 Adapter: ${exp}"
-  BASE_MODEL="${r1_merged}" \
-  ADAPTER_PATH="${r2_adapter}" \
-  OUTPUT_DIR="${r2_merged}" \
+  BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B" \
+  ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}" \
+  OUTPUT_DIR="${merged_dir}" \
     bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
+
   echo "  ✅ 合并完成: ${exp}"
 done
 
-echo ""
-echo "✅ 步骤4完成 — $(date '+%Y-%m-%d %H:%M:%S')"
-notify "步骤4完成 ✅" "Round-2 Adapter 合并完成
-$(date '+%Y-%m-%d %H:%M:%S')"
+echo "✅ 步骤5完成 — $(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤5完成 ✅" "LoRA 合并完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
-# ─────────────────────────────────────────────────────────────
-# 步骤 5: 跑全部 Round 2 Benchmark
-# ─────────────────────────────────────────────────────────────
+# ═════════════════════════════════════════════════════════════
+# 步骤 6: Benchmark
+# ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 5: 运行 Round 2 Benchmark"
+echo "  步骤 6: 运行 Benchmark"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
-echo ""
 
-MODEL_PATTERN="Qwen3-1.7B_r2_*-merged" \
-  bash "${SCRIPT_DIR}/run_benchmark_r2.sh"
+for exp in "nonmulti_all" "multi_last"; do
+  merged_model="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}_merged"
+  echo ""
+  echo "  开始 Benchmark: ${exp}"
+  echo "  模型路径: ${merged_model}"
+
+  MODEL="${merged_model}" \
+  RUN_NAME="${exp}" \
+    bash "${SCRIPT_DIR}/benchmark.sh"
+
+  echo "  ✅ Benchmark 完成: ${exp}"
+  notify "Benchmark完成 ✅" "${exp} benchmark 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+done
 
 FINISH_TIME="$(date '+%Y-%m-%d %H:%M:%S')"
-
 echo ""
 echo "============================================"
-echo "# Round 2 全部任务完成 — ${FINISH_TIME}"
+echo "# 全部任务完成 — ${FINISH_TIME}"
 echo "============================================"
 
-notify "步骤5完成 🎉" "Round-2 全部任务完成！
-完成时间: ${FINISH_TIME}
-4个模型已训练、合并并完成 Benchmark:
-  · r2_nonmulti_all-merged
-  · r2_nonmulti_last-merged
-  · r2_multi_all-merged
-  · r2_multi_last-merged
-结果在 tests/benchmark/results/r2_*/" "high" "white_check_mark,rocket"
+notify "全部完成 🎉" "Pipeline 完成！\n完成时间: ${FINISH_TIME}\n实验结果:\n  · nonmulti_all_merged benchmark 完成\n  · multi_last_merged benchmark 完成" "high" "white_check_mark,rocket"

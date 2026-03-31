@@ -20,7 +20,7 @@ if __package__ in {None, ""}:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[2] / "data" / "ready2train" / "message"
+DEFAULT_DATASET_DIR = Path(__file__).resolve().parents[2] / "data" / "ready2train"
 
 
 def resolve_input_path(input_name: str) -> Path:

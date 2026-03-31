@@ -3,13 +3,16 @@
 
 """Manual sequential tool-chain test for Ad Agent dataset conversion."""
 
-import os
-import sys
+import importlib.util
+from pathlib import Path
 
-if __package__ in {None, ""}:
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.datapipeline.convert_dataset import build_record
+CONVERT_DATASET_PATH = Path(__file__).resolve().parents[2] / "src" / "datapipeline" / "2_convert_dataset.py"
+SPEC = importlib.util.spec_from_file_location("convert_dataset", CONVERT_DATASET_PATH)
+convert_dataset = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(convert_dataset)
+
 
 def test_ad_workflow_sequential():
     """测试广告投放工作流中的顺序工具调用"""
@@ -35,6 +38,11 @@ def test_ad_workflow_sequential():
             "clarification_answer": None,
             "scene_tag": "upload_success",
             "tool_chain": ["validate_creative_spec", "upload_creative_asset"],
+            "tool_plan": [
+                {"mode": "serial", "tools": ["validate_creative_spec"]},
+                {"mode": "serial", "tools": ["upload_creative_asset"]},
+            ],
+            "has_parallel": False,
             "refusal_type": None,
         },
         {
@@ -57,6 +65,11 @@ def test_ad_workflow_sequential():
             "clarification_answer": None,
             "scene_tag": "roas_warning",
             "tool_chain": ["detect_anomalies", "get_optimization_playbook"],
+            "tool_plan": [
+                {"mode": "serial", "tools": ["detect_anomalies"]},
+                {"mode": "serial", "tools": ["get_optimization_playbook"]},
+            ],
+            "has_parallel": False,
             "refusal_type": None,
         },
         {
@@ -79,60 +92,31 @@ def test_ad_workflow_sequential():
             "clarification_answer": None,
             "scene_tag": "healthy",
             "tool_chain": ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"],
+            "tool_plan": [
+                {"mode": "parallel", "tools": ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]},
+            ],
+            "has_parallel": True,
             "refusal_type": None,
-        }
+        },
     ]
 
-    print("\n测试广告投放工作流的顺序工具调用...")
-    for i, item in enumerate(test_data):
-        print(f"\n--- 测试数据 {i+1} ---")
+    print("\n测试广告投放工作流的工具调用...")
+    for index, item in enumerate(test_data, start=1):
+        print(f"\n--- 测试数据 {index} ---")
         print(f"用户问题: {item['user_query']}")
         print(f"工具链: {item['tool_chain']}")
 
-        try:
-            result = build_record(item, lang="zh", output_format="message")
-            if result:
-                print("✅ 转换成功")
-                conversation = result["messages"]
-                print(f"对话轮数: {len(conversation)}")
+        result = convert_dataset.build_record(item)
+        conversation = result["messages"]
+        print(f"对话轮数: {len(conversation)}")
 
-                tool_call_count = 0
-                for j, msg in enumerate(conversation):
-                    role = msg["role"]
-                    if role == "system":
-                        print(f"  {j+1}. {role}: [系统提示词]")
-                    elif role == "user":
-                        print(f"  {j+1}. {role}: {msg['content'][:50]}...")
-                    elif role == "assistant":
-                        if "tool_calls" in msg:
-                            tool_call_count += 1
-                            tool_names = [tc["function"]["name"] for tc in msg["tool_calls"]]
-                            print(f"  {j+1}. {role}: [工具调用{tool_call_count}] {tool_names}")
-                        else:
-                            print(f"  {j+1}. {role}: {msg['content'][:50]}...")
-                    elif role == "tool":
-                        print(f"  {j+1}. {role}: [工具结果]")
+        assistant_msgs = [msg for msg in conversation if msg["role"] == "assistant" and "tool_calls" in msg]
+        flattened_tools = []
+        for msg in assistant_msgs:
+            flattened_tools.extend(tool_call["function"]["name"] for tool_call in msg["tool_calls"])
 
-                assistant_msgs = [msg for msg in conversation if msg["role"] == "assistant" and "tool_calls" in msg]
-                flattened_tools = []
-                for msg in assistant_msgs:
-                    flattened_tools.extend(tc["function"]["name"] for tc in msg["tool_calls"])
+        assert flattened_tools[:len(item["tool_chain"])] == item["tool_chain"]
 
-                expected_chain = item["tool_chain"]
-                if flattened_tools[: len(expected_chain)] == expected_chain:
-                    print("✅ 检测到符合预期的顺序工具调用")
-                else:
-                    print("⚠️  工具调用顺序与预期不一致")
-                    print(f"    expected: {expected_chain}")
-                    print(f"    actual:   {flattened_tools}")
-            else:
-                print("❌ 转换失败")
-        except Exception as e:
-            print(f"❌ 转换出错: {e}")
-            import traceback
-            traceback.print_exc()
-
-    print("\n测试完成")
 
 if __name__ == "__main__":
     test_ad_workflow_sequential()

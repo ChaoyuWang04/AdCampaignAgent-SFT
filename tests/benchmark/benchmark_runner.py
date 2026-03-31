@@ -197,7 +197,7 @@ class LocalHFCaseRunner:
             history.append(
                 {
                     "role": "assistant",
-                    "content": assistant_text,
+                    "content": "" if normalized_calls else assistant_text,
                     **({"tool_calls": normalized_calls} if normalized_calls else {}),
                 }
             )
@@ -334,8 +334,9 @@ class LocalHFCaseRunner:
         return {
             "role": "tool",
             "tool_call_id": tool_call["id"],
+            "name": tool_call["function"]["name"],
             "content": json.dumps(result, ensure_ascii=False),
-    }
+        }
 
 
 
@@ -435,6 +436,7 @@ class OpenAICaseRunner:
                     {
                         "role": "tool",
                         "tool_call_id": tool_call.id,
+                        "name": tool_call.function.name,
                         "content": json.dumps(result, ensure_ascii=False),
                     }
                 )

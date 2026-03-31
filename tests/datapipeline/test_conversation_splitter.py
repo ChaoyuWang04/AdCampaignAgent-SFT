@@ -1,15 +1,12 @@
-import os
-import sys
+import importlib.util
 from pathlib import Path
 
-if __package__ in {None, ""}:
-    sys.path.append(
-        os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-    )
 
-from src.datapipeline import conversation_splitter
+CONVERSATION_SPLITTER_PATH = Path(__file__).resolve().parents[2] / "src" / "datapipeline" / "3_conversation_splitter.py"
+SPEC = importlib.util.spec_from_file_location("conversation_splitter", CONVERSATION_SPLITTER_PATH)
+conversation_splitter = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(conversation_splitter)
 
 
 def test_resolve_input_path_uses_ready2train_message(monkeypatch, tmp_path):
@@ -26,12 +23,12 @@ def test_resolve_input_path_uses_ready2train_message(monkeypatch, tmp_path):
 
 
 def test_derive_output_path_appends_multiturn_suffix():
-    input_path = Path("data/ready2train/message/ad_agent_sft_demo_en_message.json")
+    input_path = Path("data/ready2train/message/ad_agent_sft_demo_zh_message.json")
 
     output_path = conversation_splitter.derive_output_path(input_path)
 
     assert output_path == Path(
-        "data/ready2train/message/ad_agent_sft_demo_en_message_multiturn.json"
+        "data/ready2train/message/ad_agent_sft_demo_zh_message_multiturn.json"
     )
 
 

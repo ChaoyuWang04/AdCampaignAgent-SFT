@@ -258,6 +258,13 @@ class JsonlConversations:
         messages: List[Dict[str, Any]] = ex["messages"]
         tools: Optional[List[Dict[str, Any]]] = ex.get("tools")
 
+        # 统一把 tool-call assistant turn 的 content=None 归一成空字符串，
+        # 避免不同 transformers 版本在 chat template 渲染时出现异常或长度漂移。
+        messages = [
+            {**msg, "content": ""} if msg.get("content") is None else msg
+            for msg in messages
+        ]
+
         # Step 1：完整序列模板化
         try:
             full_ids = self._extract_ids(

@@ -86,7 +86,7 @@ tests/benchmark/
 
 仓库根目录下提供了统一运行脚本：
 
-[`scripts/run_benchmark.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/run_benchmark.sh)
+[`scripts/benchmark.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/benchmark.sh)
 
 这个脚本支持两种常见模式：
 
@@ -97,21 +97,21 @@ tests/benchmark/
 #### 跑整套 benchmark
 
 ```bash
-bash scripts/run_benchmark.sh \
+bash scripts/benchmark.sh \
   # 先在脚本顶部填好 BACKEND / MODEL 等配置
 ```
 
 #### 单独跑某一个评测组
 
 ```bash
-bash scripts/run_benchmark.sh \
+bash scripts/benchmark.sh \
   # 先把脚本顶部的 EVAL_GROUP 改成 system
 ```
 
 #### 只跑你手动指定的 case 文件
 
 ```bash
-bash scripts/run_benchmark.sh \
+bash scripts/benchmark.sh \
   # 先把脚本顶部的 CASE_FILES 改成
   # CASE_FILES=("test_oos.json" "test_clarify.json")
 ```
@@ -143,10 +143,10 @@ bash scripts/run_benchmark.sh \
 
 如果你只想验证 benchmark 流程能否在 CPU 上跑通，而不追求完整评测，可以使用：
 
-[`scripts/dry_run_benchmark_cpu.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/dry_run_benchmark_cpu.sh)
+[`scripts/dry_run_test_cpu.sh`](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/scripts/dry_run_test_cpu.sh)
 
 ```bash
-bash scripts/dry_run_benchmark_cpu.sh
+bash scripts/dry_run_test_cpu.sh
 ```
 
 这个脚本会：

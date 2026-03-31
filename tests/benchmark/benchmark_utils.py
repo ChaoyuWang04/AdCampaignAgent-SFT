@@ -96,25 +96,27 @@ def infer_behavior(trace: list[dict[str, Any]]) -> str:
     lowered = assistant_content.lower()
 
     rejection_signals = [
-        "不能",
-        "无法",
-        "抱歉",
-        "超出",
-        "权限",
+        "超出我的能力范围",
+        "超出我的权限",
+        "无法执行此操作",
         "拒绝",
-        "sorry",
-        "cannot",
-        "unable",
+        "不被允许",
+        "抱歉，我无法",
+        "这属于越权",
+        "sorry, i cannot",
         "out of scope",
     ]
     clarify_signals = [
-        "请先",
+        "请问您",
         "请提供",
         "告诉我",
-        "方便提供",
+        "方便告知",
         "缺少",
-        "?",
-        "？",
+        "能否提供",
+        "需要知道",
+        "哪个campaign",
+        "哪个平台",
+        "哪个app",
     ]
 
     # 第一版使用轻量级词面信号，保证评测规则可复现、可解释。

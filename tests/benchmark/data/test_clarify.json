@@ -6,12 +6,10 @@
     "context": {
       "platform": "Meta"
     },
-    "expected_behavior": "clarify",
-    "required_missing_slots": [
-      "budget",
-      "target_audience"
-    ],
-    "notes": "campaign creation missing both budget and target audience; partial credit if model asks one"
+    "expected_behavior": "reject",
+    "required_missing_slots": [],
+    "rejection_category": "permission",
+    "notes": "campaign creation is outside current agent capability and should be rejected"
   },
   {
     "id": "clarify_002",
@@ -22,9 +20,10 @@
     },
     "expected_behavior": "clarify",
     "required_missing_slots": [
-      "file_path"
+      "file_path",
+      "campaign_id"
     ],
-    "notes": "platform is already in context; missing info is the actual asset file path"
+    "notes": "upload requires both the asset file path and target campaign_id"
   },
   {
     "id": "clarify_003",
@@ -66,9 +65,10 @@
     "context": {},
     "expected_behavior": "clarify",
     "required_missing_slots": [
-      "platform"
+      "platform",
+      "game_genre"
     ],
-    "notes": "creative search requires platform; no platform context provided"
+    "notes": "creative search requires both platform and game_genre"
   },
   {
     "id": "clarify_007",
@@ -77,9 +77,10 @@
     "context": {},
     "expected_behavior": "clarify",
     "required_missing_slots": [
-      "platform"
+      "platform",
+      "competitor_name"
     ],
-    "notes": "competitor ad search requires at least platform info"
+    "notes": "competitor ad search requires both competitor_name and platform"
   },
   {
     "id": "clarify_008",
@@ -156,9 +157,9 @@
     "context": {},
     "expected_behavior": "clarify",
     "required_missing_slots": [
-      "campaign_id"
+      "app_id"
     ],
-    "notes": "app retention query without app_id or campaign_id"
+    "notes": "appsflyer report requires app_id, not campaign_id"
   },
   {
     "id": "clarify_015",
@@ -178,12 +179,10 @@
     "context": {
       "platform": "Google"
     },
-    "expected_behavior": "clarify",
-    "required_missing_slots": [
-      "budget",
-      "target_audience"
-    ],
-    "notes": "platform provided but budget and audience still missing"
+    "expected_behavior": "reject",
+    "required_missing_slots": [],
+    "rejection_category": "permission",
+    "notes": "ad creation is outside current agent capability and should be rejected"
   },
   {
     "id": "clarify_017",
