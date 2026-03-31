@@ -32,57 +32,6 @@ MULTI_TRAIN="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_train
 MULTI_TEST="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260330_205257_zh_test_multiturn.json"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 3: 从 checkpoint 恢复训练 multi_last
-# ═════════════════════════════════════════════════════════════
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "  步骤 3: 恢复训练 multi_last"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "════════════════════════════════════════════════════════"
-
-EXPERIMENT="multi_last" \
-ONLY_LAST_ASSISTANT="true" \
-TRAIN_FILE="${MULTI_TRAIN}" \
-EVAL_FILE="${MULTI_TEST}" \
-LEARNING_RATE="2e-5" \
-NUM_TRAIN_EPOCHS="2" \
-EVAL_STEPS="100" \
-SAVE_STEPS="100" \
-EARLY_STOPPING_PATIENCE="3" \
-RESUME_FROM_CHECKPOINT="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last/checkpoint-400" \
-  bash "${SCRIPT_DIR}/train_model.sh"
-
-echo "✅ 步骤3完成 — $(date '+%Y-%m-%d %H:%M:%S')"
-notify "步骤3完成 ✅" "multi_last 已从 checkpoint-400 恢复并完成训练\n$(date '+%Y-%m-%d %H:%M:%S')"
-
-# ═════════════════════════════════════════════════════════════
-# 步骤 5: 合并 LoRA Adapter
-# ═════════════════════════════════════════════════════════════
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "  步骤 5: 合并 LoRA Adapter"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "════════════════════════════════════════════════════════"
-
-for exp in "nonmulti_all" "multi_last"; do
-  merged_dir="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}_merged"
-  if [[ -d "${merged_dir}" ]]; then
-    echo "  已存在，跳过: $(basename ${merged_dir})"
-    continue
-  fi
-
-  BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B" \
-  ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}" \
-  OUTPUT_DIR="${merged_dir}" \
-    bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
-
-  echo "  ✅ 合并完成: ${exp}"
-done
-
-echo "✅ 步骤5完成 — $(date '+%Y-%m-%d %H:%M:%S')"
-notify "步骤5完成 ✅" "LoRA 合并完成\n$(date '+%Y-%m-%d %H:%M:%S')"
-
-# ═════════════════════════════════════════════════════════════
 # 步骤 6: Benchmark
 # ═════════════════════════════════════════════════════════════
 echo ""
@@ -92,7 +41,7 @@ echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
 for exp in "nonmulti_all" "multi_last"; do
-  merged_model="${REPO_ROOT}/models/Qwen3-1.7B_lora_${exp}_merged"
+  merged_model="${REPO_ROOT}/models/Qwen3-1.7B"
   echo ""
   echo "  开始 Benchmark: ${exp}"
   echo "  模型路径: ${merged_model}"

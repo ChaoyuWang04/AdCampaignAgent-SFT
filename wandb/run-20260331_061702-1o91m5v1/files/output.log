@@ -1,0 +1,144 @@
+ 12%|██████████████▌                                                                                                            | 150/1262 [24:47<2:25:03,  7.83s/it]
+step=10 | loss=3.682444 | lr=4.736842e-06
+{'loss': '3.682', 'grad_norm': '3.205', 'learning_rate': '4.737e-06', 'epoch': '0.01586'}
+step=20 | loss=3.291564 | lr=1.000000e-05
+{'loss': '3.292', 'grad_norm': '2.491', 'learning_rate': '1e-05', 'epoch': '0.03172'}
+step=30 | loss=2.126160 | lr=1.526316e-05
+{'loss': '2.126', 'grad_norm': '0.7605', 'learning_rate': '1.526e-05', 'epoch': '0.04758'}
+step=40 | loss=1.430619 | lr=1.999997e-05
+{'loss': '1.431', 'grad_norm': '0.412', 'learning_rate': '2e-05', 'epoch': '0.06344'}
+step=50 | loss=1.154569 | lr=1.999601e-05
+{'loss': '1.155', 'grad_norm': '0.432', 'learning_rate': '2e-05', 'epoch': '0.0793'}
+step=60 | loss=1.083982 | lr=1.998548e-05
+{'loss': '1.084', 'grad_norm': '0.4052', 'learning_rate': '1.999e-05', 'epoch': '0.09516'}
+step=70 | loss=0.909479 | lr=1.996836e-05
+{'loss': '0.9095', 'grad_norm': '0.3937', 'learning_rate': '1.997e-05', 'epoch': '0.111'}
+step=80 | loss=0.781212 | lr=1.994468e-05
+{'loss': '0.7812', 'grad_norm': '0.2895', 'learning_rate': '1.994e-05', 'epoch': '0.1269'}
+step=90 | loss=0.649829 | lr=1.991445e-05
+{'loss': '0.6498', 'grad_norm': '1.03', 'learning_rate': '1.991e-05', 'epoch': '0.1427'}
+step=100 | loss=0.582315 | lr=1.987769e-05
+{'loss': '0.5823', 'grad_norm': '0.4785', 'learning_rate': '1.988e-05', 'epoch': '0.1586'}
+                                                                                                                                                                     
+step=100
+{'eval_loss': '0.5475', 'eval_runtime': '278', 'eval_samples_per_second': '9.111', 'eval_steps_per_second': '2.281', 'epoch': '0.1586'}
+step=110 | loss=0.456739 | lr=1.983441e-05
+{'loss': '0.4567', 'grad_norm': '0.3673', 'learning_rate': '1.983e-05', 'epoch': '0.1745'}
+step=120 | loss=0.369636 | lr=1.978467e-05
+{'loss': '0.3696', 'grad_norm': '0.5639', 'learning_rate': '1.978e-05', 'epoch': '0.1903'}
+step=130 | loss=0.351651 | lr=1.972847e-05
+{'loss': '0.3517', 'grad_norm': '0.479', 'learning_rate': '1.973e-05', 'epoch': '0.2062'}
+step=140 | loss=0.277115 | lr=1.966587e-05
+{'loss': '0.2771', 'grad_norm': '0.2579', 'learning_rate': '1.967e-05', 'epoch': '0.222'}
+step=150 | loss=0.267136 | lr=1.959690e-05
+{'loss': '0.2671', 'grad_norm': '0.442', 'learning_rate': '1.96e-05', 'epoch': '0.2379'}
+step=160 | loss=0.213927 | lr=1.952161e-05
+{'loss': '0.2139', 'grad_norm': '0.2963', 'learning_rate': '1.952e-05', 'epoch': '0.2538'}
+step=170 | loss=0.168012 | lr=1.944004e-05
+{'loss': '0.168', 'grad_norm': '0.2788', 'learning_rate': '1.944e-05', 'epoch': '0.2696'}
+step=180 | loss=0.160295 | lr=1.935226e-05
+{'loss': '0.1603', 'grad_norm': '0.3537', 'learning_rate': '1.935e-05', 'epoch': '0.2855'}
+step=190 | loss=0.145520 | lr=1.925832e-05
+{'loss': '0.1455', 'grad_norm': '0.3602', 'learning_rate': '1.926e-05', 'epoch': '0.3013'}
+step=200 | loss=0.134625 | lr=1.915828e-05
+{'loss': '0.1346', 'grad_norm': '0.2691', 'learning_rate': '1.916e-05', 'epoch': '0.3172'}
+step=200
+{'eval_loss': '0.1308', 'eval_runtime': '277.9', 'eval_samples_per_second': '9.114', 'eval_steps_per_second': '2.281', 'epoch': '0.3172'}
+step=210 | loss=0.140042 | lr=1.905220e-05
+{'loss': '0.14', 'grad_norm': '0.3106', 'learning_rate': '1.905e-05', 'epoch': '0.3331'}
+step=220 | loss=0.114915 | lr=1.894016e-05
+{'loss': '0.1149', 'grad_norm': '0.2987', 'learning_rate': '1.894e-05', 'epoch': '0.3489'}
+step=230 | loss=0.106046 | lr=1.882224e-05
+{'loss': '0.106', 'grad_norm': '0.2861', 'learning_rate': '1.882e-05', 'epoch': '0.3648'}
+step=240 | loss=0.097439 | lr=1.869850e-05
+{'loss': '0.09744', 'grad_norm': '0.2991', 'learning_rate': '1.87e-05', 'epoch': '0.3807'}
+step=250 | loss=0.089379 | lr=1.856903e-05
+{'loss': '0.08938', 'grad_norm': '0.3459', 'learning_rate': '1.857e-05', 'epoch': '0.3965'}
+step=260 | loss=0.094700 | lr=1.843391e-05
+{'loss': '0.0947', 'grad_norm': '0.3188', 'learning_rate': '1.843e-05', 'epoch': '0.4124'}
+step=270 | loss=0.094123 | lr=1.829325e-05
+{'loss': '0.09412', 'grad_norm': '0.151', 'learning_rate': '1.829e-05', 'epoch': '0.4282'}
+step=280 | loss=0.095864 | lr=1.814711e-05
+{'loss': '0.09586', 'grad_norm': '0.2706', 'learning_rate': '1.815e-05', 'epoch': '0.4441'}
+step=290 | loss=0.080281 | lr=1.799561e-05
+{'loss': '0.08028', 'grad_norm': '0.2914', 'learning_rate': '1.8e-05', 'epoch': '0.46'}
+step=300 | loss=0.073766 | lr=1.783885e-05
+{'loss': '0.07377', 'grad_norm': '0.3131', 'learning_rate': '1.784e-05', 'epoch': '0.4758'}
+step=300
+{'eval_loss': '0.07395', 'eval_runtime': '278.1', 'eval_samples_per_second': '9.109', 'eval_steps_per_second': '2.28', 'epoch': '0.4758'}
+step=310 | loss=0.077171 | lr=1.767692e-05
+{'loss': '0.07717', 'grad_norm': '0.2328', 'learning_rate': '1.768e-05', 'epoch': '0.4917'}
+step=320 | loss=0.064073 | lr=1.750993e-05
+{'loss': '0.06407', 'grad_norm': '0.2893', 'learning_rate': '1.751e-05', 'epoch': '0.5075'}
+step=330 | loss=0.066159 | lr=1.733800e-05
+{'loss': '0.06616', 'grad_norm': '0.258', 'learning_rate': '1.734e-05', 'epoch': '0.5234'}
+step=340 | loss=0.074246 | lr=1.716123e-05
+{'loss': '0.07425', 'grad_norm': '0.1621', 'learning_rate': '1.716e-05', 'epoch': '0.5393'}
+step=350 | loss=0.067888 | lr=1.697974e-05
+{'loss': '0.06789', 'grad_norm': '0.2951', 'learning_rate': '1.698e-05', 'epoch': '0.5551'}
+step=360 | loss=0.067948 | lr=1.679366e-05
+{'loss': '0.06795', 'grad_norm': '0.2492', 'learning_rate': '1.679e-05', 'epoch': '0.571'}
+step=370 | loss=0.066685 | lr=1.660310e-05
+{'loss': '0.06669', 'grad_norm': '0.2176', 'learning_rate': '1.66e-05', 'epoch': '0.5868'}
+step=380 | loss=0.070754 | lr=1.640819e-05
+{'loss': '0.07075', 'grad_norm': '0.385', 'learning_rate': '1.641e-05', 'epoch': '0.6027'}
+step=390 | loss=0.063543 | lr=1.620906e-05
+{'loss': '0.06354', 'grad_norm': '0.2245', 'learning_rate': '1.621e-05', 'epoch': '0.6186'}
+step=400 | loss=0.069271 | lr=1.600584e-05
+{'loss': '0.06927', 'grad_norm': '0.2769', 'learning_rate': '1.601e-05', 'epoch': '0.6344'}
+step=400
+{'eval_loss': '0.06624', 'eval_runtime': '278', 'eval_samples_per_second': '9.111', 'eval_steps_per_second': '2.281', 'epoch': '0.6344'}
+    main()
+    ~~~~^^
+  File "/workspace/AdCampaign/src/train/train_qwen.py", line 339, in main
+    trainer.train()
+    ~~~~~~~~~~~~~^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1424, in train
+    return inner_training_loop(
+        args=args,
+    ...<2 lines>...
+        ignore_keys_for_eval=ignore_keys_for_eval,
+    )
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1506, in _inner_training_loop
+    self._run_epoch(
+    ~~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<9 lines>...
+        steps_trained_in_current_epoch=steps_trained_in_current_epoch,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1734, in _run_epoch
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1934, in training_step
+    self.accelerator.backward(loss, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/accelerate/accelerator.py", line 2838, in backward
+    loss.backward(**kwargs)
+    ~~~~~~~~~~~~~^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/_tensor.py", line 631, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py", line 381, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/autograd/graph.py", line 869, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+KeyboardInterrupt
