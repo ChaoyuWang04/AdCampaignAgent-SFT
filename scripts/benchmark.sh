@@ -11,11 +11,11 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 #   bash scripts/benchmark.sh
 
 BACKEND="${BACKEND:-local_hf}"
-MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
+MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-0.6B}"
 EVAL_GROUP="${EVAL_GROUP:-all}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/tests/benchmark/data}"
 RESULTS_DIR="${RESULTS_DIR:-}"
-RUN_NAME="${RUN_NAME:-qwen3_1.7b_benchmark}"
+RUN_NAME="${RUN_NAME:-qwen3_0.6b_benchmark}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-500}"
 TEMPERATURE="${TEMPERATURE:-0.0}"
 TOP_P="${TOP_P:-1.0}"
