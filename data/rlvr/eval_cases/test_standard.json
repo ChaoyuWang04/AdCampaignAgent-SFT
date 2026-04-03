@@ -1,0 +1,141 @@
+[
+  {
+    "id": "std_002",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Playrix 最近在 Meta 上投了什么广告。",
+    "context": {
+      "platform": "Meta",
+      "game_genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads"
+    ],
+    "expected_tool_args": {
+      "search_competitor_ads": {
+        "competitor_name": "Playrix",
+        "platform": "Meta"
+      }
+    },
+    "notes": "single-tool competitor search",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_003",
+    "case_type": "standard",
+    "user_input": "帮我查一下 casual 游戏的 D7 ROAS 行业 benchmark。",
+    "context": {
+      "platform": "Meta",
+      "game_genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data"
+    ],
+    "expected_tool_args": {
+      "get_benchmark_data": {
+        "metric": "roas",
+        "game_genre": "casual"
+      }
+    },
+    "notes": "benchmark lookup with correct metric name",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_005",
+    "case_type": "standard",
+    "user_input": "帮我查一下 CMP_3001 的素材表现，按 CTR 排序。",
+    "context": {
+      "campaign_id": "CMP_3001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_creative_performance"
+    ],
+    "expected_tool_args": {
+      "get_creative_performance": {
+        "campaign_id": "CMP_3001"
+      }
+    },
+    "notes": "creative performance lookup",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_010",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Meta 对游戏广告的内容限制政策。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy"
+    ],
+    "expected_tool_args": {
+      "get_platform_policy": {
+        "platform": "Meta",
+        "policy_type": "content_restriction"
+      }
+    },
+    "notes": "platform policy lookup",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_016",
+    "case_type": "standard",
+    "user_input": "帮我看看 casual 游戏在 TikTok 上常用的素材钩子类型。",
+    "context": {
+      "game_genre": "casual",
+      "platform": "TikTok"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_trending_hooks"
+    ],
+    "expected_tool_args": {
+      "get_trending_hooks": {
+        "game_genre": "casual"
+      }
+    },
+    "notes": "trending hooks for casual games",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_017",
+    "case_type": "standard",
+    "user_input": "CTR 持续下滑是什么原因，有什么优化建议？",
+    "context": {
+      "campaign_id": "CMP_6001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_optimization_playbook"
+    ],
+    "expected_tool_args": {
+      "get_optimization_playbook": {
+        "issue_type": "low_ctr"
+      }
+    },
+    "notes": "optimization playbook for low CTR",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "std_019",
+    "case_type": "standard",
+    "user_input": "帮我看一下 CMP_7001 的整体数据，包括 ROAS、留存、CTR 和花费。",
+    "context": {
+      "campaign_id": "CMP_7001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics"
+    ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_7001"
+      }
+    },
+    "notes": "full metrics lookup for a campaign",
+    "rlvr_split": "eval"
+  }
+]

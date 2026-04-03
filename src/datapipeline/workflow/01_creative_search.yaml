@@ -1,0 +1,72 @@
+workflow_id: 1
+workflow_name: "素材搜寻"
+count: 360
+scene_tag: "creative_search"
+clarify_probability: 0.2
+tool_plans:
+  - - mode: "serial"
+      tools: ["search_trending_creatives"]
+  - - mode: "serial"
+      tools: ["search_competitor_ads"]
+  - - mode: "serial"
+      tools: ["search_trending_creatives", "get_trending_hooks"]
+  - - mode: "serial"
+      tools: ["search_competitor_ads", "search_trending_creatives"]
+variables:
+  competitors: ["Playrix", "Rollic", "Voodoo", "Jam City", "SciPlay"]
+queries:
+  clear:
+    - "帮我搜一下{platform}上最近{genre}品类的热门素材"
+    - "查一下{competitor}最近在{platform}上投了什么广告"
+    - "{region}市场上，{genre}游戏最近什么素材类型CTR高？"
+    - "搜一下竞品{competitor}在{platform}的广告创意"
+    - "我需要看看最近{platform}上puzzle游戏的热门钩子"
+    - "帮我找找{genre}品类在{region}表现好的视频素材"
+    - "最近有哪些{genre}游戏广告在{platform}跑量很好？"
+    - "给我看看{competitor}最近的广告长什么样"
+    - "我想看看{platform}最近有哪些{genre}素材跑得特别好"
+    - "有没有{region}市场最近表现不错的{genre}广告素材"
+    - "帮我翻一下{platform}上这个月{genre}品类的热门创意"
+    - "上周{platform}里哪些{genre}广告CTR比较高"
+    - "我想找一下{competitor}这段时间在{platform}主推的素材方向"
+    - "看看{region}这边最近有哪些{genre}素材在放量"
+    - "帮我搜一下最近一周{platform}里跑量最好的{genre}广告"
+    - "有没有{platform}上{genre}游戏最近用得比较多的素材钩子"
+    - "查一下{competitor}最近在{region}投的广告素材类型"
+    - "我想参考一下{platform}上高CTR的{genre}视频创意"
+    - "最近{genre}品类在{platform}有哪些素材趋势，帮我看下"
+    - "给我拉一下{platform}近一个月里表现最强的{genre}素材"
+    - "我想知道{competitor}最近在{platform}都在投什么样的广告"
+    - "帮我找找{region}市场里近期跑量快的{genre}广告"
+    - "有没有适合参考的{genre}竞品素材，最好是{platform}上的"
+    - "上个月{platform}里哪些{genre}创意最容易起量"
+    - "想看一下{competitor}近期在{platform}的投放素材风格"
+    - "查查{region}地区最近有哪些{genre}素材既有量又有CTR"
+  ambiguous:
+    - "帮我搜一下最近的热门素材"
+    - "看看竞品最近投了什么"
+    - "找一些素材参考"
+    - "搜一下行业里表现好的广告"
+    - "有没有好的素材灵感？"
+    - "我想看看最近哪些素材比较火"
+    - "最近有什么广告创意值得参考吗"
+    - "帮我找点最近能打的素材"
+    - "有没有最近跑得不错的广告给我参考一下"
+    - "我想找一些最近在放量的创意"
+    - "最近行业里流行什么素材方向"
+    - "拉一些最近表现不错的广告给我看看"
+    - "我需要一些最近高表现素材做参考"
+    - "最近有哪些素材套路比较有用"
+    - "帮我看看最近什么广告比较能跑"
+    - "最近竞品都在投什么素材"
+    - "有没有近期开量不错的创意样本"
+    - "找一些最近高CTR的素材思路"
+    - "最近素材方向有啥值得抄作业的"
+    - "我想看下最近广告素材都在怎么做"
+    - "给我一些最近有效的素材灵感"
+    - "最近市场上什么广告比较吃香"
+    - "帮我捞一些最近表现强的创意"
+clarification:
+  reason: "platform_or_genre_missing"
+  answer_templates:
+    - "平台选{platform}，品类是{genre}，地区{region}"

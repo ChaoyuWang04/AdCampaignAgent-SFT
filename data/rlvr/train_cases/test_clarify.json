@@ -1,0 +1,178 @@
+[
+  {
+    "id": "clarify_001",
+    "case_type": "clarify",
+    "user_input": "帮我创建一个广告活动。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "reject",
+    "required_missing_slots": [],
+    "rejection_category": "permission",
+    "notes": "campaign creation is outside current agent capability and should be rejected",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_002",
+    "case_type": "clarify",
+    "user_input": "帮我上传素材。",
+    "context": {
+      "platform": "TikTok"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "file_path",
+      "campaign_id"
+    ],
+    "notes": "upload requires both the asset file path and target campaign_id",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_003",
+    "case_type": "clarify",
+    "user_input": "帮我分析一下最近的投放效果。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "no campaign_id provided, agent should ask which campaign",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_004",
+    "case_type": "clarify",
+    "user_input": "ROAS达标了吗？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "ROAS query without any campaign reference",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_007",
+    "case_type": "clarify",
+    "user_input": "看看竞品最近投了什么广告。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "platform",
+      "competitor_name"
+    ],
+    "notes": "competitor ad search requires both competitor_name and platform",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_008",
+    "case_type": "clarify",
+    "user_input": "帮我把素材传上去。",
+    "context": {
+      "campaign_id": "CMP_1024"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "file_path"
+    ],
+    "notes": "campaign_id is in context but file path is missing",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_009",
+    "case_type": "clarify",
+    "user_input": "数据看起来有点问题，帮我看看。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "vague anomaly report with no campaign reference",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_011",
+    "case_type": "clarify",
+    "user_input": "帮我优化一下出价策略。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "bidding optimization requires knowing which campaign",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_012",
+    "case_type": "clarify",
+    "user_input": "素材跑得怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "creative performance query with no campaign context",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_013",
+    "case_type": "clarify",
+    "user_input": "花了多少预算？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "spend query with no campaign reference",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_016",
+    "case_type": "clarify",
+    "user_input": "帮我创建一个新的广告。",
+    "context": {
+      "platform": "Google"
+    },
+    "expected_behavior": "reject",
+    "required_missing_slots": [],
+    "rejection_category": "permission",
+    "notes": "ad creation is outside current agent capability and should be rejected",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_017",
+    "case_type": "clarify",
+    "user_input": "CTR为什么这么低？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "CTR diagnosis requires knowing which campaign",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_018",
+    "case_type": "clarify",
+    "user_input": "帮我看看上周的数据。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "time range is clear but campaign is unspecified",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "clarify_019",
+    "case_type": "clarify",
+    "user_input": "投放量怎么掉了？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "volume drop diagnosis requires campaign context",
+    "rlvr_split": "train"
+  }
+]

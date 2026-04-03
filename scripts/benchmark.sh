@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKEND="${BACKEND:-local_hf}"
 MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-0.6B}"
 EVAL_GROUP="${EVAL_GROUP:-all}"
-DATA_DIR="${DATA_DIR:-${REPO_ROOT}/tests/benchmark/data}"
+DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/benchmark}"
 RESULTS_DIR="${RESULTS_DIR:-}"
 RUN_NAME="${RUN_NAME:-qwen3_0.6b_benchmark}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-500}"
@@ -121,13 +121,13 @@ if [[ -z "${RESULTS_DIR}" ]]; then
   TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
   SAFE_MODEL="$(basename "${MODEL}" | tr ' /:' '___')"
   SUFFIX="${RUN_NAME:-${SAFE_MODEL}}"
-  RESULTS_DIR="${REPO_ROOT}/tests/benchmark/results/${TIMESTAMP}_${BACKEND}_${EVAL_GROUP}_${SUFFIX}"
+  RESULTS_DIR="${REPO_ROOT}/outputs/benchmark/${TIMESTAMP}_${BACKEND}_${EVAL_GROUP}_${SUFFIX}"
 fi
 
 mkdir -p "${RESULTS_DIR}"
 
 CMD=(
-  uv run python "${REPO_ROOT}/tests/benchmark/run_benchmark.py"
+  uv run python "${REPO_ROOT}/src/benchmark/run_benchmark.py"
   --backend "${BACKEND}"
   --model "${MODEL}"
   --eval-group "${EVAL_GROUP}"

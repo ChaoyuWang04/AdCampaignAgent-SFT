@@ -1,0 +1,81 @@
+[
+  {
+    "id": "seq_001",
+    "case_type": "sequential",
+    "user_input": "先分析一下 CMP_2048 上周的表现，再给我一份优化建议。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_optimization_playbook"
+    ],
+    "expected_sequence": [
+      "get_campaign_metrics",
+      "get_optimization_playbook"
+    ],
+    "notes": "analyze then recommend; date_range args are dynamic so not in expected_tool_args",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "seq_009",
+    "case_type": "sequential",
+    "user_input": "帮我先查一下 TikTok 的广告格式政策，再搜一下平台上 rpg 游戏的热门素材。",
+    "context": {
+      "platform": "TikTok",
+      "game_genre": "rpg"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy",
+      "search_trending_creatives"
+    ],
+    "expected_sequence": [
+      "get_platform_policy",
+      "search_trending_creatives"
+    ],
+    "notes": "understand policy constraints before searching for creatives",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "seq_011",
+    "case_type": "sequential",
+    "user_input": "先查知识库里关于 tCPA 出价策略的内容，再看看行业 ROAS benchmark。",
+    "context": {
+      "game_genre": "puzzle",
+      "region": "US"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "query_knowledge_base",
+      "get_benchmark_data"
+    ],
+    "expected_sequence": [
+      "query_knowledge_base",
+      "get_benchmark_data"
+    ],
+    "notes": "strategy knowledge then benchmark data to set realistic targets",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "seq_015",
+    "case_type": "sequential",
+    "user_input": "先查一下 CMP_9001 的素材表现，排名靠后的素材给我一份优化方案。",
+    "context": {
+      "campaign_id": "CMP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_creative_performance",
+      "get_optimization_playbook"
+    ],
+    "expected_sequence": [
+      "get_creative_performance",
+      "get_optimization_playbook"
+    ],
+    "notes": "identify underperforming creatives first, then get playbook",
+    "rlvr_split": "eval"
+  }
+]

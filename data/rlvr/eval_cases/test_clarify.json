@@ -1,0 +1,78 @@
+[
+  {
+    "id": "clarify_005",
+    "case_type": "clarify",
+    "user_input": "效果怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "completely ambiguous query, no campaign context",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "clarify_006",
+    "case_type": "clarify",
+    "user_input": "帮我搜一下最近的热门素材。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "platform",
+      "game_genre"
+    ],
+    "notes": "creative search requires both platform and game_genre",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "clarify_010",
+    "case_type": "clarify",
+    "user_input": "留存数据怎么样？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "retention query without campaign or app context",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "clarify_014",
+    "case_type": "clarify",
+    "user_input": "帮我分析一下这个应用的留存。",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "app_id"
+    ],
+    "notes": "appsflyer report requires app_id, not campaign_id",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "clarify_015",
+    "case_type": "clarify",
+    "user_input": "最近有什么异常吗？",
+    "context": {},
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "campaign_id"
+    ],
+    "notes": "anomaly detection requires campaign scope",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "clarify_020",
+    "case_type": "clarify",
+    "user_input": "帮我批量上传这批视频。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "clarify",
+    "required_missing_slots": [
+      "file_path"
+    ],
+    "notes": "both platform and campaign are in context; only file paths are missing",
+    "rlvr_split": "eval"
+  }
+]

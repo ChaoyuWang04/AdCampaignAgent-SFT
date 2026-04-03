@@ -1,0 +1,215 @@
+[
+  {
+    "id": "seq_002",
+    "case_type": "sequential",
+    "user_input": "先帮我检查这条素材是否合规，如果没问题再上传到 CMP_1024。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_1024"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "validate_creative_spec",
+      "upload_creative_asset"
+    ],
+    "expected_sequence": [
+      "validate_creative_spec",
+      "upload_creative_asset"
+    ],
+    "notes": "validate before upload; upload depends on validation result",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_003",
+    "case_type": "sequential",
+    "user_input": "帮我诊断一下 CMP_3001 的异常，然后给出优化方案。",
+    "context": {
+      "campaign_id": "CMP_3001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "detect_anomalies",
+      "get_optimization_playbook"
+    ],
+    "expected_sequence": [
+      "detect_anomalies",
+      "get_optimization_playbook"
+    ],
+    "notes": "anomaly type must be known before playbook can be selected",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_004",
+    "case_type": "sequential",
+    "user_input": "先查一下 CMP_4001 的投放指标，再和行业 benchmark 对比一下。",
+    "context": {
+      "campaign_id": "CMP_4001",
+      "game_genre": "casual",
+      "platform": "Google"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_benchmark_data"
+    ],
+    "expected_sequence": [
+      "get_campaign_metrics",
+      "get_benchmark_data"
+    ],
+    "notes": "fetch actuals first, then compare against benchmark",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_005",
+    "case_type": "sequential",
+    "user_input": "先搜一下 Meta 上 casual 游戏的热门素材，再看看常用的钩子类型。",
+    "context": {
+      "platform": "Meta",
+      "game_genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives",
+      "get_trending_hooks"
+    ],
+    "expected_sequence": [
+      "search_trending_creatives",
+      "get_trending_hooks"
+    ],
+    "notes": "creative landscape first, then hook patterns",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_006",
+    "case_type": "sequential",
+    "user_input": "先批量检查这三个素材文件的规格，再批量上传到 CMP_2048。",
+    "context": {
+      "platform": "TikTok",
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "validate_creative_spec",
+      "batch_upload_creatives"
+    ],
+    "expected_sequence": [
+      "validate_creative_spec",
+      "batch_upload_creatives"
+    ],
+    "notes": "batch validate then batch upload",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_007",
+    "case_type": "sequential",
+    "user_input": "先查一下 CMP_5001 的 AppsFlyer 留存数据，再拉一下 campaign 层级的 ROAS 和 CPI。",
+    "context": {
+      "campaign_id": "CMP_5001",
+      "app_id": "APP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_appsflyer_report",
+      "get_campaign_metrics"
+    ],
+    "expected_sequence": [
+      "get_appsflyer_report",
+      "get_campaign_metrics"
+    ],
+    "notes": "retention context first then campaign metrics for full picture",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_008",
+    "case_type": "sequential",
+    "user_input": "先看看 CMP_6001 的素材表现，再诊断一下哪里有异常。",
+    "context": {
+      "campaign_id": "CMP_6001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_creative_performance",
+      "detect_anomalies"
+    ],
+    "expected_sequence": [
+      "get_creative_performance",
+      "detect_anomalies"
+    ],
+    "notes": "creative data surfaces the problem, anomaly detection confirms it",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_010",
+    "case_type": "sequential",
+    "user_input": "先对比一下 CMP_1024 和 CMP_2048 的表现，再给出优化建议。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "compare_campaigns",
+      "get_optimization_playbook"
+    ],
+    "expected_sequence": [
+      "compare_campaigns",
+      "get_optimization_playbook"
+    ],
+    "notes": "comparison result determines which issue type to feed into playbook",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_012",
+    "case_type": "sequential",
+    "user_input": "先帮我检测 CMP_7001 有没有异常，如果有再给优化 playbook。",
+    "context": {
+      "campaign_id": "CMP_7001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "detect_anomalies",
+      "get_optimization_playbook"
+    ],
+    "expected_sequence": [
+      "detect_anomalies",
+      "get_optimization_playbook"
+    ],
+    "notes": "conditional flow: anomaly type gates playbook selection",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_013",
+    "case_type": "sequential",
+    "user_input": "先查一下 CMP_8001 的投放数据，再检测一下有没有指标异常。",
+    "context": {
+      "campaign_id": "CMP_8001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "detect_anomalies"
+    ],
+    "expected_sequence": [
+      "get_campaign_metrics",
+      "detect_anomalies"
+    ],
+    "notes": "metrics pull then anomaly check",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "seq_014",
+    "case_type": "sequential",
+    "user_input": "先搜一下竞品 Rollic 在 Google 上的广告，再看看 Google 的内容限制政策。",
+    "context": {
+      "platform": "Google"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads",
+      "get_platform_policy"
+    ],
+    "expected_sequence": [
+      "search_competitor_ads",
+      "get_platform_policy"
+    ],
+    "notes": "see what competitors are doing, then check policy compliance",
+    "rlvr_split": "train"
+  }
+]

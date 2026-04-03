@@ -48,6 +48,7 @@ rag-system/*.db
 rag-system/*.db.lock
 
 figures4papers-main/
+tmp/
 
 # Ignore everything in models/
 models/**

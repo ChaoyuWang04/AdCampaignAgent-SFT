@@ -1,0 +1,82 @@
+workflow_id: 5
+workflow_name: "异常诊断与优化"
+count: 450
+tool_plans:
+  - - mode: "serial"
+      tools: ["detect_anomalies"]
+    - mode: "serial"
+      tools: ["get_optimization_playbook"]
+  - - mode: "serial"
+      tools: ["detect_anomalies"]
+    - mode: "serial"
+      tools: ["get_campaign_metrics"]
+    - mode: "serial"
+      tools: ["get_optimization_playbook"]
+  - - mode: "serial"
+      tools: ["detect_anomalies"]
+    - mode: "serial"
+      tools: ["get_creative_performance"]
+    - mode: "serial"
+      tools: ["get_optimization_playbook"]
+scene_tags:
+  - "roas_danger"
+  - "ret_danger"
+  - "both_danger"
+  - "creative_fatigue"
+  - "budget_underdelivery"
+scene_query_map:
+  roas_danger:
+    - "{campaign_id}的ROAS今天突然跌了很多，帮我诊断"
+    - "ROAS异常下跌，{campaign_id}触发告警了"
+    - "{campaign_id}回收指标出现异常，帮我排查"
+    - "系统刚提示{campaign_id}回收异常，帮我赶紧诊断一下"
+    - "我自己看盘发现{campaign_id}今天ROAS不对，帮我看原因"
+    - "同事说{campaign_id}这两天回收掉得厉害，你帮我查一下"
+    - "{campaign_id}回收好像有点问题，先帮我排个查"
+    - "{campaign_id}的ROAS已经不是偏低，是明显异常了，帮我诊断"
+    - "老板问{campaign_id}为什么今天回收崩了，快帮我定位"
+    - "这边看到{campaign_id}回本效率突然断崖式下滑，帮我分析"
+  ret_danger:
+    - "{campaign_id}的D1留存今天异常，帮我看看"
+    - "留存率突然跌了，{campaign_id}是怎么回事"
+    - "{campaign_id}新增用户留存异常下降"
+    - "系统告警说{campaign_id}留存出问题了，帮我诊断一下"
+    - "我刚看数据发现{campaign_id}今天留存掉得很奇怪，帮我查"
+    - "同事反馈{campaign_id}这波用户质量不太对，帮我看看是不是留存异常"
+    - "{campaign_id}留存好像有点崩，帮我尽快排查下"
+    - "产品那边说{campaign_id}新用户掉得很快，帮我诊断"
+    - "老板在问{campaign_id}为什么留存突然这么差，帮我找原因"
+    - "{campaign_id}这两天用户留存明显失常，帮我做个异常诊断"
+  both_danger:
+    - "{campaign_id}同时出现ROAS和留存双告警，紧急诊断"
+    - "多个指标同时异常，{campaign_id}帮我全面诊断"
+    - "系统刚把{campaign_id}打成双异常了，帮我马上排查"
+    - "我看{campaign_id}不止回收掉了，留存也出问题了，帮我全面诊断"
+    - "同事反馈{campaign_id}整体都不对劲，帮我查下是不是双重异常"
+    - "{campaign_id}感觉不是单点问题，是整条链路都异常了，帮我看"
+    - "老板问为什么{campaign_id}两边指标一起崩，帮我立刻分析"
+    - "这边发现{campaign_id}今天核心指标全红了，帮我尽快诊断"
+    - "{campaign_id}回收和留存一起掉，已经很危险了，帮我排查根因"
+    - "产品和投放都在反馈{campaign_id}异常，帮我做个完整诊断"
+  creative_fatigue:
+    - "{campaign_id}CTR连续3天下滑超过20%，是素材疲劳吗？"
+    - "投放量开始下掉了，{campaign_id}帮我诊断一下"
+    - "系统提醒{campaign_id}点击率连续下滑，帮我看看是不是素材疲劳"
+    - "我自己看数据觉得{campaign_id}主素材跑疲了，帮我确认一下"
+    - "同事说{campaign_id}最近量掉得有点快，帮我从素材疲劳角度查下"
+    - "{campaign_id}好像不是投放问题，更像素材吸引力下来了，帮我诊断"
+    - "老板问{campaign_id}为什么点击越跑越差，帮我判断是不是创意疲劳"
+    - "{campaign_id}最近CTR一路往下掉，帮我看是不是该换素材了"
+    - "这边怀疑{campaign_id}素材跑老了，帮我做个异常诊断"
+    - "量掉了但别的指标还行，{campaign_id}是不是素材疲劳，帮我确认下"
+  budget_underdelivery:
+    - "{campaign_id}欠量很严重，帮我诊断原因"
+    - "预算消耗异常偏低，{campaign_id}出什么问题了"
+    - "系统提示{campaign_id}预算投放不足，帮我查一下"
+    - "我看{campaign_id}最近明显花不出去钱，帮我诊断下原因"
+    - "同事反馈{campaign_id}今天几乎没怎么消耗，帮我看看怎么回事"
+    - "{campaign_id}预算欠得有点厉害，先帮我排查一下"
+    - "老板问为什么{campaign_id}预算跑不满，帮我分析"
+    - "这边发现{campaign_id}消耗突然起不来了，帮我诊断"
+    - "{campaign_id}最近量上不去而且预算花不掉，帮我找原因"
+    - "月底冲量阶段{campaign_id}反而欠量了，帮我尽快排查"

@@ -13,6 +13,10 @@ def data_dir() -> Path:
     return repo_root() / "data"
 
 
+def outputs_dir() -> Path:
+    return repo_root() / "outputs"
+
+
 def models_dir() -> Path:
     return repo_root() / "models"
 

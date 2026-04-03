@@ -1,0 +1,354 @@
+[
+  {
+    "id": "std_001",
+    "case_type": "standard",
+    "user_input": "帮我看一下 CMP_2048 最近 7 天的投放表现。",
+    "context": {
+      "platform": "Meta",
+      "campaign_id": "CMP_2048",
+      "region": "US"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics"
+    ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_2048"
+      }
+    },
+    "notes": "single-tool metrics lookup; date_range is dynamic so only campaign_id is matched",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_004",
+    "case_type": "standard",
+    "user_input": "帮我搜一下 TikTok 上 rpg 游戏最近的热门素材。",
+    "context": {
+      "platform": "TikTok",
+      "game_genre": "rpg"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives"
+    ],
+    "expected_tool_args": {
+      "search_trending_creatives": {
+        "platform": "TikTok",
+        "game_genre": "rpg"
+      }
+    },
+    "notes": "trending creative search",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_006",
+    "case_type": "standard",
+    "user_input": "帮我拉一下 APP_9001 的 AppsFlyer 留存报告。",
+    "context": {
+      "app_id": "APP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_appsflyer_report"
+    ],
+    "expected_tool_args": {
+      "get_appsflyer_report": {
+        "app_id": "APP_9001"
+      }
+    },
+    "notes": "AppsFlyer retention report",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_007",
+    "case_type": "standard",
+    "user_input": "帮我对比一下 CMP_1024 和 CMP_2048 的核心指标。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "compare_campaigns"
+    ],
+    "expected_tool_args": {
+      "compare_campaigns": {
+        "campaign_ids": [
+          "CMP_1024",
+          "CMP_2048"
+        ]
+      }
+    },
+    "notes": "campaign comparison",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_008",
+    "case_type": "standard",
+    "user_input": "帮我检测一下 CMP_4068 最近有没有指标异常。",
+    "context": {
+      "campaign_id": "CMP_4068"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "detect_anomalies"
+    ],
+    "expected_tool_args": {
+      "detect_anomalies": {
+        "campaign_id": "CMP_4068"
+      }
+    },
+    "notes": "anomaly detection",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_009",
+    "case_type": "standard",
+    "user_input": "CMP_5001 ROAS 跌了，给我一份优化建议。",
+    "context": {
+      "campaign_id": "CMP_5001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_optimization_playbook"
+    ],
+    "expected_tool_args": {
+      "get_optimization_playbook": {
+        "issue_type": "low_roas"
+      }
+    },
+    "notes": "optimization playbook for low ROAS",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_011",
+    "case_type": "standard",
+    "user_input": "tCPA 和 tROAS 出价策略有什么区别？",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "query_knowledge_base"
+    ],
+    "expected_tool_args": {
+      "query_knowledge_base": {
+        "question": "tCPA和tROAS出价策略有什么区别"
+      }
+    },
+    "notes": "knowledge base Q&A for bidding strategy",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_012",
+    "case_type": "standard",
+    "user_input": "帮我搜一下 Voodoo 最近在 TikTok 上投了什么广告。",
+    "context": {
+      "platform": "TikTok"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads"
+    ],
+    "expected_tool_args": {
+      "search_competitor_ads": {
+        "competitor_name": "Voodoo",
+        "platform": "TikTok"
+      }
+    },
+    "notes": "competitor ad search on TikTok",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_013",
+    "case_type": "standard",
+    "user_input": "帮我查一下 puzzle 游戏的 D1 留存行业基准。",
+    "context": {
+      "game_genre": "puzzle"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data"
+    ],
+    "expected_tool_args": {
+      "get_benchmark_data": {
+        "metric": "retention_d1",
+        "game_genre": "puzzle"
+      }
+    },
+    "notes": "retention benchmark lookup",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_014",
+    "case_type": "standard",
+    "user_input": "视频广告的前3秒钩子怎么设计才能提高 CTR？",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "query_knowledge_base"
+    ],
+    "expected_tool_args": {
+      "query_knowledge_base": {
+        "question": "视频广告的前3秒钩子怎么设计才能提高CTR"
+      }
+    },
+    "notes": "creative guideline knowledge base query",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_015",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Google 广告的格式规范。",
+    "context": {
+      "platform": "Google"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy"
+    ],
+    "expected_tool_args": {
+      "get_platform_policy": {
+        "platform": "Google",
+        "policy_type": "ad_format"
+      }
+    },
+    "notes": "ad format policy lookup",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_018",
+    "case_type": "standard",
+    "user_input": "帮我查一下 hyper_casual 游戏的 CPI 行业基准。",
+    "context": {
+      "game_genre": "hyper_casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data"
+    ],
+    "expected_tool_args": {
+      "get_benchmark_data": {
+        "metric": "cpi",
+        "game_genre": "hyper_casual"
+      }
+    },
+    "notes": "CPI benchmark for hyper casual",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_020",
+    "case_type": "standard",
+    "user_input": "帮我搜一下 Google 上 strategy 游戏最近的热门素材。",
+    "context": {
+      "platform": "Google",
+      "game_genre": "strategy"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives"
+    ],
+    "expected_tool_args": {
+      "search_trending_creatives": {
+        "platform": "Google",
+        "game_genre": "strategy"
+      }
+    },
+    "notes": "trending creative search for strategy games",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_021",
+    "case_type": "standard",
+    "user_input": "预算消耗不出去怎么优化？",
+    "context": {
+      "campaign_id": "CMP_8001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_optimization_playbook"
+    ],
+    "expected_tool_args": {
+      "get_optimization_playbook": {
+        "issue_type": "budget_underdelivery"
+      }
+    },
+    "notes": "playbook for budget underdelivery",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_022",
+    "case_type": "standard",
+    "user_input": "TikTok 对博彩类游戏广告有什么限制？",
+    "context": {
+      "platform": "TikTok"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy"
+    ],
+    "expected_tool_args": {
+      "get_platform_policy": {
+        "platform": "TikTok",
+        "policy_type": "content_restriction"
+      }
+    },
+    "notes": "content restriction policy for gambling game ads",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_023",
+    "case_type": "standard",
+    "user_input": "帮我查一下 Rollic 最近在 Google 上投的广告。",
+    "context": {
+      "platform": "Google"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads"
+    ],
+    "expected_tool_args": {
+      "search_competitor_ads": {
+        "competitor_name": "Rollic",
+        "platform": "Google"
+      }
+    },
+    "notes": "competitor ad search on Google",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_024",
+    "case_type": "standard",
+    "user_input": "素材跑疲了怎么处理？",
+    "context": {
+      "campaign_id": "CMP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_optimization_playbook"
+    ],
+    "expected_tool_args": {
+      "get_optimization_playbook": {
+        "issue_type": "creative_fatigue"
+      }
+    },
+    "notes": "playbook for creative fatigue",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "std_025",
+    "case_type": "standard",
+    "user_input": "帮我查一下 rpg 游戏的 D7 留存行业基准。",
+    "context": {
+      "game_genre": "rpg"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data"
+    ],
+    "expected_tool_args": {
+      "get_benchmark_data": {
+        "metric": "retention_d7",
+        "game_genre": "rpg"
+      }
+    },
+    "notes": "D7 retention benchmark for RPG",
+    "rlvr_split": "train"
+  }
+]

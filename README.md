@@ -289,7 +289,7 @@ uv run python src/train/train_qwen_lora.py \
 7. Merge LoRA adapter into base model (`scripts/merge_lora_into_base.sh`)
 
 For detailed paths and script descriptions, see:
-- [docs/仓库使用指南.md](docs/仓库使用指南.md)
+- [docs/Project_UsageGuide.md](docs/Project_UsageGuide.md)
 
 ## Roadmap
 

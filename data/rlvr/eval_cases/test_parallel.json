@@ -1,0 +1,82 @@
+[
+  {
+    "id": "par_003",
+    "case_type": "parallel",
+    "user_input": "帮我同时查一下 CMP_1024 和 CMP_2048 的核心指标。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_campaign_metrics"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_campaign_metrics",
+        "get_campaign_metrics"
+      ]
+    ],
+    "notes": "two campaigns queried in parallel",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "par_008",
+    "case_type": "parallel",
+    "user_input": "同时帮我查 Meta 的广告格式政策和内容限制政策。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy",
+      "get_platform_policy"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_platform_policy",
+        "get_platform_policy"
+      ]
+    ],
+    "notes": "two different policy types for the same platform, no dependency",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "par_010",
+    "case_type": "parallel",
+    "user_input": "同时帮我搜一下 TikTok 上 casual 和 puzzle 品类的热门素材。",
+    "context": {
+      "platform": "TikTok"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives",
+      "search_trending_creatives"
+    ],
+    "expected_parallel_groups": [
+      [
+        "search_trending_creatives",
+        "search_trending_creatives"
+      ]
+    ],
+    "notes": "parallel creative search for two genres on same platform",
+    "rlvr_split": "eval"
+  },
+  {
+    "id": "par_012",
+    "case_type": "parallel",
+    "user_input": "同时帮我查一下 Google 和 Meta 平台对游戏内购广告的政策。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_platform_policy",
+      "get_platform_policy"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_platform_policy",
+        "get_platform_policy"
+      ]
+    ],
+    "notes": "same policy type queried for two platforms in parallel",
+    "rlvr_split": "eval"
+  }
+]

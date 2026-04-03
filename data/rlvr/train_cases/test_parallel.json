@@ -1,0 +1,228 @@
+[
+  {
+    "id": "par_001",
+    "case_type": "parallel",
+    "user_input": "同时帮我查一下 iOS 和 Android 平台最近 7 天的投放数据。",
+    "context": {
+      "campaign_id": "CMP_2048"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_campaign_metrics",
+      "get_campaign_metrics"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_campaign_metrics",
+        "get_campaign_metrics"
+      ]
+    ],
+    "notes": "same tool with different platform args in one assistant turn",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_002",
+    "case_type": "parallel",
+    "user_input": "请同时查一下 Meta 和 TikTok 上这个游戏的热门素材趋势。",
+    "context": {
+      "genre": "casual"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_trending_creatives",
+      "search_trending_creatives"
+    ],
+    "expected_parallel_groups": [
+      [
+        "search_trending_creatives",
+        "search_trending_creatives"
+      ]
+    ],
+    "notes": "parallel same-family searches across platforms",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_004",
+    "case_type": "parallel",
+    "user_input": "同时帮我搜一下 Playrix 和 Voodoo 最近在 Meta 上投的广告。",
+    "context": {
+      "platform": "Meta"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "search_competitor_ads",
+      "search_competitor_ads"
+    ],
+    "expected_parallel_groups": [
+      [
+        "search_competitor_ads",
+        "search_competitor_ads"
+      ]
+    ],
+    "notes": "parallel competitor ad search for two competitors",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_005",
+    "case_type": "parallel",
+    "user_input": "帮我同时查一下 US 和 SEA 市场的 casual 游戏 ROAS benchmark。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data",
+      "get_benchmark_data"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_benchmark_data",
+        "get_benchmark_data"
+      ]
+    ],
+    "notes": "parallel benchmark queries for two regions",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_006",
+    "case_type": "parallel",
+    "user_input": "同时帮我查一下 CMP_3001 的素材表现和整体 campaign 指标。",
+    "context": {
+      "campaign_id": "CMP_3001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_creative_performance",
+      "get_campaign_metrics"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_creative_performance",
+        "get_campaign_metrics"
+      ]
+    ],
+    "notes": "two different tools on the same campaign, no dependency between them",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_007",
+    "case_type": "parallel",
+    "user_input": "帮我同时查一下 CMP_4068 的 AppsFlyer 留存报告和 campaign 投放指标。",
+    "context": {
+      "campaign_id": "CMP_4068",
+      "app_id": "APP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_appsflyer_report",
+      "get_campaign_metrics"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_appsflyer_report",
+        "get_campaign_metrics"
+      ]
+    ],
+    "notes": "attribution report and metrics are independent, can be fetched in parallel",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_009",
+    "case_type": "parallel",
+    "user_input": "帮我同时对比 CMP_1024、CMP_2048、CMP_3001 三个 campaign 的核心指标。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "compare_campaigns"
+    ],
+    "expected_parallel_groups": [
+      [
+        "compare_campaigns"
+      ]
+    ],
+    "notes": "compare_campaigns accepts multiple IDs in one call; single tool call is correct here",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_011",
+    "case_type": "parallel",
+    "user_input": "帮我同时查一下 CMP_5001 的异常检测结果和素材表现。",
+    "context": {
+      "campaign_id": "CMP_5001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "detect_anomalies",
+      "get_creative_performance"
+    ],
+    "expected_parallel_groups": [
+      [
+        "detect_anomalies",
+        "get_creative_performance"
+      ]
+    ],
+    "notes": "anomaly detection and creative performance are independent reads",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_013",
+    "case_type": "parallel",
+    "user_input": "帮我同时查 CMP_6001 和 CMP_6002 的 AppsFlyer 留存数据。",
+    "context": {
+      "app_id": "APP_9001"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_appsflyer_report",
+      "get_appsflyer_report"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_appsflyer_report",
+        "get_appsflyer_report"
+      ]
+    ],
+    "notes": "retention reports for two campaigns fetched in parallel",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_014",
+    "case_type": "parallel",
+    "user_input": "同时帮我查 roas 和 retention_d1 这两个指标的行业 benchmark，游戏是 rpg，地区 US。",
+    "context": {},
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_benchmark_data",
+      "get_benchmark_data"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_benchmark_data",
+        "get_benchmark_data"
+      ]
+    ],
+    "notes": "two different metrics benchmarked in parallel for same genre and region",
+    "rlvr_split": "train"
+  },
+  {
+    "id": "par_015",
+    "case_type": "parallel",
+    "user_input": "帮我同时查一下 CMP_7001 的素材表现和行业 ROAS benchmark，游戏是 casual，地区 US。",
+    "context": {
+      "campaign_id": "CMP_7001",
+      "game_genre": "casual",
+      "region": "US"
+    },
+    "expected_behavior": "tool_call",
+    "expected_tools": [
+      "get_creative_performance",
+      "get_benchmark_data"
+    ],
+    "expected_parallel_groups": [
+      [
+        "get_creative_performance",
+        "get_benchmark_data"
+      ]
+    ],
+    "notes": "creative data and benchmark are independent, typical analysis starting point",
+    "rlvr_split": "train"
+  }
+]
