@@ -128,68 +128,70 @@ def infer_tool_arguments(
     *,
     tool_index: int = 0,
 ) -> dict[str, Any]:
-    if case.expected_tool_args and tool_name in case.expected_tool_args:
-        expected_args = case.expected_tool_args[tool_name]
-        if isinstance(expected_args, list):
-            if tool_index < len(expected_args):
-                return dict(expected_args[tool_index])
-            if expected_args:
-                return dict(expected_args[-1])
-            return {}
-        return dict(expected_args)
-
     context = case.context
+    base_args: dict[str, Any]
     if tool_name == "get_campaign_metrics":
-        args = {"campaign_id": context.get("campaign_id", "CMP_2048")}
+        base_args = {"campaign_id": context.get("campaign_id", "CMP_2048")}
         if case.case_type == "parallel":
-            args["breakdown"] = "daily"
-            args["date_range"] = {"start": "2026-03-01", "end": "2026-03-07"}
-            args["metrics"] = ["roas", "ctr", "spend"]
-            args["platform"] = ["iOS", "Android"][tool_index % 2]
-        return args
-    if tool_name == "validate_creative_spec":
-        return {
+            base_args["breakdown"] = "daily"
+            base_args["date_range"] = {"start": "2026-03-01", "end": "2026-03-07"}
+            base_args["metrics"] = ["roas", "ctr", "spend"]
+            base_args["platform"] = ["iOS", "Android"][tool_index % 2]
+    elif tool_name == "validate_creative_spec":
+        base_args = {
             "file_path": context.get("file_path", "assets/mock_video.mp4"),
             "platform": context.get("platform", "Meta"),
             "ad_format": context.get("ad_format", "interstitial"),
         }
-    if tool_name == "upload_creative_asset":
-        return {
+    elif tool_name == "upload_creative_asset":
+        base_args = {
             "file_path": context.get("file_path", "assets/mock_video.mp4"),
             "campaign_id": context.get("campaign_id", "CMP_1024"),
             "asset_type": context.get("asset_type", "video"),
         }
-    if tool_name == "search_competitor_ads":
-        return {
+    elif tool_name == "search_competitor_ads":
+        base_args = {
             "competitor_name": context.get("competitor_name", "Playrix"),
             "platform": context.get("platform", "Meta"),
         }
-    if tool_name == "query_knowledge_base":
-        return {"query": case.user_input}
-    if tool_name == "get_benchmark_data":
-        return {
+    elif tool_name == "query_knowledge_base":
+        base_args = {"query": case.user_input}
+    elif tool_name == "get_benchmark_data":
+        base_args = {
             "game_genre": context.get("game_genre", "casual"),
             "metric": context.get("metric", "roas_d7"),
             "region": context.get("region", "US"),
         }
-    if tool_name == "get_platform_policy":
-        return {
+    elif tool_name == "get_platform_policy":
+        base_args = {
             "platform": context.get("platform", "Meta"),
             "topic": context.get("topic", "creative_spec"),
         }
-    if tool_name == "detect_anomalies":
-        return {"campaign_id": context.get("campaign_id", "CMP_2048")}
-    if tool_name == "get_optimization_playbook":
-        return {
+    elif tool_name == "detect_anomalies":
+        base_args = {"campaign_id": context.get("campaign_id", "CMP_2048")}
+    elif tool_name == "get_optimization_playbook":
+        base_args = {
             "issue_type": context.get("issue_type", "roas_drop"),
             "platform": context.get("platform", "Meta"),
         }
-    if tool_name == "batch_upload_creatives":
-        return {
+    elif tool_name == "batch_upload_creatives":
+        base_args = {
             "file_paths": ["assets/mock_video_1.mp4", "assets/mock_video_2.mp4"],
             "campaign_id": context.get("campaign_id", "CMP_1024"),
         }
-    return {}
+    else:
+        base_args = {}
+
+    if case.expected_tool_args and tool_name in case.expected_tool_args:
+        expected_args = case.expected_tool_args[tool_name]
+        if isinstance(expected_args, list):
+            if tool_index < len(expected_args):
+                base_args.update(expected_args[tool_index])
+            elif expected_args:
+                base_args.update(expected_args[-1])
+            return base_args
+        base_args.update(expected_args)
+    return base_args
 
 
 def build_tool_call_text(tool_name: str, arguments: dict[str, Any]) -> str:

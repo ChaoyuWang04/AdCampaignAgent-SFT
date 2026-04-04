@@ -188,9 +188,39 @@ def test_inspect_helper_supports_repeated_expected_tool_args():
 
     assert infer_tool_arguments(case, "get_platform_policy", tool_index=0) == {
         "platform": "Meta",
+        "topic": "creative_spec",
         "policy_type": "ad_format",
     }
     assert infer_tool_arguments(case, "get_platform_policy", tool_index=1) == {
         "platform": "Meta",
+        "topic": "creative_spec",
         "policy_type": "content_restriction",
+    }
+
+
+def test_inspect_helper_merges_partial_expected_args_with_executable_defaults():
+    from src.rlvr.inspect_rlvr_training_data import infer_tool_arguments
+
+    case = BenchmarkCase(
+        id="seq_partial_expected_args",
+        case_type="sequential",
+        user_input="先帮我检查这条素材是否合规，如果没问题再上传到 CMP_1024。",
+        context={"platform": "Meta", "campaign_id": "CMP_1024"},
+        expected_behavior="tool_call",
+        expected_tools=["validate_creative_spec", "upload_creative_asset"],
+        expected_tool_args={
+            "validate_creative_spec": {"platform": "Meta"},
+            "upload_creative_asset": {"campaign_id": "CMP_1024"},
+        },
+    )
+
+    assert infer_tool_arguments(case, "validate_creative_spec") == {
+        "file_path": "assets/mock_video.mp4",
+        "platform": "Meta",
+        "ad_format": "interstitial",
+    }
+    assert infer_tool_arguments(case, "upload_creative_asset", tool_index=1) == {
+        "file_path": "assets/mock_video.mp4",
+        "campaign_id": "CMP_1024",
+        "asset_type": "video",
     }

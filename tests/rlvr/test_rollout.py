@@ -309,3 +309,10 @@ def test_run_rollout_preserves_malformed_tool_call_signal():
     assert len(trace.assistant_turns) == 1
     assert trace.assistant_turns[0].assistant_text
     assert trace.assistant_turns[0].tool_calls == []
+
+
+def test_tool_dispatch_is_built_once_at_module_load():
+    from src.rlvr.rollout import _TOOL_DISPATCH
+
+    assert isinstance(_TOOL_DISPATCH, dict)
+    assert "get_campaign_metrics" in _TOOL_DISPATCH

@@ -47,6 +47,9 @@ except ModuleNotFoundError:
 
 
 DEFAULT_MAX_NEW_TOKENS = 512
+_TOOL_DISPATCH: dict[str, Any] = {
+    name: getattr(ad_tools, name) for name in ad_tools.__all__
+}
 
 
 @dataclass(slots=True)
@@ -185,12 +188,6 @@ def _normalize_tool_calls(assistant_text: str) -> tuple[list[dict[str, Any]], bo
         )
     return normalized, saw_malformed_call
 
-
-def _tool_dispatch() -> dict[str, Any]:
-    """构建工具名到 Python 函数的映射表。"""
-    return {name: getattr(ad_tools, name) for name in ad_tools.__all__}
-
-
 def _execute_tool_message(
     dispatch: dict[str, Any],
     tool_call: dict[str, Any],
@@ -260,7 +257,7 @@ def run_rollout(
     effective_max_tool_rounds = case.rlvr_max_tool_rounds if case and case.rlvr_max_tool_rounds is not None else max_tool_rounds
 
     history = list(messages)
-    dispatch = _tool_dispatch()
+    dispatch = _TOOL_DISPATCH
     assistant_turns: list[AssistantTurnTrace] = []
     tool_messages: list[dict[str, Any]] = []
     termination_reason = "no_tool_call"
@@ -321,6 +318,9 @@ def run_rollout(
         if tool_round >= effective_max_tool_rounds:
             # 达到最大轮数通常意味着策略没有高效收敛，后续 reward 会对其惩罚。
             # 追加一个空 assistant 终态，占位为“未收敛结束”，避免 history 以 tool message 收尾。
+            # 这条终态消息不是模型真正生成的一轮 assistant，因此不会写入 assistant_turns，
+            # 也不会进入 GRPO loss 的 token 展平结果。
+            # 它故意保持空内容，使 benchmark 的 S5 在 max_rounds 场景下预期为 0.0。
             history.append({"role": "assistant", "content": ""})
             termination_reason = "max_rounds"
             break

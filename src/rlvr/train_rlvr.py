@@ -43,7 +43,7 @@ from src.rlvr.trainer import (
 )
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """定义当前 MVP / smoke 阶段所需的训练参数。"""
     parser = argparse.ArgumentParser(description="Train multi-turn RLVR with TRL GRPO.")
     parser.add_argument("--model_path", type=str, required=True)
@@ -71,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--local_files_only", action="store_true")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def load_tool_schemas(path: str) -> list[dict]:
@@ -98,27 +98,15 @@ def maybe_build_peft_config(args: argparse.Namespace):
     )
 
 
-def main() -> None:
-    """训练入口主流程。"""
-    args = parse_args()
+def validate_args(args: argparse.Namespace) -> None:
+    """对训练入口参数做本地前置校验，尽早给出可读报错。"""
+    if args.num_generations < 2:
+        raise ValueError("num_generations 必须 >= 2，否则 GRPO 无法形成有效的组内比较。")
 
-    train_cases = load_rlvr_cases(split=TRAIN_SPLIT)
-    eval_cases = load_rlvr_cases(split=EVAL_SPLIT)
-    case_lookup = {case.id: case for case in train_cases + eval_cases}
 
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_path,
-        trust_remote_code=True,
-        local_files_only=args.local_files_only,
-    )
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    train_dataset = build_train_dataset(train_cases)
-    reward_func = build_trl_reward_func(case_lookup)
-    tool_schemas = load_tool_schemas(args.tools_file)
-
-    config = GRPOConfig(
+def build_grpo_config(args: argparse.Namespace) -> GRPOConfig:
+    """把 CLI 参数映射成 GRPOConfig，便于单测覆盖关键训练配置。"""
+    return GRPOConfig(
         output_dir=args.output_dir,
         per_device_train_batch_size=args.per_device_train_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -137,12 +125,36 @@ def main() -> None:
         report_to="none",
         remove_unused_columns=False,
         save_strategy="steps",
-        save_steps=max(1, args.max_steps),
+        save_steps=max(1, args.max_steps // 4),
         eval_strategy="no",
         seed=args.seed,
         bf16=args.bf16,
         fp16=args.fp16,
     )
+
+
+def main() -> None:
+    """训练入口主流程。"""
+    args = parse_args()
+    validate_args(args)
+
+    train_cases = load_rlvr_cases(split=TRAIN_SPLIT)
+    eval_cases = load_rlvr_cases(split=EVAL_SPLIT)
+    case_lookup = {case.id: case for case in train_cases + eval_cases}
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_path,
+        trust_remote_code=True,
+        local_files_only=args.local_files_only,
+    )
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    train_dataset = build_train_dataset(train_cases)
+    reward_func = build_trl_reward_func(case_lookup)
+    tool_schemas = load_tool_schemas(args.tools_file)
+
+    config = build_grpo_config(args)
 
     trainer = MultiTurnGRPOTrainer(
         model=args.model_path,
