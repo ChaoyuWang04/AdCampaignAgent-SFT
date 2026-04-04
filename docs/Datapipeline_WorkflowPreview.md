@@ -33,6 +33,7 @@
 ### 当前注意点
 
 - `trending_with_hooks` 是 workflow 1 唯一稳定的多工具链
+- `trending_creatives` 当前大多数 query 已显式带 `platform + genre`
 - `platform` / `genre` 缺失会转 clarify-only，不会在补充后继续执行工具
 
 ## Workflow 2：素材上传
@@ -115,9 +116,9 @@
 
 ### 当前注意点
 
-- workflow 4 是当前最大的 clarify 来源
+- workflow 4 仍然保留 `clarify_missing_scope`，但当前大多数 scene query 已显式带时间范围
 - ambiguous query 会直接进入 `clarify_missing_scope`
-- scene query 主要因为缺 `date_range` 转 clarify
+- scene query 只有少量模板还会因为缺 `date_range` 转 clarify
 
 ## Workflow 5：异常诊断与优化
 
@@ -161,7 +162,8 @@
   - 带平台名的 direct query
   - 缺平台的 clarify-only query
 - 3 条平台规格类 query 已从 `creative_guideline` 迁入 `platform_policy`
-- `industry_benchmark` 当前少量 query 可 direct，多数 query 会转 clarify-only
+- `industry_benchmark` 当前大多数 query 已显式带 `platform + region + genre`
+- `industry_benchmark` 仍保留少量 clarify-only query，用于覆盖 benchmark 槽位追问
 
 ## Workflow 7：拒答
 
@@ -186,5 +188,6 @@
 ## 当前维护建议
 
 1. 需要改静态覆盖、bucket 权重、clarify 占比时，优先更新 YAML，再同步 [Datapipeline_Seed.md](/Users/samwong/Desktop/1Project/AdCampaignAgent-SFT/docs/Datapipeline_Seed.md)。
+   当前 workflow 4 的 direct/clarify 比例已经高度依赖 scene query 是否显式带时间范围，改 query 时要一起检查 `required_slots: ["date_range"]`。
 2. 需要改 scene 与 tool 的绑定关系时，先看是否属于“同 intent 下的表现差异”；如果是，优先改 `scene_tag`，不要贸然新开 workflow。
 3. 如果希望“追问后继续调工具”，这不是改 YAML 能做到的，需要同时改 seed 生成和 convert 逻辑。

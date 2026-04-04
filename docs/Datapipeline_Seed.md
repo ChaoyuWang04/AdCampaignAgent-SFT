@@ -33,17 +33,17 @@
 
 按当前 YAML 和生成逻辑静态估算：
 
-- `clarify` 样本总量：`≈965.64`
-- 占总量：`≈35.11%`
-- `direct` 业务样本：`≈1584.36`
-- 占总量：`≈57.61%`
+- `clarify` 样本总量：`≈424.48`
+- 占总量：`≈15.44%`
+- `direct` 业务样本：`≈2125.52`
+- 占总量：`≈77.29%`
 - `refusal` 样本：`200`
 - 占总量：`7.27%`
 
 和早期版本相比，当前这一版有 4 个关键变化：
 
 1. `workflow 1 / 3 / 6` 已完全改成 `intent bucket -> tool plan` 绑定，不再随机选 tool。
-2. `workflow 4` 的 clarify 已显式区分 `clarify_missing_scope` 与业务 `scene_tag`。
+2. `workflow 4` 的 clarify 已显式区分 `clarify_missing_scope` 与业务 `scene_tag`，且大部分 scene query 现在显式包含时间范围。
 3. `workflow 5` 的 `ret_danger` 已从 campaign metrics 诊断切到 AppsFlyer 诊断。
 4. `workflow 7` 已拆成 `off_topic / unauthorized_internal / unauthorized_external` 三类拒答。
 
@@ -64,14 +64,14 @@
 | Bucket | 模板数 | bucket 权重 | 模板缺槽位率 | 期望 direct | 期望 clarify |
 |---|---:|---:|---:|---:|---:|
 | `competitor_ads` | 7 | 22.58% | 28.57% | ≈46.45 | ≈18.58 |
-| `trending_creatives` | 16 | 51.61% | 37.50% | ≈92.90 | ≈55.74 |
+| `trending_creatives` | 16 | 51.61% | 12.50% | ≈130.06 | ≈18.58 |
 | `trending_with_hooks` | 8 | 25.81% | 0% | ≈74.32 | 0 |
 | `clarify_probability` 直接追问 | - | - | - | - | 72 |
 
 合计：
 
-- direct `≈213.68`
-- clarify `≈146.32`
+- direct `≈250.83`
+- clarify `≈109.17`
 
 ### 工具链覆盖
 
@@ -83,6 +83,7 @@
 
 - 正向能力：热门素材、竞品广告、热门钩子
 - 边界能力：主要体现为 `platform_missing` / `platform_or_genre_missing`
+- `trending_creatives` 当前大多数 query 已显式带 `platform + genre`，只保留少量 clarify 模板
 - 并行工具：没有
 - 串行工具：有，但只在 `trending_with_hooks`
 
@@ -178,27 +179,28 @@
 - 总量：`900`
 - 固定 ambiguous clarify 概率：`15%`
   - `clarify_missing_scope` 期望：`135`
-- 其余 `765` 条 direct 路径按 `10` 个 scene 均匀采样，每个 scene 的 direct 入口基数为 `76.5`
+- 其余 `765` 条 scene 路径按 `10` 个 scene 均匀采样，每个 scene 的入口基数为 `76.5`
+- 当前 YAML 已把大多数 scene query 改成显式带时间范围，避免 `required_slots: ["date_range"]` 与 query 模板长期失配
 
 ### scene 分布
 
-| Scene | intent_bucket | 模板缺槽位率 | 期望 direct | 来自 ambiguous 的 clarify | 来自 scene 缺槽位的 clarify |
+| Scene | intent_bucket | 模板缺 `date_range` 比例 | 期望 direct | 来自 ambiguous 的 clarify | 来自 scene 缺槽位的 clarify |
 |---|---|---:|---:|---:|---:|
-| `healthy` | `holistic_campaign_analysis` | 40% | ≈45.90 | 13.50 | ≈30.60 |
-| `roas_warning` | `holistic_campaign_analysis` | 60% | ≈30.60 | 13.50 | ≈45.90 |
-| `roas_danger` | `holistic_campaign_analysis` | 80% | ≈15.30 | 13.50 | ≈61.20 |
-| `ret_warning` | `retention_diagnosis` | 90% | ≈7.65 | 13.50 | ≈68.85 |
-| `ret_danger` | `retention_diagnosis` | 80% | ≈15.30 | 13.50 | ≈61.20 |
-| `both_warning` | `combined_diagnosis` | 70% | ≈22.95 | 13.50 | ≈53.55 |
-| `both_danger` | `combined_diagnosis` | 90% | ≈7.65 | 13.50 | ≈68.85 |
-| `creative_fatigue` | `creative_diagnosis` | 70% | ≈22.95 | 13.50 | ≈53.55 |
-| `budget_underdelivery` | `holistic_campaign_analysis` | 50% | ≈38.25 | 13.50 | ≈38.25 |
-| `insufficient_data` | `holistic_campaign_analysis` | 60% | ≈30.60 | 13.50 | ≈45.90 |
+| `healthy` | `holistic_campaign_analysis` | 0% | ≈76.50 | 13.50 | 0 |
+| `roas_warning` | `holistic_campaign_analysis` | 0% | ≈76.50 | 13.50 | 0 |
+| `roas_danger` | `holistic_campaign_analysis` | 0% | ≈76.50 | 13.50 | 0 |
+| `ret_warning` | `retention_diagnosis` | 10% | ≈68.85 | 13.50 | ≈7.65 |
+| `ret_danger` | `retention_diagnosis` | 20% | ≈61.20 | 13.50 | ≈15.30 |
+| `both_warning` | `combined_diagnosis` | 10% | ≈68.85 | 13.50 | ≈7.65 |
+| `both_danger` | `combined_diagnosis` | 10% | ≈68.85 | 13.50 | ≈7.65 |
+| `creative_fatigue` | `creative_diagnosis` | 20% | ≈61.20 | 13.50 | ≈15.30 |
+| `budget_underdelivery` | `holistic_campaign_analysis` | 20% | ≈61.20 | 13.50 | ≈15.30 |
+| `insufficient_data` | `holistic_campaign_analysis` | 0% | ≈76.50 | 13.50 | 0 |
 
 合计：
 
-- direct `≈237.15`
-- clarify `≈662.85`
+- direct `≈696.15`
+- clarify `≈203.85`
 
 ### 工具链覆盖
 
@@ -212,7 +214,7 @@
 ### 设计解读
 
 - 正向能力：完整分析、跨源诊断、benchmark 对比
-- 边界能力：主要体现为 `timerange_missing` 和 `campaign_id_and_timerange_missing`
+- 边界能力：保留 `clarify_missing_scope` 这类真正 scope 不清的追问，同时将大多数 scene query 设计为显式满足 `date_range`
 - 并行工具：有，是当前主力并行样本来源
 - 串行工具：有，表现为“并行取数后串行 benchmark”
 
@@ -268,12 +270,12 @@
 | `bidding_strategy` | 14 | 29.17% | 0% | ≈70.00 | 0 |
 | `creative_guideline` | 9 | 18.75% | 0% | ≈45.00 | 0 |
 | `platform_policy` | 9 | 18.75% | 33.33% | ≈30.00 | ≈15.00 |
-| `industry_benchmark` | 16 | 33.33% | 75.00% | ≈20.00 | ≈60.00 |
+| `industry_benchmark` | 16 | 33.33% | 18.75% | ≈65.00 | ≈15.00 |
 
 合计：
 
-- direct `165`
-- clarify `75`
+- direct `210`
+- clarify `30`
 
 ### 工具链覆盖
 
@@ -282,12 +284,13 @@
 - `platform_policy` -> `get_platform_policy`
   - 当前同时包含 direct query 和缺平台的 clarify-only query
 - `industry_benchmark` -> `get_benchmark_data`
-  - 当前少量 query 可 direct，多数会因为缺 `platform / region / genre` 之一而转 clarify
+  - 当前大多数 query 已显式带 `platform / region / genre`，只保留少量 clarify 模板
 
 ### 设计解读
 
 - 正向能力：出价知识、创意指南、平台政策、benchmark
 - 边界能力：主要体现在 `platform_missing` 与 `platform_region_or_genre_missing`
+- `industry_benchmark` 当前大多数 query 已显式带 `platform + region + genre`
 - 并行工具：没有
 - 串行工具：没有并行，但 bucket 绑定清晰
 
@@ -317,16 +320,16 @@
 ### 1. 反向样本 / 边界样本
 
 - 明确拒答样本：`200`
-- clarify 样本：`≈965.64`
+- clarify 样本：`≈624.48`
 - 如果把两者都视为“非直接满足用户需求”的边界样本，则边界样本总量约：
-  - `≈1165.64`
-  - 占总量 `≈42.39%`
+  - `≈824.48`
+  - 占总量 `≈29.98%`
 
 ### 2. 追问覆盖
 
 - 有追问样本：是
-- 追问总量：`≈965.64`
-- 追问比例：`≈35.11%`
+- 追问总量：`≈624.48`
+- 追问比例：`≈22.71%`
 - 当前主要追问原因：
   - `platform_missing`
   - `platform_or_genre_missing`
