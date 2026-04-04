@@ -37,35 +37,11 @@ BASE_MODEL="${BASE_MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
 MODEL_TAG="$(basename "${BASE_MODEL}")"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 1: 训练 nonmulti_all（完整对话 + all assistant loss）
+# 步骤 1: 训练 multi_last（切分对话 + last assistant loss）
 # ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 1: 训练 nonmulti_all"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "════════════════════════════════════════════════════════"
-
-EXPERIMENT="nonmulti_all" \
-ONLY_LAST_ASSISTANT="false" \
-TRAIN_FILE="${SFT_TRAIN}" \
-EVAL_FILE="${SFT_TEST}" \
-MODEL_PATH="${BASE_MODEL}" \
-LEARNING_RATE="2e-4" \
-NUM_TRAIN_EPOCHS="3" \
-EVAL_STEPS="50" \
-SAVE_STEPS="50" \
-EARLY_STOPPING_PATIENCE="5" \
-  bash "${SCRIPT_DIR}/train_model.sh"
-
-echo "  ✅ nonmulti_all 训练完成"
-notify "步骤1完成 ✅" "nonmulti_all 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')" "default" "white_check_mark"
-
-# ═════════════════════════════════════════════════════════════
-# 步骤 2: 训练 multi_last（切分对话 + last assistant loss）
-# ═════════════════════════════════════════════════════════════
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "  步骤 2: 训练 multi_last"
+echo "  步骤 1: 训练 multi_last（从 checkpoint-150 继续）"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
@@ -74,6 +50,7 @@ ONLY_LAST_ASSISTANT="true" \
 TRAIN_FILE="${MULTI_TRAIN}" \
 EVAL_FILE="${MULTI_TEST}" \
 MODEL_PATH="${BASE_MODEL}" \
+RESUME_FROM_CHECKPOINT="${REPO_ROOT}/models/${MODEL_TAG}_lora_multi_last/checkpoint-150" \
 LEARNING_RATE="2e-5" \
 NUM_TRAIN_EPOCHS="2" \
 EVAL_STEPS="50" \
@@ -82,14 +59,14 @@ EARLY_STOPPING_PATIENCE="5" \
   bash "${SCRIPT_DIR}/train_model.sh"
 
 echo "  ✅ multi_last 训练完成"
-notify "步骤2完成 ✅" "multi_last 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')" "default" "white_check_mark"
+notify "步骤1完成 ✅" "multi_last 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')" "default" "white_check_mark"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 3: Merge nonmulti_all
+# 步骤 2: Merge nonmulti_all
 # ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 3: Merge nonmulti_all LoRA"
+echo "  步骤 2: Merge nonmulti_all LoRA"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
@@ -99,14 +76,14 @@ OUTPUT_DIR="${REPO_ROOT}/models/${MODEL_TAG}_nonmulti_all_merged" \
   bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
 
 echo "  ✅ nonmulti_all merge 完成"
-notify "步骤3完成 ✅" "nonmulti_all merge 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤2完成 ✅" "nonmulti_all merge 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 4: Merge multi_last
+# 步骤 3: Merge multi_last
 # ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 4: Merge multi_last LoRA"
+echo "  步骤 3: Merge multi_last LoRA"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
@@ -116,14 +93,14 @@ OUTPUT_DIR="${REPO_ROOT}/models/${MODEL_TAG}_multi_last_merged" \
   bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
 
 echo "  ✅ multi_last merge 完成"
-notify "步骤4完成 ✅" "multi_last merge 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤3完成 ✅" "multi_last merge 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 5: Benchmark nonmulti_all
+# 步骤 4: Benchmark nonmulti_all
 # ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 5: Benchmark nonmulti_all"
+echo "  步骤 4: Benchmark nonmulti_all"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
@@ -132,14 +109,14 @@ RUN_NAME="nonmulti_all" \
   bash "${SCRIPT_DIR}/benchmark.sh"
 
 echo "  ✅ nonmulti_all benchmark 完成"
-notify "步骤5完成 ✅" "nonmulti_all benchmark 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤4完成 ✅" "nonmulti_all benchmark 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
 # ═════════════════════════════════════════════════════════════
-# 步骤 6: Benchmark multi_last
+# 步骤 5: Benchmark multi_last
 # ═════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════"
-echo "  步骤 6: Benchmark multi_last"
+echo "  步骤 5: Benchmark multi_last"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
@@ -148,7 +125,7 @@ RUN_NAME="multi_last" \
   bash "${SCRIPT_DIR}/benchmark.sh"
 
 echo "  ✅ multi_last benchmark 完成"
-notify "步骤6完成 ✅" "multi_last benchmark 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
+notify "步骤5完成 ✅" "multi_last benchmark 完成\n$(date '+%Y-%m-%d %H:%M:%S')"
 
 # ═════════════════════════════════════════════════════════════
 # 完成
