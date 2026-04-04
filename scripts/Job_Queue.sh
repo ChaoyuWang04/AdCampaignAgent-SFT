@@ -20,7 +20,7 @@ notify() {
     -H "Priority: ${priority}" \
     ${tags:+-H "Tags: ${tags}"} \
     -d "${body}" \
-    "ntfy.sh/${NTFY_TOPIC}" || true
+    "https://ntfy.sh/${NTFY_TOPIC}" || true
 }
 
 trap 'notify "❌ Pipeline 异常中断" "脚本在 $(date) 非正常退出，请检查日志" "urgent" "warning"' ERR
