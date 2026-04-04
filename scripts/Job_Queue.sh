@@ -55,7 +55,7 @@ LEARNING_RATE="2e-5" \
 NUM_TRAIN_EPOCHS="2" \
 EVAL_STEPS="50" \
 SAVE_STEPS="50" \
-EARLY_STOPPING_PATIENCE="5" \
+EARLY_STOPPING_PATIENCE="3" \
   bash "${SCRIPT_DIR}/train_model.sh"
 
 echo "  ✅ multi_last 训练完成"

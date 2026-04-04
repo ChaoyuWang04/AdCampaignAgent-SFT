@@ -1,0 +1,92 @@
+ 14%|████████▉                                                        | 140/1018 [26:31<1:50:41,  7.56s/it]
+step=10 | loss=2.562667 | lr=5.806452e-05
+{'loss': '2.563', 'grad_norm': '0.7481', 'learning_rate': '5.806e-05', 'epoch': '0.01967'}
+step=20 | loss=1.049581 | lr=1.225806e-04
+{'loss': '1.05', 'grad_norm': '0.3108', 'learning_rate': '0.0001226', 'epoch': '0.03933'}
+step=30 | loss=0.648735 | lr=1.870968e-04
+{'loss': '0.6487', 'grad_norm': '0.2034', 'learning_rate': '0.0001871', 'epoch': '0.059'}
+step=40 | loss=0.295011 | lr=1.999676e-04
+{'loss': '0.295', 'grad_norm': '0.1756', 'learning_rate': '0.0002', 'epoch': '0.07866'}
+step=50 | loss=0.149329 | lr=1.998359e-04
+{'loss': '0.1493', 'grad_norm': '0.1704', 'learning_rate': '0.0001998', 'epoch': '0.09833'}
+  File "/workspace/AdCampaign/src/train/train_qwen.py", line 352, in <module>                              
+step=50
+{'eval_loss': '0.09563', 'eval_runtime': '222.2', 'eval_samples_per_second': '9.073', 'eval_steps_per_second': '2.268', 'epoch': '0.09833'}
+step=60 | loss=0.073810 | lr=1.996031e-04
+{'loss': '0.07381', 'grad_norm': '0.1023', 'learning_rate': '0.0001996', 'epoch': '0.118'}
+step=70 | loss=0.059137 | lr=1.992694e-04
+{'loss': '0.05914', 'grad_norm': '0.07961', 'learning_rate': '0.0001993', 'epoch': '0.1377'}
+step=80 | loss=0.044135 | lr=1.988351e-04
+{'loss': '0.04414', 'grad_norm': '0.09498', 'learning_rate': '0.0001988', 'epoch': '0.1573'}
+step=90 | loss=0.037965 | lr=1.983007e-04
+{'loss': '0.03796', 'grad_norm': '0.107', 'learning_rate': '0.0001983', 'epoch': '0.177'}
+step=100 | loss=0.038637 | lr=1.976668e-04
+{'loss': '0.03864', 'grad_norm': '0.0392', 'learning_rate': '0.0001977', 'epoch': '0.1967'}
+step=100
+{'eval_loss': '0.03435', 'eval_runtime': '222.8', 'eval_samples_per_second': '9.048', 'eval_steps_per_second': '2.262', 'epoch': '0.1967'}
+step=110 | loss=0.039817 | lr=1.969339e-04
+{'loss': '0.03982', 'grad_norm': '0.03386', 'learning_rate': '0.0001969', 'epoch': '0.2163'}
+step=120 | loss=0.029645 | lr=1.961027e-04
+{'loss': '0.02965', 'grad_norm': '0.06241', 'learning_rate': '0.0001961', 'epoch': '0.236'}
+step=130 | loss=0.030951 | lr=1.951743e-04
+{'loss': '0.03095', 'grad_norm': '0.03144', 'learning_rate': '0.0001952', 'epoch': '0.2557'}
+step=140 | loss=0.026552 | lr=1.941494e-04
+{'loss': '0.02655', 'grad_norm': '0.09155', 'learning_rate': '0.0001941', 'epoch': '0.2753'}
+step=150 | loss=0.031225 | lr=1.930291e-04
+{'loss': '0.03122', 'grad_norm': '0.03689', 'learning_rate': '0.000193', 'epoch': '0.295'}
+step=150
+{'eval_loss': '0.0273', 'eval_runtime': '222.2', 'eval_samples_per_second': '9.072', 'eval_steps_per_second': '2.268', 'epoch': '0.295'}
+    main()
+    ~~~~^^
+  File "/workspace/AdCampaign/src/train/train_qwen.py", line 345, in main
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint or None)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1424, in train
+    return inner_training_loop(
+        args=args,
+    ...<2 lines>...
+        ignore_keys_for_eval=ignore_keys_for_eval,
+    )
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1506, in _inner_training_loop
+    self._run_epoch(
+    ~~~~~~~~~~~~~~~^
+        model=model,
+        ^^^^^^^^^^^^
+    ...<9 lines>...
+        steps_trained_in_current_epoch=steps_trained_in_current_epoch,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1734, in _run_epoch
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/transformers/trainer.py", line 1934, in training_step
+    self.accelerator.backward(loss, **kwargs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/accelerate/accelerator.py", line 2838, in backward
+    loss.backward(**kwargs)
+    ~~~~~~~~~~~~~^^^^^^^^^^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/_tensor.py", line 631, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/autograd/__init__.py", line 381, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/workspace/AdCampaign/.venv/lib/python3.14/site-packages/torch/autograd/graph.py", line 869, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+KeyboardInterrupt
