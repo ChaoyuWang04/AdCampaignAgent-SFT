@@ -84,3 +84,43 @@ def test_split_conversations_does_not_print_per_conversation_logs(tmp_path, caps
     stdout = capsys.readouterr().out
     assert "处理第" not in stdout
     assert "额外复制了2份" not in stdout
+
+
+def test_split_conversations_filters_no_tool_conversations_not_ending_with_assistant(
+    tmp_path, capsys
+):
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+    input_path.write_text(
+        """
+[
+  {
+    "messages": [
+      {"role": "system", "content": "s"},
+      {"role": "user", "content": "u"},
+      {"role": "assistant", "content": "请补充平台"},
+      {"role": "user", "content": "Meta"}
+    ],
+    "_meta": {"scene_tag": "creative_search"}
+  },
+  {
+    "messages": [
+      {"role": "system", "content": "s"},
+      {"role": "user", "content": "u"},
+      {"role": "assistant", "content": "这是一个直接回复"}
+    ],
+    "_meta": {"scene_tag": "off_topic"}
+  }
+]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    conversation_splitter.split_conversations(input_path, output_path)
+
+    records = __import__("json").loads(output_path.read_text(encoding="utf-8"))
+    stdout = capsys.readouterr().out
+
+    assert len(records) == 1
+    assert records[0]["messages"][-1]["role"] == "assistant"
+    assert "无tool且末尾非assistant，已过滤: 1 条" in stdout

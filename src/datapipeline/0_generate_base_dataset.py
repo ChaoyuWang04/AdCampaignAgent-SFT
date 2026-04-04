@@ -141,7 +141,110 @@ def infer_metric_scene(query: str) -> str:
         return "query_installs"
     if any(keyword in query for keyword in ["CPM", "cpm"]):
         return "query_cpm"
-    return random.choice(METRIC_QUERY_SCENES)
+    return "query_roas"
+
+
+def pick_bucket_by_query_count(intent_buckets: dict[str, dict[str, Any]]) -> tuple[str, dict[str, Any]]:
+    names = list(intent_buckets.keys())
+    weights = [max(1, len(intent_buckets[name].get("queries", []))) for name in names]
+    picked = random.choices(names, weights=weights, k=1)[0]
+    return picked, intent_buckets[picked]
+
+
+def parse_metric_hints(query: str) -> list[str]:
+    lowered = query.lower()
+    hints: list[str] = []
+    if "roas" in lowered or "回收" in query:
+        hints.append("roas")
+    if "留存" in query or "retention" in lowered:
+        hints.append("retention_d1")
+    if "ctr" in lowered or "点击" in query:
+        hints.append("ctr")
+    if "cpi" in lowered:
+        hints.append("cpi")
+    if "cpm" in lowered:
+        hints.append("cpm")
+    if "花费" in query or "预算" in query or "消耗" in query or "spend" in lowered:
+        hints.append("spend")
+    if "安装" in query or "installs" in lowered:
+        hints.append("installs")
+    return hints or ["roas"]
+
+
+def has_platform_token(query: str) -> bool:
+    return any(token in query for token in ["Google", "Meta", "TikTok", "Tiktok", "Applovin", "Unity", "UAC", "Facebook"])
+
+
+def has_genre_token(query: str) -> bool:
+    lowered = query.lower()
+    return any(token in lowered for token in ["casual", "puzzle", "hyper-casual", "hyper_casual", "strategy", "rpg"]) or "休闲" in query
+
+
+def has_region_token(query: str) -> bool:
+    return any(token in query for token in REGIONS)
+
+
+def has_campaign_token(query: str) -> bool:
+    return "CMP_" in query
+
+
+def has_app_token(query: str) -> bool:
+    return "." in query and any(token in query for token in ["com.", "io."])
+
+
+def has_date_range_token(query: str) -> bool:
+    return any(
+        token in query
+        for token in [
+            "最近",
+            "近期",
+            "上周",
+            "这周",
+            "本周",
+            "上个月",
+            "这个月",
+            "近一周",
+            "近7天",
+            "近30天",
+            "最近7天",
+            "最近30天",
+            "最近三天",
+            "最近几天",
+            "昨天",
+            "今天",
+            "这几天",
+            "这段时间",
+            "月底",
+            "月初",
+            "两天",
+            "三天",
+            "不到3天",
+            "几天",
+            "这期",
+            "这一轮",
+        ]
+    )
+
+
+SLOT_CHECKERS = {
+    "platform": has_platform_token,
+    "genre": has_genre_token,
+    "region": has_region_token,
+    "campaign_id": has_campaign_token,
+    "app_id": has_app_token,
+    "date_range": has_date_range_token,
+}
+
+
+def missing_required_slots(query: str, required_slots: list[str]) -> list[str]:
+    missing: list[str] = []
+    for slot in required_slots:
+        checker = SLOT_CHECKERS.get(slot)
+        if checker is None:
+            continue
+        if not checker(query):
+            missing.append(slot)
+    return missing
 
 
 class AdDatasetGenerator:
@@ -163,8 +266,28 @@ class AdDatasetGenerator:
         }
         return template.format(**values)
 
-    def _pick_tool_plan(self, workflow_id: int) -> list[dict[str, Any]]:
-        return random.choice(self._workflow(workflow_id)["tool_plans"])
+    def _bucket_required_slots(self, workflow_id: int, bucket_name: str, bucket: dict[str, Any] | None = None) -> list[str]:
+        if bucket and "required_slots" in bucket:
+            return list(bucket["required_slots"])
+        return list(self._workflow(workflow_id).get("required_slots", {}).get(bucket_name, []))
+
+    def _clarify_answer(self, cfg: dict[str, Any], reason: str, ctx: dict[str, Any]) -> str:
+        if cfg.get("workflow_id") == 4 and reason in {"timerange_missing", "campaign_id_and_timerange_missing"}:
+            date_range = ctx.get("date_range", {})
+            start = date_range.get("start", "")
+            end = date_range.get("end", "")
+            time_text = f"{start}到{end}" if start and end else "最近7天"
+            if reason == "timerange_missing":
+                return f"时间是{time_text}"
+            return f"看{ctx['campaign_id']}，时间是{time_text}"
+        templates = cfg.get("clarification", {}).get("answer_templates", {})
+        if isinstance(templates, dict):
+            template = templates.get(reason)
+            if template:
+                return self._format(template, ctx)
+        if isinstance(templates, list) and templates:
+            return self._format(templates[0], ctx)
+        return ""
 
     def _update_progress(self) -> None:
         self.progress["completed"] += 1
@@ -198,6 +321,8 @@ class AdDatasetGenerator:
             "tool_chain": [],
             "has_parallel": False,
             "refusal_type": None,
+            "intent_bucket": None,
+            "query_slots": {},
         }
 
     def _finalize_record(self, rec: dict[str, Any], tool_plan: list[dict[str, Any]]) -> dict[str, Any]:
@@ -209,66 +334,127 @@ class AdDatasetGenerator:
     def gen_workflow1_creative_search(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(1)
         competitors = cfg["variables"]["competitors"]
-        clarify_template = cfg["clarification"]["answer_templates"][0]
+        intent_buckets = cfg["intent_buckets"]
 
         data: list[dict[str, Any]] = []
         for _ in range(count):
             ctx = random_context()
             rec = self._base_record(1, ctx)
             if random.random() < cfg["clarify_probability"]:
-                rec["user_query"] = random.choice(cfg["queries"]["ambiguous"])
+                rec["user_query"] = random.choice(cfg["clarify_queries"])
                 rec["needs_clarification"] = True
-                rec["clarification_reason"] = cfg["clarification"]["reason"]
-                rec["clarification_answer"] = self._format(clarify_template, ctx)
+                rec["clarification_reason"] = "platform_or_genre_missing"
+                rec["clarification_answer"] = self._clarify_answer(cfg, "platform_or_genre_missing", ctx)
+                rec["intent_bucket"] = "clarify"
+                rec["scene_tag"] = "creative_search_clarify"
+                tool_plan = []
             else:
-                rec["user_query"] = self._format(random.choice(cfg["queries"]["clear"]), ctx, competitor=random.choice(competitors))
-            rec["scene_tag"] = cfg["scene_tag"]
-            data.append(self._finalize_record(rec, self._pick_tool_plan(1)))
+                bucket_name, bucket = pick_bucket_by_query_count(intent_buckets)
+                competitor = random.choice(competitors)
+                rec["intent_bucket"] = bucket_name
+                rec["scene_tag"] = bucket["scene_tag"]
+                rec["user_query"] = self._format(
+                    random.choice(bucket["queries"]),
+                    ctx,
+                    competitor=competitor,
+                )
+                if bucket_name == "competitor_ads":
+                    rec["query_slots"]["competitor_name"] = competitor
+                missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(1, bucket_name, bucket))
+                if missing_slots:
+                    rec["needs_clarification"] = True
+                    reason = bucket["clarification_reason"]
+                    rec["clarification_reason"] = reason
+                    rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                    tool_plan = []
+                else:
+                    tool_plan = bucket["tool_plan"]
+            data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow2_upload(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(2)
+        intent_buckets = cfg["intent_buckets"]
         data: list[dict[str, Any]] = []
         for _ in range(count):
             ctx = random_context()
             rec = self._base_record(2, ctx)
             is_fail = random.random() < cfg["fail_probability"]
             if is_fail:
-                rec["user_query"] = self._format(random.choice(cfg["queries"]["fail"]), ctx)
-                rec["scene_tag"] = random.choice(cfg["scene_tags"]["fail"])
-                tool_plan = cfg["tool_plans"][2]
+                bucket_name = "validate_only_retry"
+                bucket = intent_buckets[bucket_name]
+                rec["user_query"] = self._format(random.choice(bucket["queries"]), ctx)
+                rec["scene_tag"] = random.choice(bucket["scene_tags"])
+                rec["intent_bucket"] = bucket_name
+                tool_plan = bucket["tool_plan"]
             else:
-                rec["user_query"] = self._format(random.choice(cfg["queries"]["success"]), ctx)
-                rec["scene_tag"] = random.choice(cfg["scene_tags"]["success"])
-                tool_plan = random.choice(cfg["tool_plans"][:2])
+                success_buckets = {name: bucket for name, bucket in intent_buckets.items() if name != "validate_only_retry"}
+                bucket_name, bucket = pick_bucket_by_query_count(success_buckets)
+                rec["user_query"] = self._format(random.choice(bucket["queries"]), ctx)
+                rec["scene_tag"] = random.choice(bucket["scene_tags"])
+                rec["intent_bucket"] = bucket_name
+                missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(2, rec["intent_bucket"], bucket))
+                if missing_slots:
+                    rec["needs_clarification"] = True
+                    reason = bucket["clarification_reason"]
+                    rec["clarification_reason"] = reason
+                    rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                    tool_plan = []
+                else:
+                    tool_plan = bucket["tool_plan"]
             data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow3_single_query(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(3)
-        clarify_template = cfg["clarification"]["answer_templates"][0]
+        intent_buckets = cfg["intent_buckets"]
 
         data: list[dict[str, Any]] = []
         for _ in range(count):
             ctx = random_context()
             rec = self._base_record(3, ctx)
             if random.random() < cfg["clarify_probability"]:
-                rec["user_query"] = random.choice(cfg["queries"]["ambiguous"])
+                rec["user_query"] = random.choice(cfg["clarify_queries"])
                 rec["needs_clarification"] = True
-                rec["clarification_reason"] = cfg["clarification"]["reason"]
-                rec["clarification_answer"] = self._format(clarify_template, ctx)
+                rec["clarification_reason"] = "campaign_id_missing"
+                rec["clarification_answer"] = self._clarify_answer(cfg, "campaign_id_missing", ctx)
+                rec["intent_bucket"] = "clarify_missing_campaign"
+                rec["scene_tag"] = "clarify_missing_campaign"
+                tool_plan = []
             else:
-                rec["user_query"] = self._format(random.choice(cfg["queries"]["clear"]), ctx)
-            rec["scene_tag"] = infer_metric_scene(rec["user_query"])
-            data.append(self._finalize_record(rec, self._pick_tool_plan(3)))
+                bucket_name, bucket = pick_bucket_by_query_count(intent_buckets)
+                rec["intent_bucket"] = bucket_name
+                rec["user_query"] = self._format(random.choice(bucket["queries"]), ctx)
+                missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(3, bucket_name, bucket))
+                if bucket_name in {"campaign_metrics", "creative_metrics"}:
+                    rec["query_slots"]["metrics"] = parse_metric_hints(rec["user_query"])
+                if missing_slots:
+                    rec["needs_clarification"] = True
+                    reason = bucket["clarification_reason"]
+                    rec["clarification_reason"] = reason
+                    rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                    rec["scene_tag"] = "clarify_missing_campaign"
+                    tool_plan = []
+                elif bucket_name == "campaign_metrics":
+                    rec["scene_tag"] = infer_metric_scene(rec["user_query"])
+                    tool_plan = bucket["tool_plan"]
+                elif bucket_name == "creative_metrics":
+                    rec["scene_tag"] = "creative_metrics"
+                    tool_plan = bucket["tool_plan"]
+                else:
+                    rec["scene_tag"] = "appsflyer_report"
+                    rec["query_slots"]["metrics"] = parse_metric_hints(rec["user_query"])
+                    tool_plan = bucket["tool_plan"]
+            data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow4_deep_analysis(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(4)
-        clarify_template = cfg["clarification"]["answer_templates"][0]
+        scene_tool_plan_map = cfg["scene_tool_plan_map"]
+        scene_intent_map = cfg["scene_intent_map"]
 
         data: list[dict[str, Any]] = []
         for _ in range(count):
@@ -278,17 +464,46 @@ class AdDatasetGenerator:
             if random.random() < cfg["clarify_probability"]:
                 rec["user_query"] = random.choice(cfg["queries"]["ambiguous"])
                 rec["needs_clarification"] = True
-                rec["clarification_reason"] = cfg["clarification"]["reason"]
-                rec["clarification_answer"] = self._format(clarify_template, ctx)
+                reason = cfg["clarification"]["reasons"]["campaign_id_and_timerange_missing"]
+                rec["clarification_reason"] = reason
+                rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                rec["intent_bucket"] = "clarify_missing_scope"
+                rec["scene_tag"] = "clarify_missing_scope"
+                tool_plan = []
             else:
                 rec["user_query"] = self._format(random.choice(cfg["scene_query_map"][scene]), ctx)
-            rec["scene_tag"] = scene
-            data.append(self._finalize_record(rec, self._pick_tool_plan(4)))
+                rec["intent_bucket"] = scene_intent_map[scene]
+                missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(4, rec["intent_bucket"]))
+                if missing_slots:
+                    rec["needs_clarification"] = True
+                    if "campaign_id" in missing_slots:
+                        reason = cfg["clarification"]["reasons"]["campaign_id_and_timerange_missing"]
+                    else:
+                        reason = cfg["clarification"]["reasons"]["timerange_missing"]
+                    rec["clarification_reason"] = reason
+                    rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                    tool_plan = []
+                else:
+                    tool_plan = scene_tool_plan_map[scene]
+                rec["scene_tag"] = scene
+            if rec["scene_tag"] is None:
+                rec["scene_tag"] = scene
+            rec["query_slots"]["benchmark_metric"] = (
+                "roas"
+                if scene in {"healthy", "roas_warning", "roas_danger", "insufficient_data"}
+                else "retention_d1"
+                if scene in {"ret_warning", "ret_danger", "both_warning", "both_danger"}
+                else "ctr"
+                if scene == "creative_fatigue"
+                else "cpm"
+            )
+            data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow5_anomaly(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(5)
+        scene_tool_plan_map = cfg["scene_tool_plan_map"]
 
         data: list[dict[str, Any]] = []
         for _ in range(count):
@@ -297,38 +512,54 @@ class AdDatasetGenerator:
             scene = random.choice(cfg["scene_tags"])
             rec["user_query"] = self._format(random.choice(cfg["scene_query_map"][scene]), ctx)
             rec["scene_tag"] = scene
-            data.append(self._finalize_record(rec, self._pick_tool_plan(5)))
+            rec["intent_bucket"] = scene
+            missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(5, scene))
+            if missing_slots:
+                rec["needs_clarification"] = True
+                reason = "campaign_id_missing"
+                rec["clarification_reason"] = reason
+                rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                tool_plan = []
+            else:
+                tool_plan = scene_tool_plan_map[scene]
+            data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow6_knowledge(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(6)
+        intent_buckets = cfg["intent_buckets"]
 
         data: list[dict[str, Any]] = []
         for _ in range(count):
             ctx = random_context()
             rec = self._base_record(6, ctx)
-            query = random.choice(cfg["queries"])
-            rec["user_query"] = query
-            domain = "knowledge_base"
-            for keyword, mapped_domain in cfg["domain_map"].items():
-                if keyword in query:
-                    domain = mapped_domain
-                    break
-            rec["scene_tag"] = domain
-            data.append(self._finalize_record(rec, self._pick_tool_plan(6)))
+            bucket_name, bucket = pick_bucket_by_query_count(intent_buckets)
+            rec["intent_bucket"] = bucket_name
+            rec["user_query"] = random.choice(bucket["queries"])
+            rec["scene_tag"] = bucket_name
+            missing_slots = missing_required_slots(rec["user_query"], self._bucket_required_slots(6, bucket_name, bucket))
+            if missing_slots:
+                rec["needs_clarification"] = True
+                reason = bucket["clarification_reason"]
+                rec["clarification_reason"] = reason
+                rec["clarification_answer"] = self._clarify_answer(cfg, reason, ctx)
+                tool_plan = []
+            else:
+                tool_plan = bucket["tool_plan"]
+            data.append(self._finalize_record(rec, tool_plan))
             self._update_progress()
         return data
 
     def gen_workflow7_refusal(self, count: int) -> list[dict[str, Any]]:
         cfg = self._workflow(7)
         competitors = cfg["variables"]["competitors"]
-        per_type = count // 3
-        extras = count % 3
+        refusal_types = ["off_topic", "unauthorized_internal", "unauthorized_external"]
+        per_type = count // len(refusal_types)
+        extras = count % len(refusal_types)
         type_counts = {
-            "off_topic": per_type + (1 if extras > 0 else 0),
-            "unauthorized_operation": per_type + (1 if extras > 1 else 0),
-            "insufficient_data_to_answer": per_type,
+            refusal_type: per_type + (1 if index < extras else 0)
+            for index, refusal_type in enumerate(refusal_types)
         }
 
         data: list[dict[str, Any]] = []
@@ -343,6 +574,7 @@ class AdDatasetGenerator:
                 )
                 rec["scene_tag"] = refusal_type
                 rec["refusal_type"] = refusal_type
+                rec["intent_bucket"] = refusal_type
                 data.append(self._finalize_record(rec, []))
                 self._update_progress()
         return data

@@ -1,23 +1,22 @@
 workflow_id: 5
 workflow_name: "异常诊断与优化"
 count: 450
-tool_plans:
-  - - mode: "serial"
-      tools: ["detect_anomalies"]
+scene_tool_plan_map:
+  roas_danger:
     - mode: "serial"
-      tools: ["get_optimization_playbook"]
-  - - mode: "serial"
-      tools: ["detect_anomalies"]
+      tools: ["detect_anomalies", "get_campaign_metrics", "get_optimization_playbook"]
+  ret_danger:
     - mode: "serial"
-      tools: ["get_campaign_metrics"]
+      tools: ["detect_anomalies", "get_appsflyer_report", "get_optimization_playbook"]
+  both_danger:
     - mode: "serial"
-      tools: ["get_optimization_playbook"]
-  - - mode: "serial"
-      tools: ["detect_anomalies"]
+      tools: ["detect_anomalies", "get_campaign_metrics", "get_optimization_playbook"]
+  creative_fatigue:
     - mode: "serial"
-      tools: ["get_creative_performance"]
+      tools: ["detect_anomalies", "get_creative_performance", "get_optimization_playbook"]
+  budget_underdelivery:
     - mode: "serial"
-      tools: ["get_optimization_playbook"]
+      tools: ["detect_anomalies", "get_campaign_metrics", "get_optimization_playbook"]
 scene_tags:
   - "roas_danger"
   - "ret_danger"
@@ -80,3 +79,12 @@ scene_query_map:
     - "这边发现{campaign_id}消耗突然起不来了，帮我诊断"
     - "{campaign_id}最近量上不去而且预算花不掉，帮我找原因"
     - "月底冲量阶段{campaign_id}反而欠量了，帮我尽快排查"
+clarification:
+  answer_templates:
+    campaign_id_missing: "campaign是{campaign_id}"
+required_slots:
+  roas_danger: ["campaign_id"]
+  ret_danger: ["campaign_id"]
+  both_danger: ["campaign_id"]
+  creative_fatigue: ["campaign_id"]
+  budget_underdelivery: ["campaign_id"]

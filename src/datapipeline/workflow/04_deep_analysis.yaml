@@ -2,21 +2,56 @@ workflow_id: 4
 workflow_name: "多维深度分析"
 count: 900
 clarify_probability: 0.15
-tool_plans:
-  - - mode: "parallel"
+scene_intent_map:
+  healthy: "holistic_campaign_analysis"
+  roas_warning: "holistic_campaign_analysis"
+  roas_danger: "holistic_campaign_analysis"
+  ret_warning: "retention_diagnosis"
+  ret_danger: "retention_diagnosis"
+  both_warning: "combined_diagnosis"
+  both_danger: "combined_diagnosis"
+  creative_fatigue: "creative_diagnosis"
+  budget_underdelivery: "holistic_campaign_analysis"
+  insufficient_data: "holistic_campaign_analysis"
+scene_tool_plan_map:
+  healthy:
+    - mode: "parallel"
       tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
-  - - mode: "parallel"
+  roas_warning:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
+  roas_danger:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
+  ret_warning:
+    - mode: "parallel"
       tools: ["get_appsflyer_report", "get_campaign_metrics"]
     - mode: "serial"
       tools: ["get_benchmark_data"]
-  - - mode: "parallel"
+  ret_danger:
+    - mode: "parallel"
       tools: ["get_campaign_metrics", "get_appsflyer_report", "get_creative_performance"]
     - mode: "serial"
       tools: ["get_benchmark_data"]
-  - - mode: "serial"
-      tools: ["compare_campaigns"]
+  both_warning:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_appsflyer_report", "get_creative_performance"]
     - mode: "serial"
       tools: ["get_benchmark_data"]
+  both_danger:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_appsflyer_report", "get_creative_performance"]
+    - mode: "serial"
+      tools: ["get_benchmark_data"]
+  creative_fatigue:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
+  budget_underdelivery:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
+  insufficient_data:
+    - mode: "parallel"
+      tools: ["get_campaign_metrics", "get_creative_performance", "get_benchmark_data"]
 scene_tags:
   - "healthy"
   - "roas_warning"
@@ -41,9 +76,12 @@ queries:
     - "给我一版完整分析"
     - "最近数据麻烦帮我过一下"
 clarification:
-  reason: "campaign_id_and_timerange_missing"
+  reasons:
+    timerange_missing: "timerange_missing"
+    campaign_id_and_timerange_missing: "campaign_id_and_timerange_missing"
   answer_templates:
-    - "看{campaign_id}，时间是上周"
+    timerange_missing: "时间是上周"
+    campaign_id_and_timerange_missing: "看{campaign_id}，时间是上周"
 scene_query_map:
   healthy:
     - "{campaign_id}整体跑得不错，帮我出一份完整分析报告"
@@ -155,3 +193,8 @@ scene_query_map:
     - "这个{campaign_id}数据样本还很少，现阶段能给什么结论"
     - "产品那边问{campaign_id}是不是有问题，但它才上线几天，帮我判断下"
     - "帮我看看{campaign_id}现在这些早期数据能分析到什么程度"
+required_slots:
+  holistic_campaign_analysis: ["campaign_id", "date_range"]
+  retention_diagnosis: ["campaign_id", "date_range"]
+  combined_diagnosis: ["campaign_id", "date_range"]
+  creative_diagnosis: ["campaign_id", "date_range"]

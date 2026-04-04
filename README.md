@@ -24,7 +24,7 @@ AdCampaignAgent-SFT is an open-source end-to-end pipeline for building, training
 The repository covers six capabilities:
 
 1. Generate structured Ad Agent seed records across 7 ad-operation workflows
-2. Convert seeds into tool-call conversations in OpenAI Messages or ShareGPT format
+2. Convert seeds into tool-call conversations in OpenAI Messages format and multiturn prefixes
 3. Fine-tune local models (Qwen3) with LoRA across multiple training configurations
 4. Provide 15 ad-domain tools for local runtime testing
 5. Inspect or interact with local models for tool-calling behavior via REPL
@@ -43,12 +43,14 @@ The domain is mobile game UA (User Acquisition), with workflows grounded in:
 ### Included in the main flow
 
 - Rule-based seed generation
-- Train/test seed splitting
-- Conversation conversion to SFT-ready records (Message / ShareGPT / multiturn)
+- Train/test seed splitting with stratification by workflow / scene / clarify flag
+- Conversation conversion to SFT-ready OpenAI Messages records
+- Message-format multiturn prefix expansion
 - Qwen3 LoRA fine-tuning with 4 experimental configurations under [src/train](src/train)
 - 15 Ad Campaign Agent tools under [src/tools](src/tools)
 - Local model tool-call REPL and inspector under [src/inference](src/inference)
-- 11-metric benchmark suite under [tests/benchmark](tests/benchmark)
+- Datapipeline validation and regression tests under [tests/datapipeline](tests/datapipeline)
+- 11-metric benchmark suite under [src/benchmark](src/benchmark)
 
 ### Not in the current main flow
 
@@ -58,14 +60,15 @@ The domain is mobile game UA (User Acquisition), with workflows grounded in:
 
 | Metric | Value |
 |--------|-------|
-| Total conversations | 1,000 |
-| Format | OpenAI Messages / ShareGPT |
+| Theoretical seed total | 2,750 |
+| Current primary training format | OpenAI Messages |
+| Clarify samples (static estimate) | ≈965.64 |
 | Unique tools | 15 |
 | Core workflows | 7 |
 | Platforms covered | Google · Meta · TikTok · AppLovin · Unity |
 | Game genres | Casual · Puzzle · Hyper-casual · RPG · Strategy |
-| Tool-call heavy records | Majority of records |
-| Refusal coverage | Off-topic · Unauthorized · Insufficient-data |
+| Tool-call heavy records | Majority of direct business samples |
+| Refusal coverage | Off-topic · Unauthorized internal · Unauthorized external |
 
 ## Repository Layout
 
@@ -74,7 +77,7 @@ AdCampaignAgent-SFT/
 ├── data/
 │   ├── raw/                 # seed records, e.g. ad_agent_seeds_*.json
 │   ├── processed/           # train/test split outputs
-│   └── ready2train/         # final message/sharegpt datasets
+│   └── ready2train/         # final message and multiturn datasets
 ├── docs/                    # repo documentation
 ├── images/                  # project images
 ├── models/                  # local checkpoints and LoRA adapters
@@ -82,12 +85,14 @@ AdCampaignAgent-SFT/
 ├── src/
 │   ├── common/              # shared path and utility helpers
 │   ├── datapipeline/        # seed generation / split / conversion / multiturn expansion
+│   ├── benchmark/           # benchmark schema, metrics, and runner
 │   ├── inference/           # local REPL and single-shot inspector
 │   ├── tools/               # 15 ad-domain runtime tools + tool schema
 │   └── train/               # LoRA fine-tuning, merging, and dataset inspection
 ├── tests/
-│   ├── benchmark/           # 11-metric benchmark suite (format/routing/content/system)
-│   └── inference/           # online tool-call smoke runner
+│   ├── datapipeline/        # datapipeline regression tests
+│   ├── inference/           # online tool-call smoke runner
+│   └── tools/               # schema and tool-level tests
 ├── scripts/                 # shell helpers for training, benchmarking, and REPL
 └── rag-system/              # legacy travel RAG assets, not in main flow
 ```
@@ -123,8 +128,7 @@ uv run python src/datapipeline/0_generate_base_dataset.py
 Output example:
 
 ```text
-data/raw/ad_agent_seeds_20260326_zh.json
-data/raw/ad_agent_seeds_20260326_en.json
+data/raw/ad_agent_seeds_20260403_153000_zh.json
 ```
 
 ### 2. Split seeds into train / test
@@ -132,7 +136,7 @@ data/raw/ad_agent_seeds_20260326_en.json
 ```sh
 uv run python src/datapipeline/1_split_dataset.py
 # Then enter the seed file name, for example:
-# ad_agent_seeds_20260326_zh.json
+# ad_agent_seeds_20260403_153000_zh.json
 ```
 
 The split script currently stratifies by:
@@ -141,10 +145,8 @@ The split script currently stratifies by:
 - `needs_clarification`
 
 Typical outputs:
-- `data/processed/ad_agent_seeds_20260326_zh_train.json`
-- `data/processed/ad_agent_seeds_20260326_zh_test.json`
-- `data/processed/ad_agent_seeds_20260326_en_train.json`
-- `data/processed/ad_agent_seeds_20260326_en_test.json`
+- `data/processed/ad_agent_seeds_20260403_153000_zh_train.json`
+- `data/processed/ad_agent_seeds_20260403_153000_zh_test.json`
 
 ### 3. Convert seeds into tool-call conversations
 
@@ -153,14 +155,12 @@ uv run python src/datapipeline/2_convert_dataset.py
 ```
 
 Typical inputs:
-- `data/processed/ad_agent_seeds_20260326_zh_train.json`
-- `data/processed/ad_agent_seeds_20260326_zh_test.json`
-- `data/processed/ad_agent_seeds_20260326_en_train.json`
-- `data/processed/ad_agent_seeds_20260326_en_test.json`
+- `data/processed/ad_agent_seeds_20260403_153000_zh_train.json`
+- `data/processed/ad_agent_seeds_20260403_153000_zh_test.json`
 
 Typical outputs:
-- `data/ready2train/message/ad_agent_sft_*_message.json`
-- `data/ready2train/sharegpt/ad_agent_sft_*_sharegpt.json`
+- `data/ready2train/ad_agent_sft_*_zh_train.json`
+- `data/ready2train/ad_agent_sft_*_zh_test.json`
 
 ### 4. Expand message-format data into multiturn samples
 
@@ -169,7 +169,7 @@ uv run python src/datapipeline/3_conversation_splitter.py
 ```
 
 Typical output:
-- `data/ready2train/message/ad_agent_sft_*_message_multiturn.json`
+- `data/ready2train/ad_agent_sft_*_multiturn.json`
 
 ## Tools
 
@@ -268,7 +268,7 @@ Typical training flow:
 
 1. Generate seeds
 2. Split train/test
-3. Convert to message/sharegpt data
+3. Convert to message-format data
 4. Optionally expand multiturn message data
 5. Inspect dataset formatting (`scripts/inspect_datasets.sh`)
 6. Run LoRA fine-tuning:
@@ -280,9 +280,9 @@ bash scripts/train_model.sh
 Or directly:
 
 ```sh
-uv run python src/train/train_qwen_lora.py \
-  --train_file data/ready2train/message/ad_agent_sft_*_train_message.json \
-  --eval_file  data/ready2train/message/ad_agent_sft_*_test_message.json \
+uv run python src/train/train_qwen.py \
+  --train_file data/ready2train/ad_agent_sft_*_zh_train.json \
+  --eval_file  data/ready2train/ad_agent_sft_*_zh_test.json \
   --output_dir models/my_lora_output
 ```
 
@@ -295,7 +295,7 @@ For detailed paths and script descriptions, see:
 
 - [x] Rule-based Ad Agent seed generation
 - [x] 15-tool ad-domain runtime schema
-- [x] OpenAI Messages / ShareGPT / multiturn conversion
+- [x] OpenAI Messages / multiturn conversion
 - [x] Qwen3 LoRA fine-tuning (4 experimental configurations)
 - [x] Local tool-call inspector
 - [x] Local tool-call REPL

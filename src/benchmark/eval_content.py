@@ -7,7 +7,7 @@
 而是进一步检查：在工具已经大致选对的前提下，参数填得是否准确。
 
 当前指标：
-- C1 Parameter Exact Match：参数整体是否完全一致
+- C1 Parameter Gold Coverage：gold 参数是否被完整覆盖
 - C2 Parameter Field Accuracy：按字段计算命中率，再求平均
 
 依赖：
@@ -27,7 +27,7 @@
 - `{"C1": float, "C2": float}`
 
 评分原则：
-- C1 更严格，要求整组参数完全一致
+- C1 更严格，要求 gold 参数集合被完整覆盖
 - C2 更细粒度，允许部分字段正确
 - 当前 MVP 版本按工具名取第一条匹配调用进行比较，保持规则简单稳定
 """
@@ -62,7 +62,11 @@ def evaluate_content_case(
     for tool_name, expected_args in case.expected_tool_args.items():
         candidates = actual_by_tool.get(tool_name, [])
         actual_args = candidates[0] if candidates else {}
-        exact_matches.append(1.0 if actual_args == expected_args else 0.0)
+        exact_matches.append(
+            1.0
+            if all(actual_args.get(key) == value for key, value in expected_args.items())
+            else 0.0
+        )
 
         if not expected_args:
             continue

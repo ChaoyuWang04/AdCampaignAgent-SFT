@@ -2,52 +2,66 @@ workflow_id: 2
 workflow_name: "素材上传"
 count: 240
 fail_probability: 0.25
-tool_plans:
-  - - mode: "serial"
-      tools: ["validate_creative_spec", "upload_creative_asset"]
-  - - mode: "serial"
-      tools: ["validate_creative_spec", "batch_upload_creatives"]
-  - - mode: "serial"
-      tools: ["validate_creative_spec"]
-queries:
-  success:
-    - "我有一批新素材要上传到{campaign_id}，帮我上传"
-    - "把这个视频上传到campaign {campaign_id}"
-    - "我需要把新做的素材挂到{platform}的{campaign_id}上"
-    - "上传素材到{campaign_id}，共3个视频"
-    - "帮我批量上传这批{genre}素材"
-    - "把这批新视频素材都挂到{campaign_id}下面"
-    - "我这边有几个新创意，帮我传到{platform}的{campaign_id}"
-    - "帮我把刚出的{genre}素材上传到{campaign_id}"
-    - "这组素材今天要上量，先帮我传到{campaign_id}"
-    - "有一批新广告要上，帮我批量上传到{campaign_id}"
-    - "把这几个新做的视频先传到{campaign_id}里"
-    - "我想把新的{genre}创意批量挂到{platform} campaign {campaign_id}"
-    - "这批素材审核完了，帮我上传到{campaign_id}"
-    - "给{campaign_id}补一批新素材，麻烦直接上传"
-    - "我这边整理了几条新广告，帮我传到{campaign_id}"
-    - "帮我把这组素材发到{platform}那边的{campaign_id}"
-    - "这几个版本今天要测试，先上传到{campaign_id}"
-    - "我想给{campaign_id}加几条新素材，你直接帮我传吧"
-    - "把这批待投放的{genre}素材批量挂上去，campaign 是 {campaign_id}"
-  fail:
-    - "这个视频素材上传一下"
-    - "帮我把这个图片广告传上去"
-    - "上传这个素材到{platform}"
-    - "这个素材刚被系统打回来了，你再帮我传一次"
-    - "上次没传成功，这个视频重新上传一下"
-    - "这个创意被拒了，我改完了，帮我重传"
-    - "刚才那条素材好像没过，再上传一遍"
-    - "这个广告素材重新传到{platform}试一下"
-    - "帮我把这个被退回的视频再传一次"
-    - "刚刚上传失败了，这个文件重新帮我走一下"
-    - "这个素材系统没收进去，你再帮我试试"
-    - "帮我补传这个广告素材"
-    - "这条创意改完尺寸了，重新上传一下"
-    - "上次审核前就挂了，这个素材再传一遍"
-    - "这个图片广告刚修完格式，帮我重新上传"
-    - "之前被卡住的那条素材，现在再帮我传一次"
-    - "这个文件刚处理过，重新丢到{platform}那边上传一下"
-scene_tags:
-  fail: ["validate_fail_size", "validate_fail_format"]
-  success: ["upload_success", "upload_partial_fail"]
+intent_buckets:
+  single_upload:
+    required_slots: ["campaign_id"]
+    clarification_reason: "campaign_id_missing"
+    scene_tags: ["single_upload_success", "single_upload_partial_fail"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["validate_creative_spec", "upload_creative_asset"]
+    queries:
+      - "把这个视频上传到campaign {campaign_id}"
+      - "我需要把这个新做的素材挂到{platform}的{campaign_id}上"
+      - "帮我把这一条刚出的{genre}素材上传到{campaign_id}"
+      - "这个素材审核完了，帮我上传到{campaign_id}"
+      - "帮我把这一个素材发到{platform}那边的{campaign_id}"
+  batch_upload:
+    required_slots: ["campaign_id"]
+    clarification_reason: "campaign_id_missing"
+    scene_tags: ["batch_upload_success", "batch_upload_partial_fail"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["validate_creative_spec", "batch_upload_creatives"]
+    queries:
+      - "我有一批新素材要上传到{campaign_id}，帮我上传"
+      - "上传素材到{campaign_id}，共3个视频"
+      - "帮我批量上传这批{genre}素材"
+      - "把这批新视频素材都挂到{campaign_id}下面"
+      - "我这边有几个新创意，帮我传到{platform}的{campaign_id}"
+      - "这组素材今天要上量，先帮我传到{campaign_id}"
+      - "有一批新广告要上，帮我批量上传到{campaign_id}"
+      - "把这几个新做的视频先传到{campaign_id}里"
+      - "我想把新的{genre}创意批量挂到{platform} campaign {campaign_id}"
+      - "给{campaign_id}补一批新素材，麻烦直接上传"
+      - "我这边整理了几条新广告，帮我传到{campaign_id}"
+      - "这几个版本今天要测试，先上传到{campaign_id}"
+      - "我想给{campaign_id}加几条新素材，你直接帮我传吧"
+      - "把这批待投放的{genre}素材批量挂上去，campaign 是 {campaign_id}"
+  validate_only_retry:
+    required_slots: []
+    clarification_reason: null
+    scene_tags: ["validate_fail_size", "validate_fail_format"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["validate_creative_spec"]
+    queries:
+      - "这个视频素材之前没过，重新上传一下"
+      - "帮我把这个图片广告重新传上去"
+      - "这个素材刚被系统打回来了，你再帮我传一次"
+      - "上次没传成功，这个视频重新上传一下"
+      - "这个创意被拒了，我改完了，帮我重传"
+      - "刚才那条素材好像没过，再上传一遍"
+      - "这个广告素材修完后重新传一下试试"
+      - "帮我把这个被退回的视频再传一次"
+      - "刚刚上传失败了，这个文件重新帮我走一下"
+      - "这个素材系统没收进去，你再帮我试试"
+      - "帮我补传这个广告素材"
+      - "这条创意改完尺寸了，重新上传一下"
+      - "上次审核前就挂了，这个素材再传一遍"
+      - "这个图片广告刚修完格式，帮我重新上传"
+      - "之前被卡住的那条素材，现在再帮我传一次"
+      - "这个文件刚处理过，重新上传一下"
+clarification:
+  answer_templates:
+    campaign_id_missing: "campaign是{campaign_id}"

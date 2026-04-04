@@ -2,67 +2,85 @@ workflow_id: 3
 workflow_name: "单指标效果查询"
 count: 360
 clarify_probability: 0.2
-tool_plans:
-  - - mode: "serial"
-      tools: ["get_campaign_metrics"]
-  - - mode: "serial"
-      tools: ["get_creative_performance"]
-  - - mode: "serial"
-      tools: ["get_appsflyer_report"]
-queries:
-  clear:
-    - "查一下{campaign_id}上周的ROAS"
-    - "{campaign_id}最近7天的D1留存是多少？"
-    - "看看{campaign_id}的花费情况"
-    - "{campaign_id}各国家的安装量怎么样？"
-    - "给我拉一下{campaign_id}最近的CTR数据"
-    - "{app_id}上周的留存报告"
-    - "查一下{campaign_id}按素材拆分的CPM"
-    - "{campaign_id}的D7 ROAS达标了吗？"
-    - "看看{app_id}最近的收入归因数据"
-    - "{campaign_id}昨天的预算消耗正常吗？"
-    - "帮我拉一下{campaign_id}昨天的ROAS"
-    - "看下{campaign_id}最近7天的花费和安装量"
-    - "我想知道{campaign_id}这个月到现在的CTR表现"
-    - "查查{campaign_id}上个月的回收情况"
-    - "{campaign_id}最近三天的D7 ROAS有起色吗？"
-    - "帮我看看{campaign_id}昨天的CTR是不是掉了"
-    - "{campaign_id}近一周的CPI是多少"
-    - "拉一下{campaign_id}最近7天的收入归因"
-    - "看下{app_id}这周的留存数据"
-    - "帮我查一下{campaign_id}上周每日花费"
-    - "{campaign_id}最近30天安装量大概什么水平"
-    - "看看{campaign_id}这个月预算消耗快不快"
-    - "{campaign_id}昨天的CPM正常吗"
-    - "我想拉一下{campaign_id}最近7天的CTR和CPI"
-    - "帮我看下{campaign_id}当前D1留存有没有达标"
-    - "查一下{app_id}最近一周的AppsFlyer留存报告"
-    - "{campaign_id}这几天的ROAS趋势怎么样"
-    - "看看{campaign_id}近30天花费有没有异常波动"
-    - "帮我拉一下{campaign_id}昨天到今天的安装量"
-    - "查查{campaign_id}上个月D1留存表现"
-    - "这个{campaign_id}最近7天回收效率怎么样"
-    - "看下{campaign_id}最近一周的CTR达没达标"
-    - "我想知道{campaign_id}本周的花费节奏"
-    - "{campaign_id}最近几天的收入归因帮我查一下"
-    - "拉一下{campaign_id}这周按天拆的ROAS数据"
-  ambiguous:
-    - "查一下ROAS"
-    - "留存数据怎么样？"
-    - "花了多少预算？"
-    - "效果怎么样？"
-    - "数据拉一下"
-    - "看看回收情况"
-    - "CTR怎么样"
-    - "最近花费正常吗"
-    - "安装量什么情况"
-    - "帮我看下留存"
-    - "拉一下最近的数据"
-    - "最近投放表现怎么样"
-    - "回收达标了吗"
-    - "这两天数据好不好"
-    - "帮我查下效果指标"
+intent_buckets:
+  campaign_metrics:
+    required_slots: ["campaign_id"]
+    clarification_reason: "campaign_id_missing"
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_campaign_metrics"]
+    queries:
+      - "查一下{campaign_id}上周的ROAS"
+      - "{campaign_id}最近7天的D1留存是多少？"
+      - "看看{campaign_id}的花费情况"
+      - "{campaign_id}各国家的安装量怎么样？"
+      - "给我拉一下{campaign_id}最近的CTR数据"
+      - "{campaign_id}的D7 ROAS达标了吗？"
+      - "{campaign_id}昨天的预算消耗正常吗？"
+      - "帮我拉一下{campaign_id}昨天的ROAS"
+      - "看下{campaign_id}最近7天的花费和安装量"
+      - "我想知道{campaign_id}这个月到现在的CTR表现"
+      - "查查{campaign_id}上个月的回收情况"
+      - "{campaign_id}最近三天的D7 ROAS有起色吗？"
+      - "帮我看看{campaign_id}昨天的CTR是不是掉了"
+      - "{campaign_id}近一周的CPI是多少"
+      - "帮我查一下{campaign_id}上周每日花费"
+      - "{campaign_id}最近30天安装量大概什么水平"
+      - "看看{campaign_id}这个月预算消耗快不快"
+      - "{campaign_id}昨天的CPM正常吗"
+      - "我想拉一下{campaign_id}最近7天的CTR和CPI"
+      - "帮我看下{campaign_id}当前D1留存有没有达标"
+      - "{campaign_id}这几天的ROAS趋势怎么样"
+      - "看看{campaign_id}近30天花费有没有异常波动"
+      - "帮我拉一下{campaign_id}昨天到今天的安装量"
+      - "查查{campaign_id}上个月D1留存表现"
+      - "这个{campaign_id}最近7天回收效率怎么样"
+      - "看下{campaign_id}最近一周的CTR达没达标"
+      - "我想知道{campaign_id}本周的花费节奏"
+      - "拉一下{campaign_id}这周按天拆的ROAS数据"
+  creative_metrics:
+    required_slots: ["campaign_id"]
+    clarification_reason: "campaign_id_missing"
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_creative_performance"]
+    queries:
+      - "查一下{campaign_id}按素材拆分的CPM"
+      - "帮我看下{campaign_id}里哪个素材CTR最高"
+      - "拉一下{campaign_id}最近素材维度的CTR表现"
+      - "看看{campaign_id}按创意拆开的CPI数据"
+      - "我想知道{campaign_id}最近哪些素材最能跑"
+      - "把{campaign_id}近7天素材表现按CTR排一下"
+  appsflyer_report:
+    required_slots: ["app_id"]
+    clarification_reason: "app_id_missing"
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_appsflyer_report"]
+    queries:
+      - "{app_id}上周的留存报告"
+      - "看看{app_id}最近的收入归因数据"
+      - "拉一下{app_id}最近7天的收入归因"
+      - "看下{app_id}这周的留存数据"
+      - "查一下{app_id}最近一周的AppsFlyer留存报告"
+      - "{app_id}最近几天的收入归因帮我查一下"
+clarify_queries:
+  - "查一下ROAS"
+  - "留存数据怎么样？"
+  - "花了多少预算？"
+  - "效果怎么样？"
+  - "数据拉一下"
+  - "看看回收情况"
+  - "CTR怎么样"
+  - "最近花费正常吗"
+  - "安装量什么情况"
+  - "帮我看下留存"
+  - "拉一下最近的数据"
+  - "最近投放表现怎么样"
+  - "回收达标了吗"
+  - "这两天数据好不好"
+  - "帮我查下效果指标"
 clarification:
-  reason: "campaign_id_missing"
   answer_templates:
-    - "campaign是{campaign_id}"
+    campaign_id_missing: "campaign是{campaign_id}"
+    app_id_missing: "app是{app_id}"

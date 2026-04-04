@@ -7,6 +7,7 @@ Ad Campaign Agent - Phase 2: Conversation Generator
 
 import json
 import random
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -58,10 +59,18 @@ SCENE_CFG = {
 
 NON_METRIC_SCENES = {
     "creative_search",
+    "creative_search_clarify",
+    "competitor_ads_search",
+    "trending_creatives_search",
+    "trending_with_hooks_search",
     "upload_success",
+    "single_upload_success",
+    "batch_upload_success",
     "validate_fail_size",
     "validate_fail_format",
     "upload_partial_fail",
+    "single_upload_partial_fail",
+    "batch_upload_partial_fail",
     "bidding_strategy",
     "creative_guideline",
     "platform_policy",
@@ -76,7 +85,28 @@ NON_METRIC_SCENES = {
     "query_spend",
     "query_installs",
     "query_cpm",
+    "creative_metrics",
+    "appsflyer_report",
+    "clarify_missing_campaign",
+    "clarify_missing_scope",
 }
+
+PLATFORM_TOKENS = {
+    "Google": ["Google", "google", "UAC", "Google UAC"],
+    "Meta": ["Meta", "meta", "Facebook"],
+    "Tiktok": ["TikTok", "Tiktok", "tiktok"],
+    "Applovin": ["Applovin", "AppLovin", "applovin"],
+    "Unity": ["Unity", "unity", "Unity Ads"],
+}
+GENRE_TOKENS = {
+    "hyper_casual": ["hyper-casual", "hyper_casual", "hyper casual", "超休闲"],
+    "casual": ["casual", "休闲"],
+    "puzzle": ["puzzle", "解谜"],
+    "strategy": ["strategy"],
+    "rpg": ["rpg", "RPG"],
+}
+REGION_TOKENS = ["US", "JP", "SEA", "KR", "EU"]
+COMPETITORS = ["Playrix", "Voodoo", "Rollic", "Jam City", "SciPlay"]
 
 
 class MockToolExecutor:
@@ -189,7 +219,7 @@ class MockToolExecutor:
         })
 
     def upload_creative_asset(self, **kw) -> str:
-        if self.scene == "upload_partial_fail":
+        if self.scene in {"upload_partial_fail", "single_upload_partial_fail"}:
             return self._ok({
                 "asset_id": f"ASSET_{random.randint(1000, 9999)}",
                 "status": "partial",
@@ -206,7 +236,7 @@ class MockToolExecutor:
 
     def batch_upload_creatives(self, **kw) -> str:
         files = kw.get("file_paths", ["f1.mp4", "f2.mp4", "f3.mp4"])
-        failed = random.randint(0, 1) if self.scene == "upload_partial_fail" else 0
+        failed = random.randint(0, 1) if self.scene in {"upload_partial_fail", "batch_upload_partial_fail"} else 0
         success = len(files) - failed
         results = [{"file": file_path, "status": "uploaded", "asset_id": f"ASSET_{random.randint(1000, 9999)}"} for file_path in files[:success]]
         if failed:
@@ -310,14 +340,15 @@ class MockToolExecutor:
         playbooks = {
             "low_roas": ["Review CPI distribution across ad groups; pause units where CPI > 2x target", "Audit audience targeting for high-CPI creatives; narrow to core user segments", "Try switching bidding strategy to tCPA", "Add new creatives to reduce dependency on high-CPI assets"],
             "low_ctr": ["Analyze common traits of top CTR creatives", "Pause creatives with CTR below 50% of industry average", "Reference competitor high-CTR creative directions and refresh creative library", "A/B test different hook types"],
+            "low_retention": ["Review acquisition channel quality and compare media-source retention cohorts", "Audit whether creatives are overselling or mismatching the in-game experience", "Tighten targeting to reduce low-intent traffic and exclude poor-quality placements", "Coordinate with product to inspect first-session funnel drop-offs and onboarding friction"],
             "creative_fatigue": ["Launch 3-5 new creatives immediately covering different hook types", "Pause creatives with CTR week-over-week decline > 30%", "Slightly increase CPM bid to maintain impressions while accelerating creative rotation"],
             "budget_underdelivery": ["Check if current bid is below the platform's recommended minimum", "Moderately raise tCPA/tROAS target to open up more auction opportunities", "Expand audience targeting scope"],
         }
         issue_map = {
             "roas_danger": "low_roas",
             "roas_warning": "low_roas",
-            "ret_danger": "low_ctr",
-            "ret_warning": "low_ctr",
+            "ret_danger": "low_retention",
+            "ret_warning": "low_retention",
             "both_danger": "low_roas",
             "both_warning": "low_roas",
             "creative_fatigue": "creative_fatigue",
@@ -354,7 +385,13 @@ class MockToolExecutor:
             "ctr": {"p25": 0.018, "p50": 0.030, "p75": 0.048},
             "cpi": {"p25": 0.90, "p50": 1.60, "p75": 2.80},
         }.get(metric, {})
-        return self._ok({"metric": metric, "genre": self.genre, "region": self.region, "platform": self.platform, "benchmark": benchmark})
+        return self._ok({
+            "metric": metric,
+            "genre": kw.get("game_genre", self.genre),
+            "region": kw.get("region", self.region),
+            "platform": kw.get("platform", self.platform),
+            "benchmark": benchmark,
+        })
 
     def get_platform_policy(self, **kw) -> str:
         platform = kw.get("platform", self.platform)
@@ -397,27 +434,148 @@ def build_tool_arguments(tool_name: str, seed: Dict) -> Dict:
     genre = seed["game_genre"]
     region = seed["region"]
     scene = seed.get("scene_tag", "")
+    query = seed.get("user_query", "")
+    intent_bucket = seed.get("intent_bucket", "")
+    query_slots = seed.get("query_slots", {})
+
+    def extract_platform(default: str) -> str:
+        for canonical, tokens in PLATFORM_TOKENS.items():
+            if any(token in query for token in tokens):
+                return canonical
+        return query_slots.get("platform", "")
+
+    def extract_genre(default: str) -> str:
+        lowered = query.lower()
+        for canonical, tokens in GENRE_TOKENS.items():
+            if any(token.lower() in lowered for token in tokens):
+                return canonical
+        return query_slots.get("game_genre", "")
+
+    def extract_region(default: str) -> str:
+        for token in REGION_TOKENS:
+            if token in query:
+                return token
+        return query_slots.get("region", "")
+
+    def extract_campaign(default: str) -> str:
+        match = re.search(r"CMP_\d+", query)
+        if match:
+            return match.group(0)
+        return query_slots.get("campaign_id", "")
+
+    def extract_app(default: str) -> str:
+        match = re.search(r"(?:[a-zA-Z0-9_]+\.)+[a-zA-Z0-9_]+", query)
+        if match:
+            return match.group(0)
+        return query_slots.get("app_id", "")
+
+    def extract_competitor(default: str) -> str:
+        for competitor in COMPETITORS:
+            if competitor in query:
+                return competitor
+        return query_slots.get("competitor_name", "")
+
+    def infer_sort_by() -> str:
+        lowered = query.lower()
+        if "cpm" in lowered:
+            return "cpm"
+        if "cpi" in lowered:
+            return "cpi"
+        if "roas" in lowered or "回收" in query:
+            return "roas_d7"
+        return "ctr"
+
+    def infer_metric_names() -> list[str]:
+        explicit = query_slots.get("metrics")
+        if explicit:
+            return explicit
+        lowered = query.lower()
+        metrics: list[str] = []
+        if "roas" in lowered or "回收" in query:
+            metrics.append("roas")
+        if "留存" in query or "retention" in lowered:
+            metrics.extend(["retention_d1", "retention_d7"])
+        if "ctr" in lowered or "点击" in query:
+            metrics.append("ctr")
+        if "cpi" in lowered:
+            metrics.append("cpi")
+        if "cpm" in lowered:
+            metrics.append("cpm")
+        if "花费" in query or "预算" in query or "消耗" in query or "spend" in lowered:
+            metrics.append("spend")
+        if "安装" in query or "installs" in lowered:
+            metrics.append("installs")
+        return metrics or ["roas"]
+
+    def infer_report_type() -> str:
+        if "归因" in query or "revenue" in query.lower():
+            return "attribution"
+        return "retention"
+
+    def infer_knowledge_domain() -> str:
+        if intent_bucket in {"bidding_strategy", "creative_guideline", "platform_policy", "industry_benchmark"}:
+            return intent_bucket
+        return scene if scene in {"bidding_strategy", "creative_guideline", "platform_policy", "industry_benchmark"} else "bidding_strategy"
+
+    def infer_benchmark_metric() -> str:
+        explicit_metric = query_slots.get("benchmark_metric")
+        if explicit_metric:
+            return explicit_metric
+        lowered = query.lower()
+        if "cpm" in lowered:
+            return "cpm"
+        if "cpi" in lowered:
+            return "cpi"
+        if "ctr" in lowered or scene == "creative_fatigue":
+            return "ctr"
+        if "留存" in query or "retention" in lowered or scene in {"ret_warning", "ret_danger"}:
+            return "retention_d1"
+        return "roas"
+
+    def infer_policy_type() -> str:
+        if any(token in query for token in ["限制", "风险", "政策", "审核"]):
+            return "content_restriction"
+        if any(token in query for token in ["尺寸", "比例", "格式", "规格", "时长"]):
+            return "ad_format"
+        return "content_restriction"
+
+    resolved_platform = extract_platform(platform)
+    resolved_genre = extract_genre(genre)
+    resolved_region = extract_region(region)
+    resolved_campaign = extract_campaign(campaign_id)
+    resolved_app = extract_app(app_id)
+    resolved_competitor = extract_competitor("Playrix")
+
     return {
-        "search_trending_creatives": {"platform": platform, "game_genre": genre, "region": region, "time_range": 7, "top_k": 10},
-        "search_competitor_ads": {"competitor_name": random.choice(["Playrix", "Voodoo", "Rollic", "Jam City"]), "platform": platform, "limit": 20},
-        "get_trending_hooks": {"game_genre": genre, "creative_type": random.choice(["video", "playable"])},
-        "validate_creative_spec": {"file_path": f"assets/{genre}_video_{random.randint(1, 9):02d}.mp4", "platform": platform, "ad_format": random.choice(["interstitial", "rewarded"])},
-        "upload_creative_asset": {"file_path": f"assets/{genre}_video_{random.randint(1, 9):02d}.mp4", "asset_type": "video", "campaign_id": campaign_id, "ad_group_id": f"AG_{random.randint(100, 999)}", "creative_name": f"{genre}_{region}_{date_range['start']}_v{random.randint(1, 9)}"},
-        "batch_upload_creatives": {"file_paths": [f"assets/{genre}_v{i}.mp4" for i in range(1, 4)], "campaign_id": campaign_id, "naming_convention": "{genre}_{region}_{date}_{index}"},
-        "get_campaign_metrics": {"campaign_id": campaign_id, "metrics": ["roas", "retention_d1", "retention_d7", "ctr", "cpi", "spend", "installs"], "date_range": date_range, "breakdown": "daily"},
-        "get_creative_performance": {"campaign_id": campaign_id, "sort_by": "ctr", "top_k": 10, "date_range": date_range},
-        "get_appsflyer_report": {"app_id": app_id, "report_type": "retention", "date_range": date_range, "groupby": ["media_source", "country"]},
-        "compare_campaigns": {"campaign_ids": [campaign_id, f"CMP_{random.randint(1000, 9999)}"], "metrics": ["roas", "retention_d1", "cpi", "spend"], "date_range": date_range},
-        "detect_anomalies": {"campaign_id": campaign_id, "metric": "roas" if "roas" in scene else ("retention_d1" if "ret" in scene else "ctr"), "sensitivity": 0.75},
-        "get_optimization_playbook": {"issue_type": {"roas_danger": "low_roas", "roas_warning": "low_roas", "ret_danger": "low_ctr", "ret_warning": "low_ctr", "creative_fatigue": "creative_fatigue", "budget_underdelivery": "budget_underdelivery"}.get(scene, "low_roas")},
-        "query_knowledge_base": {"question": seed.get("user_query", "UA strategy"), "domain": scene if scene in {"bidding_strategy", "creative_guideline", "platform_policy", "industry_benchmark"} else "bidding_strategy", "search_mode": "hybrid", "top_k": 5},
-        "get_benchmark_data": {"metric": "roas", "game_genre": genre, "region": region, "platform": platform},
-        "get_platform_policy": {"platform": platform, "policy_type": random.choice(["ad_format", "content_restriction"])},
+        "search_trending_creatives": {"platform": resolved_platform, "game_genre": resolved_genre, "region": resolved_region, "time_range": 7, "top_k": 10},
+        "search_competitor_ads": {"competitor_name": resolved_competitor, "platform": resolved_platform, "limit": 20},
+        "get_trending_hooks": {"game_genre": resolved_genre, "creative_type": "playable" if "playable" in query.lower() else "video"},
+        "validate_creative_spec": {"file_path": f"assets/{resolved_genre}_video_{random.randint(1, 9):02d}.mp4", "platform": resolved_platform, "ad_format": random.choice(["interstitial", "rewarded"])},
+        "upload_creative_asset": {"file_path": f"assets/{resolved_genre}_video_{random.randint(1, 9):02d}.mp4", "asset_type": "video", "campaign_id": resolved_campaign, "ad_group_id": f"AG_{random.randint(100, 999)}", "creative_name": f"{resolved_genre}_{resolved_region}_{date_range['start']}_v{random.randint(1, 9)}"},
+        "batch_upload_creatives": {"file_paths": [f"assets/{resolved_genre}_v{i}.mp4" for i in range(1, 4)], "campaign_id": resolved_campaign, "naming_convention": "{genre}_{region}_{date}_{index}"},
+        "get_campaign_metrics": {"campaign_id": resolved_campaign, "metrics": infer_metric_names() if intent_bucket == "campaign_metrics" else ["roas", "retention_d1", "retention_d7", "ctr", "cpi", "spend", "installs"], "date_range": date_range, "breakdown": "daily"},
+        "get_creative_performance": {"campaign_id": resolved_campaign, "sort_by": infer_sort_by(), "top_k": 10, "date_range": date_range},
+        "get_appsflyer_report": {"app_id": resolved_app, "report_type": infer_report_type(), "date_range": date_range, "groupby": ["media_source", "country"] if "国家" in query or "country" in query.lower() or "来源" in query or "渠道" in query else ["media_source"]},
+        "compare_campaigns": {"campaign_ids": [resolved_campaign, f"CMP_{random.randint(1000, 9999)}"], "metrics": ["roas", "retention_d1", "cpi", "spend"], "date_range": date_range},
+        "detect_anomalies": {"campaign_id": resolved_campaign, "metric": "roas" if "roas" in scene else ("retention_d1" if "ret" in scene else "ctr"), "sensitivity": 0.75},
+        "get_optimization_playbook": {"issue_type": {"roas_danger": "low_roas", "roas_warning": "low_roas", "ret_danger": "low_retention", "ret_warning": "low_retention", "creative_fatigue": "creative_fatigue", "budget_underdelivery": "budget_underdelivery"}.get(scene, "low_roas")},
+        "query_knowledge_base": {"question": seed.get("user_query", "UA strategy"), "domain": infer_knowledge_domain(), "search_mode": "hybrid", "top_k": 5},
+        "get_benchmark_data": {"metric": infer_benchmark_metric(), "game_genre": resolved_genre, "region": resolved_region, "platform": resolved_platform},
+        "get_platform_policy": {"platform": resolved_platform, "policy_type": infer_policy_type()},
     }.get(tool_name, {})
 
 
-def build_final_response(seed: Dict, ex: MockToolExecutor) -> str:
+def _parse_tool_payload(result: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(result)
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def build_final_response(seed: Dict, ex: MockToolExecutor, tool_results: list[tuple[str, dict[str, Any]]]) -> str:
     scene = seed.get("scene_tag", "healthy")
+    intent_bucket = seed.get("intent_bucket", "")
     campaign_id = seed["campaign_id"]
     roas_baseline = ex.roas_bl_d7
     retention_baseline_d1 = ex.ret_bl_d1
@@ -445,26 +603,129 @@ def build_final_response(seed: Dict, ex: MockToolExecutor) -> str:
         "budget_underdelivery": f"""**{campaign_id} 预算欠量分析**\n\n- 预算消耗率：约 52%\n- CPM：持续走高\n\n**建议**：上调 tCPA 目标，扩大定向并补充素材。""",
         "insufficient_data": f"""**{campaign_id} 数据说明**\n\n当前 Campaign 投放时间较短，主要指标仅供参考，建议继续观察至第 5-7 天。""",
     }
-    if scene == "creative_search":
-        return f"已为您搜索完毕。以上是 {seed.get('platform', '平台')} 上 {seed.get('game_genre', '该品类')} 品类近期表现最好的热门素材。"
-    if scene == "upload_success":
+    result_map = {tool_name: payload for tool_name, payload in tool_results}
+    if seed.get("workflow") == 1:
+        if intent_bucket == "competitor_ads":
+            ads_payload = result_map.get("search_competitor_ads", {})
+            ads = ads_payload.get("data", {}).get("ads", [])
+            competitor = ads_payload.get("data", {}).get("competitor", seed.get("query_slots", {}).get("competitor_name", "竞品"))
+            platform_name = ads[0].get("platform") if ads else seed.get("platform", "平台")
+            highlights = [
+                f"{item.get('ad_id')}（{item.get('format')}，主题 {item.get('creative_theme')}）"
+                for item in ads[:3]
+            ]
+            return f"{competitor} 最近在 {platform_name} 主要在投这些广告：{'；'.join(highlights)}。"
+        if intent_bucket == "trending_with_hooks":
+            creative_payload = result_map.get("search_trending_creatives", {})
+            hook_payload = result_map.get("get_trending_hooks", {})
+            creatives = creative_payload.get("data", {}).get("results", [])
+            hooks = hook_payload.get("data", {}).get("hooks", [])
+            platform_name = creatives[0].get("platform") if creatives else seed.get("platform", "平台")
+            genre_name = creatives[0].get("genre") if creatives else hook_payload.get("data", {}).get("genre", seed.get("game_genre", "该品类"))
+            creative_text = "；".join(
+                f"{item.get('creative_id')}（{item.get('format')}，{item.get('hook_type')}）"
+                for item in creatives[:2]
+            )
+            hook_text = "；".join(item.get("hook", "") for item in hooks[:3])
+            return f"{platform_name} 上 {genre_name} 最近跑得好的素材包括：{creative_text}。常见高表现钩子有：{hook_text}。"
+        creative_payload = result_map.get("search_trending_creatives", {})
+        creatives = creative_payload.get("data", {}).get("results", [])
+        platform_name = creatives[0].get("platform") if creatives else seed.get("platform", "平台")
+        genre_name = creatives[0].get("genre") if creatives else seed.get("game_genre", "该品类")
+        highlights = [
+            f"{item.get('creative_id')}（{item.get('format')}，CTR {item.get('estimated_ctr', 0):.1%}）"
+            for item in creatives[:3]
+        ]
+        return f"{platform_name} 上 {genre_name} 最近表现较强的素材有：{'；'.join(highlights)}。"
+    if scene in {"upload_success", "single_upload_success", "batch_upload_success", "single_upload_partial_fail", "batch_upload_partial_fail"}:
+        upload_payload = result_map.get("upload_creative_asset", {}).get("data", {})
+        if upload_payload:
+            return f"{upload_payload.get('creative_name', '素材')} 已成功上传至 {upload_payload.get('campaign_id', campaign_id)}，asset_id 为 {upload_payload.get('asset_id')}，当前审核状态为 {upload_payload.get('review_status')}。"
+        batch_payload = result_map.get("batch_upload_creatives", {}).get("data", {})
+        if batch_payload:
+            details = "；".join(
+                f"{item.get('file')} -> {item.get('status')}"
+                for item in batch_payload.get("results", [])[:2]
+            )
+            return f"共上传 {batch_payload.get('total')} 个素材，成功 {batch_payload.get('success')} 个，失败 {batch_payload.get('failed')} 个。{details}"
         return f"素材已成功上传至 {campaign_id}，审核通常需要 2-4 小时。"
     if scene in ("validate_fail_size", "validate_fail_format"):
+        validation_payload = result_map.get("validate_creative_spec", {}).get("data", {})
+        errors = validation_payload.get("errors", [])
+        if errors:
+            first = errors[0]
+            return f"素材规格校验未通过：{first.get('field')} 存在问题，{first.get('message')}。请调整后重新上传。"
         return "素材规格校验未通过，请根据上方错误信息调整后重新上传。"
+    if scene == "creative_metrics":
+        creative_payload = result_map.get("get_creative_performance", {}).get("data", {})
+        creatives = creative_payload.get("creatives", [])
+        sort_by = creative_payload.get("sort_by", "ctr")
+        summary = "；".join(
+            f"{item.get('creative_id')}（{sort_by}: {item.get(sort_by, item.get('ctr'))}）"
+            for item in creatives[:2]
+        )
+        return f"{campaign_id} 按素材维度表现较好的创意有：{summary}。"
+    if scene == "appsflyer_report":
+        appsflyer_payload = result_map.get("get_appsflyer_report", {}).get("data", {})
+        report_type = appsflyer_payload.get("report_type")
+        data = appsflyer_payload.get("data", {})
+        if report_type == "attribution":
+            return f"{appsflyer_payload.get('app_id', seed.get('app_id'))} 最近的归因数据里，主要来源是 {data.get('top_media_source')}，D7 收入约为 ${data.get('revenue_d7', 0):,.0f}。"
+        return f"{appsflyer_payload.get('app_id', seed.get('app_id'))} 最近留存表现为：D1 留存 {data.get('retention_d1', 0):.1%}，D7 留存 {data.get('retention_d7', 0):.1%}。"
+    if intent_bucket == "campaign_metrics":
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        parts: list[str] = []
+        if "roas" in metrics_payload:
+            roas = metrics_payload["roas"]
+            parts.append(f"D7 ROAS {roas.get('d7', roas_d7):.3f}")
+            if "d30" in roas:
+                parts.append(f"D30 ROAS {roas.get('d30', ex._roas_d30):.3f}")
+        if "retention_d1" in metrics_payload:
+            parts.append(f"D1 留存 {metrics_payload['retention_d1']:.1%}")
+        if "retention_d7" in metrics_payload:
+            parts.append(f"D7 留存 {metrics_payload['retention_d7']:.1%}")
+        if "ctr" in metrics_payload:
+            parts.append(f"CTR {metrics_payload['ctr']:.2%}")
+        if "cpi" in metrics_payload:
+            parts.append(f"CPI ${metrics_payload['cpi']:.2f}")
+        if "cpm" in metrics_payload:
+            parts.append(f"CPM ${metrics_payload['cpm']:.2f}")
+        if "spend" in metrics_payload:
+            parts.append(f"花费 ${metrics_payload['spend']:,.0f}")
+        if "installs" in metrics_payload:
+            parts.append(f"安装量 {metrics_payload['installs']}")
+        return f"{campaign_id} 最近数据为：{'，'.join(parts)}。"
     if scene == "query_roas":
-        return f"{campaign_id} 当前查询到的核心回收数据如下：D7 ROAS 为 {roas_d7:.3f}，D30 ROAS 为 {ex._roas_d30:.3f}。如果需要，我可以继续按天、按国家或按素材维度展开。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        roas = metrics_payload.get("roas", {})
+        return f"{campaign_id} 当前查询到的核心回收数据如下：D7 ROAS 为 {roas.get('d7', roas_d7):.3f}，D30 ROAS 为 {roas.get('d30', ex._roas_d30):.3f}。如果需要，我可以继续按天、按国家或按素材维度展开。"
     if scene == "query_retention":
-        return f"{campaign_id} 当前留存数据如下：D1 留存 {retention_d1:.1%}，D7 留存 {retention_d7:.1%}。如果你要，我可以继续结合 AppsFlyer 维度拆分来源和地区。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        return f"{campaign_id} 当前留存数据如下：D1 留存 {metrics_payload.get('retention_d1', retention_d1):.1%}，D7 留存 {metrics_payload.get('retention_d7', retention_d7):.1%}。如果你要，我可以继续结合 AppsFlyer 维度拆分来源和地区。"
     if scene == "query_ctr":
-        return f"{campaign_id} 当前 CTR 为 {ctr:.2%}。如果需要进一步判断素材吸引力，我可以继续帮你拉 CPM、CPI 或按素材拆分表现。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        return f"{campaign_id} 当前 CTR 为 {metrics_payload.get('ctr', ctr):.2%}。如果需要进一步判断素材吸引力，我可以继续帮你拉 CPM、CPI 或按素材拆分表现。"
     if scene == "query_spend":
-        return f"{campaign_id} 当前查询到的花费为 ${spend:,.0f}。如果你想看预算消耗节奏，我可以继续按天或按广告组拆开。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        return f"{campaign_id} 当前查询到的花费为 ${metrics_payload.get('spend', spend):,.0f}。如果你想看预算消耗节奏，我可以继续按天或按广告组拆开。"
     if scene == "query_installs":
-        return f"{campaign_id} 当前安装量为 {ex._installs}。如果需要，我可以继续按国家、媒体来源或时间维度展开安装分布。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        return f"{campaign_id} 当前安装量为 {metrics_payload.get('installs', ex._installs)}。如果需要，我可以继续按国家、媒体来源或时间维度展开安装分布。"
     if scene == "query_cpm":
-        return f"{campaign_id} 当前 CPM 为 ${ex._cpm:.2f}。如果你要判断流量成本是否异常，我也可以继续补充 CTR、CPI 和消耗数据。"
+        metrics_payload = result_map.get("get_campaign_metrics", {}).get("data", {}).get("metrics", {})
+        return f"{campaign_id} 当前 CPM 为 ${metrics_payload.get('cpm', ex._cpm):.2f}。如果你要判断流量成本是否异常，我也可以继续补充 CTR、CPI 和消耗数据。"
     if scene in ("bidding_strategy", "creative_guideline", "platform_policy", "industry_benchmark", "knowledge_base"):
-        return "以上是知识库检索结果。如需进一步了解某个具体细节，请继续提问。"
+        if "get_platform_policy" in result_map:
+            payload = result_map["get_platform_policy"].get("data", {})
+            return f"{payload.get('platform', seed.get('platform'))} 关于该问题的政策要求是：{payload.get('content', '暂无对应政策说明')}。"
+        if "get_benchmark_data" in result_map:
+            payload = result_map["get_benchmark_data"].get("data", {})
+            benchmark = payload.get("benchmark", {})
+            return f"{payload.get('platform', seed.get('platform'))} 上 {payload.get('genre', seed.get('game_genre'))} 的 {payload.get('metric', 'benchmark')} benchmark 参考为：{benchmark}。"
+        if "query_knowledge_base" in result_map:
+            chunks = result_map["query_knowledge_base"].get("data", {}).get("chunks", [])
+            summary = "；".join(chunk.get("content", "") for chunk in chunks[:2])
+            return f"结合知识库资料，关键结论是：{summary}"
     return templates.get(scene, templates["healthy"])
 
 
@@ -489,15 +750,19 @@ def build_clarify_question(seed: Dict) -> str:
     return {
         "campaign_id_missing": "请问您想查看哪个 Campaign 的数据？提供 Campaign ID 后我马上帮您拉取。",
         "campaign_id_and_timerange_missing": "请问您想分析哪个 Campaign？需要查看哪个时间段的数据？",
+        "timerange_missing": "请问您想看哪个时间段的数据？例如最近7天、上周或本月。",
         "platform_or_genre_missing": "请问您想搜索哪个平台的素材？游戏品类是什么？",
+        "platform_missing": "请问您想看哪个平台的数据或规则？",
+        "app_id_missing": "请问您想查看哪个 App 的数据？提供 App ID 后我继续帮您查。",
+        "platform_region_or_genre_missing": "请问您要看哪个平台、哪个地区、哪个品类的 benchmark？",
     }.get(seed.get("clarification_reason", ""), "请提供更多信息，以便我为您准确查询。")
 
 
 def build_refusal(seed: Dict) -> str:
     return {
         "off_topic": "抱歉，我是专注于移动游戏广告投放的 AI 助手，这个问题超出了我的服务范围。如有投放数据分析、素材搜索、Campaign 优化等需求，随时可以问我。",
-        "unauthorized_operation": "抱歉，删除/修改账户级数据属于高风险操作，超出了我的权限范围。为避免不可逆的影响，此类操作请通过平台后台或联系您的账户经理处理。",
-        "insufficient_data_to_answer": "您的问题我理解，但缺少必要信息（Campaign ID 或时间范围）无法给出准确分析。请提供具体的 Campaign ID，我来帮您查看数据。",
+        "unauthorized_internal": "抱歉，删除、修改或导出账户级敏感数据属于高风险操作，超出了我的执行权限。为避免不可逆影响，请通过平台后台的正式审批流程或联系账户管理员处理。",
+        "unauthorized_external": "抱歉，获取竞品账户数据、访问未授权系统或导出竞品素材属于违规甚至违法行为，我不能协助这类请求。",
     }.get(seed.get("refusal_type", "off_topic"), "抱歉，这个问题超出了我的服务范围。")
 
 
@@ -513,6 +778,10 @@ def build_message_record(seed: Dict) -> Dict:
         answer = seed.get("clarification_answer") or ""
         if answer:
             messages.append({"role": "user", "content": answer})
+            if not tool_plan:
+                return wrap_record(seed, messages)
+        else:
+            return wrap_record(seed, messages)
     else:
         messages.append({"role": "user", "content": seed["user_query"]})
 
@@ -520,6 +789,7 @@ def build_message_record(seed: Dict) -> Dict:
         messages.append({"role": "assistant", "content": build_refusal(seed)})
         return wrap_record(seed, messages)
 
+    collected_results: list[tuple[str, dict[str, Any]]] = []
     for group in tool_plan:
         mode = group["mode"]
         tools = group["tools"]
@@ -533,15 +803,19 @@ def build_message_record(seed: Dict) -> Dict:
                 pending_results.append((call_id, tool_name, arguments))
             messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls_payload})
             for call_id, tool_name, arguments in pending_results:
-                messages.append(make_tool_result_message(executor.execute(tool_name, arguments), call_id))
+                result = executor.execute(tool_name, arguments)
+                messages.append(make_tool_result_message(result, call_id))
+                collected_results.append((tool_name, _parse_tool_payload(result)))
         else:
             for tool_name in tools:
                 arguments = build_tool_arguments(tool_name, seed)
                 assistant_message, call_id = make_tool_call_message(tool_name, arguments)
                 messages.append(assistant_message)
-                messages.append(make_tool_result_message(executor.execute(tool_name, arguments), call_id))
+                result = executor.execute(tool_name, arguments)
+                messages.append(make_tool_result_message(result, call_id))
+                collected_results.append((tool_name, _parse_tool_payload(result)))
 
-    messages.append({"role": "assistant", "content": build_final_response(seed, executor)})
+    messages.append({"role": "assistant", "content": build_final_response(seed, executor, collected_results)})
     return wrap_record(seed, messages)
 
 
