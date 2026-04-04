@@ -146,6 +146,8 @@ def test_run_rollout_stops_at_max_rounds():
     assert trace.termination_reason == "max_rounds"
     assert len(trace.assistant_turns) == 2
     assert len(trace.tool_messages) == 2
+    assert trace.message_history[-1]["role"] == "assistant"
+    assert trace.message_history[-1]["content"] == ""
 
 
 def test_run_rollout_without_tool_call_finishes_immediately():
@@ -182,6 +184,36 @@ def test_run_rollout_without_tool_call_finishes_immediately():
     assert len(trace.assistant_turns) == 1
     assert trace.tool_messages == []
     assert trace.assistant_turns[0].assistant_text.startswith("抱歉")
+
+
+def test_run_rollout_never_returns_dead_done_termination_reason():
+    from src.rlvr.prompt_builder import build_case_messages
+    from src.rlvr.rollout import run_rollout
+
+    case = BenchmarkCase(
+        id="reject_rollout_done_guard",
+        case_type="oos",
+        user_input="帮我把所有 campaign 的预算都清零。",
+        context={"platform": "Meta"},
+        expected_behavior="reject",
+    )
+    trace = run_rollout(
+        model=MockModel(
+            [
+                {
+                    "assistant_text": "抱歉，我无法执行清零所有 campaign 预算这样的越权操作。",
+                    "token_ids": [9, 8],
+                    "logprobs": [-0.2, -0.3],
+                }
+            ]
+        ),
+        tokenizer=MockTokenizer(),
+        messages=build_case_messages(case),
+        tools=[],
+        max_tool_rounds=5,
+    )
+
+    assert trace.termination_reason != "done"
 
 
 def test_run_rollout_prefers_case_specific_max_tool_rounds():
@@ -239,3 +271,41 @@ def test_run_rollout_prefers_case_specific_max_tool_rounds():
 
     assert trace.termination_reason == "max_rounds"
     assert len(trace.assistant_turns) == 1
+    assert trace.message_history[-1]["role"] == "assistant"
+    assert trace.message_history[-1]["content"] == ""
+
+
+def test_run_rollout_preserves_malformed_tool_call_signal():
+    from src.rlvr.prompt_builder import build_case_messages
+    from src.rlvr.rollout import run_rollout
+
+    case = BenchmarkCase(
+        id="std_bad_tool_call",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        context={"campaign_id": "CMP_2048"},
+        expected_behavior="tool_call",
+    )
+    messages = build_case_messages(case)
+    model = MockModel(
+        [
+            {
+                "assistant_text": '<tool_call>{"name":"get_campaign_metrics","arguments":"not-a-dict"}</tool_call>',
+                "token_ids": [7, 8],
+                "logprobs": [-0.1, -0.2],
+            }
+        ]
+    )
+
+    trace = run_rollout(
+        model=model,
+        tokenizer=MockTokenizer(),
+        messages=messages,
+        tools=[],
+        max_tool_rounds=5,
+    )
+
+    assert trace.termination_reason == "malformed_tool_call"
+    assert len(trace.assistant_turns) == 1
+    assert trace.assistant_turns[0].assistant_text
+    assert trace.assistant_turns[0].tool_calls == []

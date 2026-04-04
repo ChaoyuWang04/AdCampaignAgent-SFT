@@ -129,7 +129,14 @@ def infer_tool_arguments(
     tool_index: int = 0,
 ) -> dict[str, Any]:
     if case.expected_tool_args and tool_name in case.expected_tool_args:
-        return dict(case.expected_tool_args[tool_name])
+        expected_args = case.expected_tool_args[tool_name]
+        if isinstance(expected_args, list):
+            if tool_index < len(expected_args):
+                return dict(expected_args[tool_index])
+            if expected_args:
+                return dict(expected_args[-1])
+            return {}
+        return dict(expected_args)
 
     context = case.context
     if tool_name == "get_campaign_metrics":
@@ -283,6 +290,30 @@ def build_mask_layout(prompt_len: int, completion_len: int, width: int = 120) ->
     return f"{head}{color('...', C.GRAY)}{tail}"
 
 
+def build_real_masks(
+    *,
+    trainer: MultiTurnGRPOTrainer,
+    prompt_ids: list[int],
+    completion_ids: list[int],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    from trl.trainer.utils import pad
+
+    prompt_tensor = torch.tensor(prompt_ids, dtype=torch.long)
+    completion_tensor = torch.tensor(completion_ids, dtype=torch.long)
+    prompt_mask = pad(
+        [torch.ones_like(prompt_tensor, dtype=torch.long)],
+        padding_value=0,
+        padding_side="left",
+    )
+    completion_mask = pad(
+        [torch.ones_like(completion_tensor, dtype=torch.long)],
+        padding_value=0,
+        padding_side="right",
+    )
+    _ = trainer
+    return prompt_mask, completion_mask
+
+
 def inspect_case(case: BenchmarkCase, tokenizer) -> None:
     tools = load_tool_schemas()
     model = MockPolicy(case=case, tokenizer=tokenizer)
@@ -350,8 +381,11 @@ def inspect_case(case: BenchmarkCase, tokenizer) -> None:
     print_section("4. Mask")
     prompt_len = len(prompt_ids)
     completion_len = len(flat_ids)
-    prompt_mask = torch.ones(prompt_len, dtype=torch.long)
-    completion_mask = torch.ones(completion_len, dtype=torch.long)
+    prompt_mask, completion_mask = build_real_masks(
+        trainer=trainer,
+        prompt_ids=prompt_ids,
+        completion_ids=flat_ids,
+    )
     print(f"prompt 长度: {color(str(prompt_len), C.GREEN)}")
     print(f"completion 长度: {color(str(completion_len), C.GREEN)}")
     print(f"prompt_mask 有效 token 数: {color(str(int(prompt_mask.sum().item())), C.GREEN)}")

@@ -54,6 +54,7 @@ from src.benchmark.benchmark_utils import (
 )
 from src.benchmark.eval_content import evaluate_content_case
 from src.benchmark.eval_routing import evaluate_routing_case
+from src.benchmark.benchmark_utils import parse_tool_arguments
 
 
 SLOT_ALIASES = {
@@ -61,7 +62,10 @@ SLOT_ALIASES = {
     "target_audience": ["target_audience", "目标受众", "受众", "目标用户", "人群"],
     "platform": ["platform", "平台", "投放平台"],
     "campaign_id": ["campaign_id", "活动id", "campaign", "活动编号"],
-    "file_path": ["file_path", "文件", "素材文件", "视频", "图片", "路径"],  # ← 加这行
+    "file_path": ["file_path", "文件", "素材文件", "视频", "图片", "路径"],
+    "app_id": ["app_id", "app", "应用", "应用id", "应用ID"],
+    "competitor_name": ["competitor_name", "competitor", "竞品", "竞品名称"],
+    "game_genre": ["game_genre", "genre", "品类", "游戏品类", "类型"],
 }
 
 
@@ -119,11 +123,50 @@ def _parallel_score(case: BenchmarkCase, trace: list[dict[str, Any]]) -> float:
         )
 
     normalized_expected = [sorted(group) for group in expected_groups]
-    normalized_predicted = [sorted(group) for group in predicted_groups]
-    for group in normalized_expected:
-        if group in normalized_predicted:
+    for group, message in zip(normalized_predicted := predicted_groups, assistant_with_tools):
+        if sorted(group) not in normalized_expected:
+            continue
+        if _parallel_args_match(case, message.get("tool_calls", [])):
             return 1.0
     return 0.0
+
+
+def _parallel_args_match(case: BenchmarkCase, tool_calls: list[dict[str, Any]]) -> bool:
+    if not case.expected_tool_args:
+        return True
+
+    actual_by_tool: dict[str, list[dict[str, Any]]] = {}
+    for call in tool_calls:
+        function = call.get("function", {})
+        name = function.get("name")
+        if not isinstance(name, str):
+            continue
+        actual_by_tool.setdefault(name, []).append(parse_tool_arguments(function.get("arguments", {})))
+
+    for tool_name, expected_args in case.expected_tool_args.items():
+        candidates = list(actual_by_tool.get(tool_name, []))
+        if isinstance(expected_args, list):
+            if len(candidates) < len(expected_args):
+                return False
+            remaining = list(candidates)
+            for expected_item in expected_args:
+                match_index = next(
+                    (
+                        index for index, candidate in enumerate(remaining)
+                        if all(candidate.get(key) == value for key, value in expected_item.items())
+                    ),
+                    None,
+                )
+                if match_index is None:
+                    return False
+                remaining.pop(match_index)
+        else:
+            if not any(
+                all(candidate.get(key) == value for key, value in expected_args.items())
+                for candidate in candidates
+            ):
+                return False
+    return True
 
 
 def _clarify_score(case: BenchmarkCase, trace: list[dict[str, Any]]) -> float:

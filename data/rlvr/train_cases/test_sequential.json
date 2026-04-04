@@ -16,6 +16,14 @@
       "validate_creative_spec",
       "upload_creative_asset"
     ],
+    "expected_tool_args": {
+      "validate_creative_spec": {
+        "platform": "Meta"
+      },
+      "upload_creative_asset": {
+        "campaign_id": "CMP_1024"
+      }
+    },
     "notes": "validate before upload; upload depends on validation result",
     "rlvr_split": "train"
   },
@@ -35,6 +43,11 @@
       "detect_anomalies",
       "get_optimization_playbook"
     ],
+    "expected_tool_args": {
+      "detect_anomalies": {
+        "campaign_id": "CMP_3001"
+      }
+    },
     "notes": "anomaly type must be known before playbook can be selected",
     "rlvr_split": "train"
   },
@@ -56,6 +69,16 @@
       "get_campaign_metrics",
       "get_benchmark_data"
     ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_4001"
+      },
+      "get_benchmark_data": {
+        "metric": "roas",
+        "game_genre": "casual",
+        "platform": "Google"
+      }
+    },
     "notes": "fetch actuals first, then compare against benchmark",
     "rlvr_split": "train"
   },
@@ -76,6 +99,15 @@
       "search_trending_creatives",
       "get_trending_hooks"
     ],
+    "expected_tool_args": {
+      "search_trending_creatives": {
+        "platform": "Meta",
+        "game_genre": "casual"
+      },
+      "get_trending_hooks": {
+        "game_genre": "casual"
+      }
+    },
     "notes": "creative landscape first, then hook patterns",
     "rlvr_split": "train"
   },
@@ -96,6 +128,14 @@
       "validate_creative_spec",
       "batch_upload_creatives"
     ],
+    "expected_tool_args": {
+      "validate_creative_spec": {
+        "platform": "TikTok"
+      },
+      "batch_upload_creatives": {
+        "campaign_id": "CMP_2048"
+      }
+    },
     "notes": "batch validate then batch upload",
     "rlvr_split": "train"
   },
@@ -116,6 +156,14 @@
       "get_appsflyer_report",
       "get_campaign_metrics"
     ],
+    "expected_tool_args": {
+      "get_appsflyer_report": {
+        "app_id": "APP_9001"
+      },
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_5001"
+      }
+    },
     "notes": "retention context first then campaign metrics for full picture",
     "rlvr_split": "train"
   },
@@ -135,6 +183,14 @@
       "get_creative_performance",
       "detect_anomalies"
     ],
+    "expected_tool_args": {
+      "get_creative_performance": {
+        "campaign_id": "CMP_6001"
+      },
+      "detect_anomalies": {
+        "campaign_id": "CMP_6001"
+      }
+    },
     "notes": "creative data surfaces the problem, anomaly detection confirms it",
     "rlvr_split": "train"
   },
@@ -152,6 +208,14 @@
       "compare_campaigns",
       "get_optimization_playbook"
     ],
+    "expected_tool_args": {
+      "compare_campaigns": {
+        "campaign_ids": [
+          "CMP_1024",
+          "CMP_2048"
+        ]
+      }
+    },
     "notes": "comparison result determines which issue type to feed into playbook",
     "rlvr_split": "train"
   },
@@ -171,6 +235,11 @@
       "detect_anomalies",
       "get_optimization_playbook"
     ],
+    "expected_tool_args": {
+      "detect_anomalies": {
+        "campaign_id": "CMP_7001"
+      }
+    },
     "notes": "conditional flow: anomaly type gates playbook selection",
     "rlvr_split": "train"
   },
@@ -190,6 +259,14 @@
       "get_campaign_metrics",
       "detect_anomalies"
     ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_8001"
+      },
+      "detect_anomalies": {
+        "campaign_id": "CMP_8001"
+      }
+    },
     "notes": "metrics pull then anomaly check",
     "rlvr_split": "train"
   },
@@ -209,6 +286,16 @@
       "search_competitor_ads",
       "get_platform_policy"
     ],
+    "expected_tool_args": {
+      "search_competitor_ads": {
+        "competitor_name": "Rollic",
+        "platform": "Google"
+      },
+      "get_platform_policy": {
+        "platform": "Google",
+        "policy_type": "content_restriction"
+      }
+    },
     "notes": "see what competitors are doing, then check policy compliance",
     "rlvr_split": "train"
   }

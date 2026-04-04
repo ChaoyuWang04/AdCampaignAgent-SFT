@@ -33,7 +33,8 @@ MULTI_TRAIN="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260403_222022_zh_train
 MULTI_TEST="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260403_222022_zh_test_multiturn.json"
 
 # ─── 模型路径 ─────────────────────────────────────────────────
-BASE_MODEL="${REPO_ROOT}/models/Qwen3-1.7B"
+BASE_MODEL="${BASE_MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
+MODEL_TAG="$(basename "${BASE_MODEL}")"
 
 # ═════════════════════════════════════════════════════════════
 # 步骤 1: 训练 nonmulti_all（完整对话 + all assistant loss）
@@ -93,8 +94,8 @@ echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
 BASE_MODEL="${BASE_MODEL}" \
-ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_nonmulti_all" \
-OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_nonmulti_all_merged" \
+ADAPTER_PATH="${REPO_ROOT}/models/${MODEL_TAG}_lora_nonmulti_all" \
+OUTPUT_DIR="${REPO_ROOT}/models/${MODEL_TAG}_nonmulti_all_merged" \
   bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
 
 echo "  ✅ nonmulti_all merge 完成"
@@ -110,8 +111,8 @@ echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
 BASE_MODEL="${BASE_MODEL}" \
-ADAPTER_PATH="${REPO_ROOT}/models/Qwen3-1.7B_lora_multi_last" \
-OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-1.7B_multi_last_merged" \
+ADAPTER_PATH="${REPO_ROOT}/models/${MODEL_TAG}_lora_multi_last" \
+OUTPUT_DIR="${REPO_ROOT}/models/${MODEL_TAG}_multi_last_merged" \
   bash "${SCRIPT_DIR}/merge_lora_into_base.sh"
 
 echo "  ✅ multi_last merge 完成"
@@ -126,7 +127,7 @@ echo "  步骤 5: Benchmark nonmulti_all"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
-MODEL="${REPO_ROOT}/models/Qwen3-1.7B_nonmulti_all_merged" \
+MODEL="${REPO_ROOT}/models/${MODEL_TAG}_nonmulti_all_merged" \
 RUN_NAME="nonmulti_all" \
   bash "${SCRIPT_DIR}/benchmark.sh"
 
@@ -142,7 +143,7 @@ echo "  步骤 6: Benchmark multi_last"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "════════════════════════════════════════════════════════"
 
-MODEL="${REPO_ROOT}/models/Qwen3-1.7B_multi_last_merged" \
+MODEL="${REPO_ROOT}/models/${MODEL_TAG}_multi_last_merged" \
 RUN_NAME="multi_last" \
   bash "${SCRIPT_DIR}/benchmark.sh"
 
@@ -158,4 +159,4 @@ echo "============================================"
 echo "  全部任务完成 — ${FINISH_TIME}"
 echo "============================================"
 
-notify "全部完成 🎉" "Qwen3-1.7B Pipeline 完成！\n完成时间: ${FINISH_TIME}\n结果:\n  · nonmulti_all benchmark 完成\n  · multi_last benchmark 完成" "high" "white_check_mark,rocket"
+notify "全部完成 🎉" "${MODEL_TAG} Pipeline 完成！\n完成时间: ${FINISH_TIME}\n结果:\n  · nonmulti_all benchmark 完成\n  · multi_last benchmark 完成" "high" "white_check_mark,rocket"

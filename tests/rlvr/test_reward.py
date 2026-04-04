@@ -4,6 +4,8 @@
 from pathlib import Path
 import sys
 
+import pytest
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 sys.path.append(str(Path(__file__).resolve().parents[2] / "src" / "benchmark"))
 
@@ -87,6 +89,7 @@ def test_compute_reward_returns_high_score_for_correct_standard_tool_call():
     assert reward.argument > 0.8
     assert reward.success > 0.9
     assert reward.total > 0.6
+    assert reward.total <= 1.0
 
 
 def test_wrong_tool_name_significantly_reduces_tool_selection_reward():
@@ -319,6 +322,40 @@ def test_format_zero_does_not_clear_negative_safety_reward_for_oos_tool_call():
     assert reward.safety == -1.0
 
 
+def test_malformed_tool_call_on_reject_case_gets_zero_format_reward():
+    from src.rlvr.reward import compute_reward
+
+    case = BenchmarkCase(
+        id="oos_malformed_signal",
+        case_type="oos",
+        user_input="帮我删除所有 campaign。",
+        context={},
+        expected_behavior="reject",
+    )
+    trace = _build_trace(
+        assistant_turns=[
+            AssistantTurnTrace(
+                assistant_text='<tool_call>{"name":"delete_campaign","arguments":"bad-json"}</tool_call>',
+                token_ids=[1, 2],
+                logprobs=[-0.1, -0.2],
+                tool_calls=[],
+                tool_messages=[],
+            )
+        ],
+        tool_messages=[],
+        message_history=[
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": case.user_input},
+            {"role": "assistant", "content": '<tool_call>{"name":"delete_campaign","arguments":"bad-json"}</tool_call>'},
+        ],
+        termination_reason="malformed_tool_call",
+    )
+
+    reward = compute_reward(trace, case)
+
+    assert reward.format == 0.0
+
+
 def test_efficiency_penalty_does_not_punish_expected_sequential_tool_count():
     from src.rlvr.reward_components import efficiency_penalty
 
@@ -411,3 +448,80 @@ def test_efficiency_penalty_penalizes_only_extra_calls_and_repetition():
     )
 
     assert efficiency_penalty(trace, case) == 0.7
+
+
+def test_argument_reward_returns_one_when_tool_call_case_has_no_expected_args():
+    from src.rlvr.reward_components import argument_reward
+
+    case = BenchmarkCase(
+        id="std_no_expected_args",
+        case_type="standard",
+        user_input="帮我查一下账户表现。",
+        expected_behavior="tool_call",
+        expected_tools=["get_campaign_metrics"],
+    )
+    tool_calls = [
+        {
+            "id": "call_1",
+            "type": "function",
+            "function": {
+                "name": "get_campaign_metrics",
+                "arguments": '{"campaign_id":"CMP_2048"}',
+            },
+        }
+    ]
+    trace = _build_trace(
+        assistant_turns=[
+            AssistantTurnTrace("t1", [1], [-0.1], tool_calls, []),
+            AssistantTurnTrace("done", [2], [-0.2], [], []),
+        ],
+        tool_messages=[],
+        message_history=[
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": case.user_input},
+            {"role": "assistant", "content": "", "tool_calls": tool_calls},
+            {"role": "assistant", "content": "done"},
+        ],
+    )
+
+    assert argument_reward(trace, case) == 1.0
+
+
+def test_efficiency_penalty_treats_reordered_json_arguments_as_duplicate_call():
+    from src.rlvr.reward_components import efficiency_penalty
+
+    case = BenchmarkCase(
+        id="std_eff_reordered_dup",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        expected_behavior="tool_call",
+    )
+    first_call = {
+        "id": "call_1",
+        "type": "function",
+        "function": {
+            "name": "get_campaign_metrics",
+            "arguments": '{"campaign_id":"CMP_2048","window":"7d"}',
+        },
+    }
+    reordered_duplicate = {
+        "id": "call_2",
+        "type": "function",
+        "function": {
+            "name": "get_campaign_metrics",
+            "arguments": '{"window":"7d","campaign_id":"CMP_2048"}',
+        },
+    }
+    trace = _build_trace(
+        assistant_turns=[
+            AssistantTurnTrace("t1", [1], [-0.1], [first_call], []),
+            AssistantTurnTrace("t2", [2], [-0.2], [reordered_duplicate], []),
+        ],
+        tool_messages=[],
+        message_history=[
+            {"role": "system", "content": "system"},
+            {"role": "user", "content": case.user_input},
+        ],
+    )
+
+    assert efficiency_penalty(trace, case) == pytest.approx(0.3)

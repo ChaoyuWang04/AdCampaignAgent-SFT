@@ -166,3 +166,219 @@ def test_multiturn_grpo_trainer_smoke():
     assert inputs["advantages"].shape[0] == 4
     assert torch.isfinite(loss)
     assert not torch.isnan(loss)
+
+
+def test_for_testing_uses_real_grpo_config_instead_of_partial_namespace():
+    from src.rlvr.trainer import GRPOConfig, MultiTurnGRPOTrainer, build_trl_reward_func
+
+    case = BenchmarkCase(
+        id="std_args_config",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        context={"platform": "Meta", "campaign_id": "CMP_2048"},
+        expected_behavior="tool_call",
+    )
+
+    trainer = MultiTurnGRPOTrainer.for_testing(
+        model=TinyMockModel(),
+        tokenizer=MockTokenizer(),
+        reward_func=build_trl_reward_func({case.id: case}),
+        case_lookup={case.id: case},
+        rollout_runner=lambda **kwargs: RolloutTrace([], [], kwargs["messages"], "no_tool_call"),
+    )
+
+    assert isinstance(trainer.args, GRPOConfig)
+
+
+def test_multiturn_grpo_trainer_single_generation_keeps_nonzero_advantages():
+    from src.rlvr.trainer import MultiTurnGRPOTrainer, build_trl_reward_func
+
+    case = BenchmarkCase(
+        id="std_single_gen",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        context={"platform": "Meta", "campaign_id": "CMP_2048"},
+        expected_behavior="tool_call",
+        expected_tools=["get_campaign_metrics"],
+        expected_tool_args={"get_campaign_metrics": {"campaign_id": "CMP_2048"}},
+    )
+    case_lookup = {case.id: case}
+
+    traces = [
+        RolloutTrace(
+            assistant_turns=[
+                AssistantTurnTrace(
+                    assistant_text='<tool_call>{"name":"get_campaign_metrics","arguments":{"campaign_id":"CMP_2048"}}</tool_call>',
+                    token_ids=[11, 12],
+                    logprobs=[-0.1, -0.2],
+                    tool_calls=[
+                        {
+                            "id": "call_001",
+                            "type": "function",
+                            "function": {
+                                "name": "get_campaign_metrics",
+                                "arguments": '{"campaign_id":"CMP_2048"}',
+                            },
+                        }
+                    ],
+                    tool_messages=[
+                        {
+                            "role": "tool",
+                            "tool_call_id": "call_001",
+                            "content": '{"campaign_id":"CMP_2048","metrics":{"roas":{"d7":0.91}}}',
+                        }
+                    ],
+                ),
+                AssistantTurnTrace(
+                    assistant_text="最近 7 天 ROAS 基本达标。",
+                    token_ids=[13, 14],
+                    logprobs=[-0.2, -0.3],
+                    tool_calls=[],
+                    tool_messages=[],
+                ),
+            ],
+            tool_messages=[
+                {
+                    "role": "tool",
+                    "tool_call_id": "call_001",
+                    "content": '{"campaign_id":"CMP_2048","metrics":{"roas":{"d7":0.91}}}',
+                }
+            ],
+            message_history=[
+                {"role": "system", "content": "system"},
+                {"role": "user", "content": case.user_input},
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "call_001",
+                            "type": "function",
+                            "function": {
+                                "name": "get_campaign_metrics",
+                                "arguments": '{"campaign_id":"CMP_2048"}',
+                            },
+                        }
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "tool_call_id": "call_001",
+                    "content": '{"campaign_id":"CMP_2048","metrics":{"roas":{"d7":0.91}}}',
+                },
+                {"role": "assistant", "content": "最近 7 天 ROAS 基本达标。"},
+            ],
+            termination_reason="no_tool_call",
+        )
+    ]
+
+    def mock_rollout_runner(*, model, tokenizer, messages, tools, max_tool_rounds, case=None):
+        _ = model
+        _ = tokenizer
+        _ = messages
+        _ = tools
+        _ = max_tool_rounds
+        _ = case
+        return traces.pop(0)
+
+    tokenizer = MockTokenizer()
+    model = TinyMockModel()
+    reward_func = build_trl_reward_func(case_lookup)
+    trainer = MultiTurnGRPOTrainer.for_testing(
+        model=model,
+        tokenizer=tokenizer,
+        reward_func=reward_func,
+        case_lookup=case_lookup,
+        rollout_runner=mock_rollout_runner,
+        num_generations=1,
+        max_tool_rounds=4,
+    )
+
+    batch = [{"prompt": build_case_messages(case), "case_id": case.id}]
+    inputs = trainer._generate_and_score_completions(batch)
+
+    assert inputs["advantages"].shape[0] == 1
+    assert torch.isfinite(inputs["advantages"]).all()
+    assert float(inputs["advantages"][0].item()) != 0.0
+
+
+def test_multiturn_grpo_trainer_clears_trace_cache_after_scoring():
+    from src.rlvr.trainer import MultiTurnGRPOTrainer, build_trl_reward_func
+
+    case = BenchmarkCase(
+        id="std_cache",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        context={"platform": "Meta", "campaign_id": "CMP_2048"},
+        expected_behavior="tool_call",
+        expected_tools=["get_campaign_metrics"],
+        expected_tool_args={"get_campaign_metrics": {"campaign_id": "CMP_2048"}},
+    )
+    case_lookup = {case.id: case}
+
+    def mock_rollout_runner(*, model, tokenizer, messages, tools, max_tool_rounds, case=None):
+        _ = model
+        _ = tokenizer
+        _ = messages
+        _ = tools
+        _ = max_tool_rounds
+        _ = case
+        tool_call = {
+            "id": "call_001",
+            "type": "function",
+            "function": {
+                "name": "get_campaign_metrics",
+                "arguments": '{"campaign_id":"CMP_2048"}',
+            },
+        }
+        tool_message = {
+            "role": "tool",
+            "tool_call_id": "call_001",
+            "content": '{"campaign_id":"CMP_2048","metrics":{"roas":{"d7":0.91}}}',
+        }
+        return RolloutTrace(
+            assistant_turns=[
+                AssistantTurnTrace(
+                    assistant_text='<tool_call>{"name":"get_campaign_metrics","arguments":{"campaign_id":"CMP_2048"}}</tool_call>',
+                    token_ids=[11, 12],
+                    logprobs=[-0.1, -0.2],
+                    tool_calls=[tool_call],
+                    tool_messages=[tool_message],
+                ),
+                AssistantTurnTrace(
+                    assistant_text="最近 7 天 ROAS 基本达标。",
+                    token_ids=[13, 14],
+                    logprobs=[-0.2, -0.3],
+                    tool_calls=[],
+                    tool_messages=[],
+                ),
+            ],
+            tool_messages=[tool_message],
+            message_history=[
+                {"role": "system", "content": "system"},
+                {"role": "user", "content": case.user_input},
+                {"role": "assistant", "content": "", "tool_calls": [tool_call]},
+                tool_message,
+                {"role": "assistant", "content": "最近 7 天 ROAS 基本达标。"},
+            ],
+            termination_reason="no_tool_call",
+        )
+
+    tokenizer = MockTokenizer()
+    model = TinyMockModel()
+    reward_func = build_trl_reward_func(case_lookup)
+    trainer = MultiTurnGRPOTrainer.for_testing(
+        model=model,
+        tokenizer=tokenizer,
+        reward_func=reward_func,
+        case_lookup=case_lookup,
+        rollout_runner=mock_rollout_runner,
+        num_generations=2,
+        max_tool_rounds=4,
+    )
+
+    batch = [{"prompt": build_case_messages(case), "case_id": case.id}]
+    trainer._generate_and_score_completions(batch)
+
+    assert trainer._trace_cache == {}
+    assert trainer._trace_case_ids == {}

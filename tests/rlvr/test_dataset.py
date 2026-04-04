@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from collections import Counter
+import inspect
 from pathlib import Path
 import sys
 
@@ -63,6 +64,12 @@ def test_load_rlvr_cases_train_and_eval_are_disjoint_and_complete():
 
     assert train_ids.isdisjoint(eval_ids)
     assert len(train_ids | eval_ids) == 105
+
+
+def test_load_rlvr_cases_seed_does_not_change_precomputed_split():
+    from src.rlvr.dataset import load_rlvr_cases
+
+    assert "seed" not in inspect.signature(load_rlvr_cases).parameters
 
 
 def test_benchmark_case_supports_rlvr_extension_fields():
@@ -132,3 +139,58 @@ def test_build_case_messages_keeps_extension_point_for_future_history():
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "user"
     assert messages[2:] == history
+
+
+def test_build_case_messages_reuses_cached_system_prompt(monkeypatch):
+    from pathlib import Path
+    import src.rlvr.prompt_builder as prompt_builder
+
+    case = BenchmarkCase(
+        id="std_cached_prompt",
+        case_type="standard",
+        user_input="帮我看一下 CMP_2048 最近 7 天的投放表现。",
+        context={"platform": "Meta"},
+    )
+    read_count = {"value": 0}
+
+    original_read_text = Path.read_text
+
+    def counting_read_text(path_self, *args, **kwargs):
+        if path_self == prompt_builder.SYSTEM_PROMPT_PATH:
+            read_count["value"] += 1
+        return original_read_text(path_self, *args, **kwargs)
+
+    prompt_builder._load_system_prompt.cache_clear()
+    monkeypatch.setattr(Path, "read_text", counting_read_text)
+
+    prompt_builder.build_case_messages(case)
+    prompt_builder.build_case_messages(case)
+
+    assert read_count["value"] == 1
+
+
+def test_inspect_helper_supports_repeated_expected_tool_args():
+    from src.rlvr.inspect_rlvr_training_data import infer_tool_arguments
+
+    case = BenchmarkCase(
+        id="par_inspect_args",
+        case_type="parallel",
+        user_input="同时帮我查 Meta 的广告格式政策和内容限制政策。",
+        expected_behavior="tool_call",
+        expected_tools=["get_platform_policy", "get_platform_policy"],
+        expected_tool_args={
+            "get_platform_policy": [
+                {"platform": "Meta", "policy_type": "ad_format"},
+                {"platform": "Meta", "policy_type": "content_restriction"},
+            ]
+        },
+    )
+
+    assert infer_tool_arguments(case, "get_platform_policy", tool_index=0) == {
+        "platform": "Meta",
+        "policy_type": "ad_format",
+    }
+    assert infer_tool_arguments(case, "get_platform_policy", tool_index=1) == {
+        "platform": "Meta",
+        "policy_type": "content_restriction",
+    }

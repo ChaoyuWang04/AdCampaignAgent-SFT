@@ -27,8 +27,9 @@ FULL_FT="${FULL_FT:-false}"
 # 固定配置（一般不需要修改）
 # =============================================================
 
-MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/models/Qwen3-0.6B}"
-OUTPUT_DIR="${REPO_ROOT}/models/Qwen3-0.6B_lora_${EXPERIMENT}"
+MODEL_PATH="${MODEL_PATH:-${REPO_ROOT}/models/Qwen3-1.7B}"
+MODEL_TAG="$(basename "${MODEL_PATH}")"
+OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/models/${MODEL_TAG}_lora_${EXPERIMENT}}"
 PYTHON_TRAIN_SCRIPT="${REPO_ROOT}/src/train/train_qwen.py"
 
 MAX_SEQ_LENGTH="4096"
@@ -117,7 +118,7 @@ fi
 mkdir -p "${OUTPUT_DIR}"
 
 export WANDB_PROJECT="AdCampaignAgent-SFT"
-export WANDB_RUN_NAME="Qwen3-1.7B-${EXPERIMENT}-$(date +%Y%m%d-%H%M)"
+export WANDB_RUN_NAME="${MODEL_TAG}-${EXPERIMENT}-$(date +%Y%m%d-%H%M)"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 CMD=(
@@ -171,12 +172,12 @@ echo "=============================="
 echo " Experiment         : ${EXPERIMENT}"
 echo " Only last asst     : ${ONLY_LAST_ASSISTANT}"
 echo " Full FT            : ${FULL_FT}"
-echo " Train file         : $(basename ${TRAIN_FILE})"
-echo " Eval file          : $(basename ${EVAL_FILE})"
+echo " Train file         : $(basename "${TRAIN_FILE}")"
+echo " Eval file          : $(basename "${EVAL_FILE}")"
 if [[ -n "${RESUME_FROM_CHECKPOINT}" ]]; then
   echo " Resume ckpt        : ${RESUME_FROM_CHECKPOINT}"
 fi
-echo " Model              : $(basename ${MODEL_PATH})"
+echo " Model              : $(basename "${MODEL_PATH}")"
 echo " Output dir         : ${OUTPUT_DIR}"
 echo " Learning rate      : ${LEARNING_RATE}"
 echo " Num epochs         : ${NUM_TRAIN_EPOCHS}"

@@ -15,6 +15,7 @@ BenchmarkCase -> multi-turn messages 的转换层。
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 import sys
@@ -31,6 +32,7 @@ except ModuleNotFoundError:
 SYSTEM_PROMPT_PATH = repo_root() / "prompts" / "ad_agent_system_prompt.txt"
 
 
+@lru_cache(maxsize=1)
 def _load_system_prompt() -> str:
     """读取当前 agent 的系统提示词，保证 RLVR 与现有推理路径一致。"""
     return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()

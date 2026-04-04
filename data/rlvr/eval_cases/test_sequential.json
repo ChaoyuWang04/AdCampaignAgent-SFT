@@ -16,6 +16,11 @@
       "get_campaign_metrics",
       "get_optimization_playbook"
     ],
+    "expected_tool_args": {
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_2048"
+      }
+    },
     "notes": "analyze then recommend; date_range args are dynamic so not in expected_tool_args",
     "rlvr_split": "eval"
   },
@@ -36,6 +41,16 @@
       "get_platform_policy",
       "search_trending_creatives"
     ],
+    "expected_tool_args": {
+      "get_platform_policy": {
+        "platform": "TikTok",
+        "policy_type": "ad_format"
+      },
+      "search_trending_creatives": {
+        "platform": "TikTok",
+        "game_genre": "rpg"
+      }
+    },
     "notes": "understand policy constraints before searching for creatives",
     "rlvr_split": "eval"
   },
@@ -56,6 +71,16 @@
       "query_knowledge_base",
       "get_benchmark_data"
     ],
+    "expected_tool_args": {
+      "query_knowledge_base": {
+        "question": "tCPA 出价策略"
+      },
+      "get_benchmark_data": {
+        "metric": "roas",
+        "game_genre": "puzzle",
+        "region": "US"
+      }
+    },
     "notes": "strategy knowledge then benchmark data to set realistic targets",
     "rlvr_split": "eval"
   },
@@ -75,6 +100,11 @@
       "get_creative_performance",
       "get_optimization_playbook"
     ],
+    "expected_tool_args": {
+      "get_creative_performance": {
+        "campaign_id": "CMP_9001"
+      }
+    },
     "notes": "identify underperforming creatives first, then get playbook",
     "rlvr_split": "eval"
   }

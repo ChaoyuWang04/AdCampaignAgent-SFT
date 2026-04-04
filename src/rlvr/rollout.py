@@ -162,14 +162,16 @@ def _generate_assistant_turn(
     return assistant_text, generated_ids.tolist(), logprobs
 
 
-def _normalize_tool_calls(assistant_text: str) -> list[dict[str, Any]]:
-    """把 assistant 文本中的 tool call 片段转成统一结构。"""
+def _normalize_tool_calls(assistant_text: str) -> tuple[list[dict[str, Any]], bool]:
+    """把 assistant 文本中的 tool call 片段转成统一结构，并标记是否出现坏格式调用。"""
     parsed_calls = extract_tool_calls(assistant_text)
     normalized: list[dict[str, Any]] = []
+    saw_malformed_call = False
     for call in parsed_calls:
         name = call.get("name")
         arguments = call.get("arguments", {})
         if not name or not isinstance(arguments, dict):
+            saw_malformed_call = True
             continue
         normalized.append(
             {
@@ -181,7 +183,7 @@ def _normalize_tool_calls(assistant_text: str) -> list[dict[str, Any]]:
                 },
             }
         )
-    return normalized
+    return normalized, saw_malformed_call
 
 
 def _tool_dispatch() -> dict[str, Any]:
@@ -261,7 +263,7 @@ def run_rollout(
     dispatch = _tool_dispatch()
     assistant_turns: list[AssistantTurnTrace] = []
     tool_messages: list[dict[str, Any]] = []
-    termination_reason = "done"
+    termination_reason = "no_tool_call"
 
     tool_round = 0
     while True:
@@ -272,10 +274,10 @@ def run_rollout(
             messages=history,
             tools=tools,
         )
-        normalized_tool_calls = _normalize_tool_calls(assistant_text)
+        normalized_tool_calls, saw_malformed_tool_call = _normalize_tool_calls(assistant_text)
 
         if not normalized_tool_calls:
-            # 没有继续调用工具，说明本条 rollout 到达自然终点。
+            # 没有可执行的工具调用时，区分“自然结束”和“模型试图调工具但格式坏了”。
             history.append({"role": "assistant", "content": assistant_text})
             assistant_turns.append(
                 AssistantTurnTrace(
@@ -286,7 +288,7 @@ def run_rollout(
                     tool_messages=[],
                 )
             )
-            termination_reason = "no_tool_call"
+            termination_reason = "malformed_tool_call" if saw_malformed_tool_call else "no_tool_call"
             break
 
         assistant_message = {
@@ -318,6 +320,8 @@ def run_rollout(
         tool_round += 1
         if tool_round >= effective_max_tool_rounds:
             # 达到最大轮数通常意味着策略没有高效收敛，后续 reward 会对其惩罚。
+            # 追加一个空 assistant 终态，占位为“未收敛结束”，避免 history 以 tool message 收尾。
+            history.append({"role": "assistant", "content": ""})
             termination_reason = "max_rounds"
             break
 

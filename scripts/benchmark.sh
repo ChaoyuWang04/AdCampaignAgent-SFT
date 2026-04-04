@@ -11,7 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 #   bash scripts/benchmark.sh
 
 BACKEND="${BACKEND:-local_hf}"
-MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-0.6B}"
+MODEL="${MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
 EVAL_GROUP="${EVAL_GROUP:-all}"
 DATA_DIR="${DATA_DIR:-${REPO_ROOT}/data/benchmark}"
 RESULTS_DIR="${RESULTS_DIR:-}"

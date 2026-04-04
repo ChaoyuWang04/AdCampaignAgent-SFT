@@ -9,10 +9,10 @@
 | `R1` | 高层行为决策是否正确 | 先从完整 trace 规则化推断行为类别：`tool_call` / `reject` / `clarify` / `direct_answer`，再与 `expected_behavior` 比较；一致记 `1.0`，否则记 `0.0`。 |
 | `R2` | 工具选择是否完全正确 | 只对 `expected_behavior == "tool_call"` 的样本评分。要求预测工具序列与 `expected_tools` 完全一致；一致记 `1.0`，否则记 `0.0`。 |
 | `R3` | 多工具集合是否接近 gold | 只对 `expected_behavior == "tool_call"` 的样本评分。对预测工具集合和 `expected_tools` 计算 multiset F1，返回 `0.0` 到 `1.0` 的连续分数。 |
-| `C1` | Gold 参数是否被完整覆盖 | 只对 `expected_behavior == "tool_call"` 且 `expected_tool_args` 非空的样本评分。按工具名找到第一条匹配调用后，检查 gold 参数中的每个字段是否都被正确填入；某个工具全部字段都正确记 `1.0`，否则记 `0.0`，最后对相关工具取平均。 |
-| `C2` | 参数字段级准确率 | 只对 `expected_behavior == "tool_call"` 且 `expected_tool_args` 非空的样本评分。逐字段比较参数值，计算每个工具的字段命中比例，再对相关工具取平均，返回 `0.0` 到 `1.0`。 |
+| `C1` | Gold 参数是否被完整覆盖 | 只对 `expected_behavior == "tool_call"` 且 `expected_tool_args` 非空的样本评分。默认按工具名匹配；如果 `expected_tool_args` 对某个工具写成参数列表，则会对重复同名调用逐一匹配，要求每个 gold 参数子项都被命中。 |
+| `C2` | 参数字段级准确率 | 只对 `expected_behavior == "tool_call"` 且 `expected_tool_args` 非空的样本评分。默认按字段比较第一条匹配调用；如果某个工具的 gold 参数是列表，则会对重复同名调用逐项计算字段命中率并求平均。 |
 | `S1` | 顺序调用是否正确 | 只对 `case_type == "sequential"` 的样本评分。提取所有 assistant turn 中的工具名序列，与 `expected_sequence` 完全一致记 `1.0`，否则记 `0.0`。 |
-| `S2` | 并行调用是否正确 | 只对 `case_type == "parallel"` 的样本评分。检查 `expected_parallel_groups` 中是否至少有一个工具组完整出现在同一条 assistant message 的 `tool_calls` 里；命中记 `1.0`，否则记 `0.0`。 |
+| `S2` | 并行调用是否正确 | 只对 `case_type == "parallel"` 的样本评分。首先要求 `expected_parallel_groups` 中的工具组完整出现在同一条 assistant message 的 `tool_calls` 里；如果该 case 还提供了 `expected_tool_args`，则同一组内的参数也必须匹配，避免把同一个调用重复两次误判为并行成功。 |
 | `S3` | 越界请求是否正确拒答 | 只对 `expected_behavior == "reject"` 的样本评分。如果 trace 的高层行为被识别为 `reject`，记 `1.0`；否则记 `0.0`。 |
 | `S4` | 信息不足时是否正确追问 | 只对 `expected_behavior == "clarify"` 的样本评分。首先要求行为被识别为 `clarify`；然后检查首条 assistant 回复是否覆盖 `required_missing_slots` 中的关键槽位别名，返回槽位覆盖比例，范围 `0.0` 到 `1.0`。 |
 | `S5` | 端到端任务是否成功完成 | 规则化综合指标。`reject` 样本要求 `S3 == 1.0` 且没有工具调用；`clarify` 样本要求 `S4 == 1.0` 且没有工具调用；`sequential` 样本要求 `R1 == 1.0`、`S1 == 1.0` 且存在最终 assistant 收敛回复；`parallel` 样本要求 `R1 == 1.0`、`S2 == 1.0` 且存在最终 assistant 收敛回复；普通 `tool_call` 样本要求行为是 `tool_call`、`R2 == 1.0`、`C2 == 1.0` 且存在最终 assistant 收敛回复。满足对应条件记 `1.0`，否则记 `0.0`。 |

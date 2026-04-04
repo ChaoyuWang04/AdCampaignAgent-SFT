@@ -48,6 +48,7 @@ WEIGHTS = {
     "success": 0.25,
     "efficiency": -0.10,
 }
+POSITIVE_WEIGHT_SUM = sum(weight for weight in WEIGHTS.values() if weight > 0)
 
 
 @dataclass(slots=True)
@@ -110,7 +111,7 @@ def compute_reward(trace: RolloutTrace, case: BenchmarkCase) -> RewardBreakdown:
         reward_workflow = 0.0
         reward_success = 0.0
         reward_efficiency = 0.0
-    elif reward_behavior < 0.5:
+    elif reward_behavior == 0.0:
         # 如果高层行为决策已错，局部正确的工具名或参数也只能给弱奖励。
         # 结果是：
         # - tool_selection / argument / workflow 各自乘 0.3
@@ -119,7 +120,7 @@ def compute_reward(trace: RolloutTrace, case: BenchmarkCase) -> RewardBreakdown:
         reward_argument *= 0.3
         reward_workflow *= 0.3
 
-    total = (
+    raw_total = (
         # `total` 是最终送入 GRPO 的标量 reward。
         WEIGHTS["format"] * reward_format
         + WEIGHTS["behavior"] * reward_behavior
@@ -130,6 +131,7 @@ def compute_reward(trace: RolloutTrace, case: BenchmarkCase) -> RewardBreakdown:
         + WEIGHTS["success"] * reward_success
         + WEIGHTS["efficiency"] * reward_efficiency
     )
+    total = raw_total / POSITIVE_WEIGHT_SUM
 
     return RewardBreakdown(
         format=reward_format,

@@ -44,7 +44,7 @@ class BenchmarkCase:
     context: dict[str, Any] = field(default_factory=dict)
     expected_behavior: str = "tool_call"
     expected_tools: list[str] = field(default_factory=list)
-    expected_tool_args: dict[str, dict[str, Any]] = field(default_factory=dict)
+    expected_tool_args: dict[str, Any] = field(default_factory=dict)
     expected_sequence: list[str] = field(default_factory=list)
     expected_parallel_groups: list[list[str]] = field(default_factory=list)
     required_missing_slots: list[str] = field(default_factory=list)

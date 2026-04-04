@@ -96,3 +96,53 @@ def test_c2_keeps_partial_field_accuracy_when_only_some_gold_fields_match() -> N
 
     assert scores["C1"] == 0.0
     assert scores["C2"] == 0.5
+
+
+def test_content_scores_repeated_same_tool_calls_against_expected_argument_list() -> None:
+    case = BenchmarkCase(
+        id="par_repeated_args",
+        case_type="parallel",
+        user_input="同时帮我查一下 CMP_1024 和 CMP_2048 的核心指标。",
+        expected_behavior="tool_call",
+        expected_tools=["get_campaign_metrics", "get_campaign_metrics"],
+        expected_tool_args={
+            "get_campaign_metrics": [
+                {"campaign_id": "CMP_1024"},
+                {"campaign_id": "CMP_2048"},
+            ]
+        },
+    )
+    trace = [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": case.user_input},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "get_campaign_metrics",
+                        "arguments": {"campaign_id": "CMP_1024"},
+                    },
+                },
+                {
+                    "id": "call_2",
+                    "type": "function",
+                    "function": {
+                        "name": "get_campaign_metrics",
+                        "arguments": {"campaign_id": "CMP_2048"},
+                    },
+                },
+            ],
+        },
+        {"role": "tool", "tool_call_id": "call_1", "content": "{}"},
+        {"role": "tool", "tool_call_id": "call_2", "content": "{}"},
+        {"role": "assistant", "content": "已完成"},
+    ]
+
+    scores = evaluate_content_case(case, trace)
+
+    assert scores["C1"] == 1.0
+    assert scores["C2"] == 1.0

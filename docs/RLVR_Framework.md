@@ -117,6 +117,18 @@ RL rollout 时，不应重新写一套完全平行的工具执行逻辑，而应
 - `eval_cases/` 固定为 30 条 holdout case，用于 RLVR 验证
 - `data/benchmark/` 继续作为 benchmark 的统一题库目录
 
+当前 RLVR case 对 `expected_tool_args` 还有一个额外约束：
+
+- 普通单工具或顺序工具仍使用 `tool_name -> {field: value}` 的字典形式
+- 如果是并行场景中的“重复同名工具”，则使用 `tool_name -> [{...}, {...}]` 的列表形式
+
+这样可以显式区分：
+
+- “同一轮调用两个不同子任务”
+- “把同一个 tool call 错误地重复两次”
+
+否则并行评测只能看到工具名重复，无法判断子任务参数是否真的不同。
+
 
 ## 5. Training Object Definition
 
@@ -278,14 +290,16 @@ reward 设计应满足：
 
 ```text
 total_reward =
-  0.10 * format_reward
-+ 0.15 * behavior_reward
-+ 0.20 * tool_selection_reward
-+ 0.20 * argument_reward
-+ 0.10 * workflow_reward
-+ 0.10 * safety_reward
-+ 0.25 * success_reward
-- 0.10 * efficiency_penalty
+(
+    0.10 * format_reward
+  + 0.15 * behavior_reward
+  + 0.20 * tool_selection_reward
+  + 0.20 * argument_reward
+  + 0.10 * workflow_reward
+  + 0.10 * safety_reward
+  + 0.25 * success_reward
+  - 0.10 * efficiency_penalty
+) / 1.10
 ```
 
 说明：
@@ -293,6 +307,7 @@ total_reward =
 - `success_reward` 权重最高，因为训练目标最终仍是端到端成功
 - `argument_reward` 和 `tool_selection_reward` 权重较高，因为它们最直接决定 tool-calling agent 的实用性
 - `format_reward` 权重较低，因为它属于底层门槛，不应主导全部学习
+- 正向权重会在聚合后统一除以 `1.10`，把“全对且无罚分”的理论上限归一到 `1.0`
 
 ### 7.5 Reward Gating
 

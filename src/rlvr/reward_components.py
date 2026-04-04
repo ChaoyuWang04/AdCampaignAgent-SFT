@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 from pathlib import Path
 import sys
@@ -23,6 +24,7 @@ from src.rlvr.rollout import RolloutTrace
 
 try:
     from src.benchmark.benchmark_schema import BenchmarkCase
+    from src.benchmark.benchmark_utils import parse_tool_arguments
     from src.benchmark.eval_content import evaluate_content_case
     from src.benchmark.eval_format import evaluate_format_case
     from src.benchmark.eval_routing import evaluate_routing_case
@@ -30,6 +32,7 @@ try:
 except ModuleNotFoundError:
     sys.path.append(str(Path(__file__).resolve().parents[2] / "src" / "benchmark"))
     from benchmark_schema import BenchmarkCase
+    from benchmark_utils import parse_tool_arguments
     from eval_content import evaluate_content_case
     from eval_format import evaluate_format_case
     from eval_routing import evaluate_routing_case
@@ -66,6 +69,9 @@ def format_reward(trace: RolloutTrace, case: BenchmarkCase) -> float:
     - 0.0：没有 tool call、tool call 结构坏掉，或参数无法解析成字典
     - 不会返回负数
     """
+    if trace.termination_reason == "malformed_tool_call":
+        return 0.0
+
     for turn in trace.assistant_turns:
         for tool_call in turn.tool_calls:
             function = tool_call.get("function", {})
@@ -167,6 +173,9 @@ def argument_reward(trace: RolloutTrace, case: BenchmarkCase) -> float:
     - 0.0：没填对任何关键参数，或应调工具却没有有效参数可比
     - 不会返回负数
     """
+    if case.expected_behavior == "tool_call" and not case.expected_tool_args:
+        return 1.0
+
     scores = evaluate_content_case(case, _to_benchmark_trace(trace))
     if not scores:
         return 1.0 if case.expected_behavior != "tool_call" else 0.0
@@ -324,9 +333,10 @@ def efficiency_penalty(trace: RolloutTrace, case: BenchmarkCase) -> float:
     repeated_calls = 0
     for turn in trace.assistant_turns:
         for tool_call in turn.tool_calls:
+            arguments = parse_tool_arguments(tool_call["function"].get("arguments", {}))
             signature = (
                 tool_call["function"]["name"],
-                tool_call["function"]["arguments"],
+                json.dumps(arguments, sort_keys=True, ensure_ascii=False),
             )
             if signature in repeated_signatures:
                 repeated_calls += 1

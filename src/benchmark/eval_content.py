@@ -40,6 +40,51 @@ from src.benchmark.benchmark_schema import BenchmarkCase
 from src.benchmark.benchmark_utils import all_tool_calls, parse_tool_arguments, safe_mean
 
 
+def _field_accuracy(actual_args: dict[str, Any], expected_args: dict[str, Any]) -> float:
+    if not expected_args:
+        return 1.0
+    matched_fields = sum(
+        1 for key, value in expected_args.items() if actual_args.get(key) == value
+    )
+    return matched_fields / len(expected_args)
+
+
+def _score_expected_args(
+    candidates: list[dict[str, Any]],
+    expected_args: dict[str, Any] | list[dict[str, Any]],
+) -> tuple[list[float], list[float]]:
+    if isinstance(expected_args, list):
+        remaining = list(candidates)
+        exact_matches: list[float] = []
+        field_scores: list[float] = []
+        for expected_item in expected_args:
+            if not remaining:
+                exact_matches.append(0.0)
+                field_scores.append(0.0)
+                continue
+            ranked = [
+                (
+                    1.0 if all(candidate.get(key) == value for key, value in expected_item.items()) else 0.0,
+                    _field_accuracy(candidate, expected_item),
+                    index,
+                )
+                for index, candidate in enumerate(remaining)
+            ]
+            exact_score, field_score, picked_index = max(ranked, key=lambda item: (item[0], item[1]))
+            exact_matches.append(exact_score)
+            field_scores.append(field_score)
+            remaining.pop(picked_index)
+        return exact_matches, field_scores
+
+    actual_args = candidates[0] if candidates else {}
+    exact_match = (
+        1.0
+        if all(actual_args.get(key) == value for key, value in expected_args.items())
+        else 0.0
+    )
+    return [exact_match], [_field_accuracy(actual_args, expected_args)]
+
+
 def evaluate_content_case(
     case: BenchmarkCase,
     trace: list[dict[str, Any]],
@@ -58,26 +103,15 @@ def evaluate_content_case(
 
     exact_matches: list[float] = []
     field_scores: list[float] = []
-    # MVP 版本先按工具名匹配到第一条调用，保持评分逻辑简单稳定。
     for tool_name, expected_args in case.expected_tool_args.items():
         candidates = actual_by_tool.get(tool_name, [])
-        actual_args = candidates[0] if candidates else {}
-        exact_matches.append(
-            1.0
-            if all(actual_args.get(key) == value for key, value in expected_args.items())
-            else 0.0
-        )
+        tool_exact_matches, tool_field_scores = _score_expected_args(candidates, expected_args)
+        exact_matches.extend(tool_exact_matches)
+        field_scores.extend(tool_field_scores)
 
-        if not expected_args:
-            continue
-        matched_fields = sum(
-            1 for key, value in expected_args.items() if actual_args.get(key) == value
-        )
-        field_scores.append(matched_fields / len(expected_args))
-    
-    if not exact_matches:   # ← 加这里
+    if not exact_matches:
         return {}
-    
+
     return {
         "C1": safe_mean(exact_matches),
         "C2": safe_mean(field_scores) if field_scores else safe_mean(exact_matches),

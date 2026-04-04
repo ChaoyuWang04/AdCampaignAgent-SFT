@@ -26,7 +26,6 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Callable
 import copy
 import inspect
@@ -117,6 +116,14 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
         reward_func: Callable[..., list[float]] | None = None,
         **kwargs,
     ):
+        normalized_reward_func = reward_func
+        if normalized_reward_func is None:
+            reward_funcs = kwargs.get("reward_funcs")
+            if callable(reward_funcs):
+                normalized_reward_func = reward_funcs
+            elif isinstance(reward_funcs, (list, tuple)) and len(reward_funcs) == 1 and callable(reward_funcs[0]):
+                normalized_reward_func = reward_funcs[0]
+
         self._trace_cache: dict[str, RolloutTrace] = {}
         self._trace_case_ids: dict[str, str] = {}
         self._generate_completions_call_count = 0
@@ -126,7 +133,7 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
         self.rollout_runner = rollout_runner
         self.max_tool_rounds = max_tool_rounds
         self.tool_schemas = tool_schemas or []
-        self.multi_turn_reward_func = reward_func or build_trl_reward_func(case_lookup)
+        self.multi_turn_reward_func = normalized_reward_func or build_trl_reward_func(case_lookup)
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -142,6 +149,7 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
         max_tool_rounds: int = 4,
     ) -> "MultiTurnGRPOTrainer":
         """构造一个不依赖完整 Trainer 初始化链路的测试版 trainer。"""
+        config_num_generations = max(2, num_generations)
         trainer = object.__new__(cls)
         trainer.model = model
         trainer.processing_class = tokenizer
@@ -160,20 +168,32 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
         trainer._reward_call_count = 0
         trainer._trace_seq = 0
         trainer.accelerator = _FakeAccelerator()
-        trainer.args = SimpleNamespace(
+        trainer.args = GRPOConfig(
+            output_dir=str(Path.cwd() / ".tmp-rlvr-test"),
             per_device_train_batch_size=1,
             per_device_eval_batch_size=1,
             gradient_accumulation_steps=1,
-            steps_per_generation=1,
             gradient_checkpointing_kwargs={},
-            report_to=[],
+            report_to="none",
             delta=None,
             sapo_temperature_pos=1.0,
             sapo_temperature_neg=1.05,
             use_bias_correction_kl=False,
+            num_generations=config_num_generations,
+            num_generations_eval=config_num_generations,
+            generation_batch_size=config_num_generations,
+            max_completion_length=256,
+            temperature=1.0,
+            beta=0.0,
+            epsilon=0.2,
+            num_iterations=1,
+            loss_type="grpo",
+            remove_unused_columns=False,
+            eval_strategy="no",
+            save_strategy="no",
         )
-        trainer.beta = 0.0
-        trainer.temperature = 1.0
+        trainer.beta = trainer.args.beta
+        trainer.temperature = trainer.args.temperature
         trainer.use_liger_kernel = False
         trainer.top_entropy_quantile = 1.0
         trainer.off_policy_mask_threshold = None
@@ -189,12 +209,13 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
         trainer.tools = []
         trainer.environments = None
         trainer.current_gradient_accumulation_steps = 1
-        trainer.max_completion_length = 256
+        trainer.max_completion_length = trainer.args.max_completion_length
         trainer.pad_token_id = getattr(tokenizer, "pad_token_id", 0)
         trainer.eos_token_id = getattr(tokenizer, "eos_token_id", 1)
         trainer.ref_model = None
         trainer._metrics = {"train": defaultdict(list), "eval": defaultdict(list)}
         trainer._logs = {"prompt": [], "completion": [], "rewards": defaultdict(list), "advantages": []}
+        from types import SimpleNamespace
         trainer.state = SimpleNamespace(global_step=0, num_input_tokens_seen=0)
         trainer.model_kwarg_keys = inspect.signature(model.forward).parameters.keys()
         trainer.num_generations = num_generations
@@ -304,9 +325,12 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
 
     def _compute_group_advantages(self, rewards: torch.Tensor, num_generations: int) -> torch.Tensor:
         """按 GRPO 的 group 维度做标准化 advantage。"""
+        if num_generations <= 1:
+            # 单 generation 无法做组内标准化；退化为直接使用标量 reward，保留训练信号。
+            return rewards.clone()
         grouped = rewards.view(-1, num_generations)
         grouped_mean = grouped.mean(dim=1, keepdim=True)
-        grouped_std = grouped.std(dim=1, keepdim=True)
+        grouped_std = grouped.std(dim=1, keepdim=True, unbiased=False)
         return ((grouped - grouped_mean) / (grouped_std + 1e-4)).view(-1)
 
     def _compute_ref_logprobs(
@@ -385,13 +409,18 @@ class MultiTurnGRPOTrainer(GRPOTrainer):
 
         self._reward_call_count += 1
         # reward 不直接看 completion 文本，而是通过 trace cache 回到完整 rollout 上评分。
-        rewards_list = self.multi_turn_reward_func(
-            prompts=prompts,
-            completions=result.completions_text,
-            trace_ids=result.trace_ids,
-            case_ids=result.case_ids,
-            trainer=self,
-        )
+        try:
+            rewards_list = self.multi_turn_reward_func(
+                prompts=prompts,
+                completions=result.completions_text,
+                trace_ids=result.trace_ids,
+                case_ids=result.case_ids,
+                trainer=self,
+            )
+        finally:
+            for trace_id in result.trace_ids:
+                self._trace_cache.pop(trace_id, None)
+                self._trace_case_ids.pop(trace_id, None)
         rewards = torch.tensor(rewards_list, device=device, dtype=torch.float32)
         num_generations = self.num_generations if getattr(self.model, "training", True) else self.num_generations_eval
         advantages = self._compute_group_advantages(rewards, num_generations=num_generations)

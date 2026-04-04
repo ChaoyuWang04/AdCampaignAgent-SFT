@@ -15,6 +15,16 @@
         "get_campaign_metrics"
       ]
     ],
+    "expected_tool_args": {
+      "get_campaign_metrics": [
+        {
+          "campaign_id": "CMP_1024"
+        },
+        {
+          "campaign_id": "CMP_2048"
+        }
+      ]
+    },
     "notes": "two campaigns queried in parallel",
     "rlvr_split": "eval"
   },
@@ -36,6 +46,18 @@
         "get_platform_policy"
       ]
     ],
+    "expected_tool_args": {
+      "get_platform_policy": [
+        {
+          "platform": "Meta",
+          "policy_type": "ad_format"
+        },
+        {
+          "platform": "Meta",
+          "policy_type": "content_restriction"
+        }
+      ]
+    },
     "notes": "two different policy types for the same platform, no dependency",
     "rlvr_split": "eval"
   },
@@ -57,6 +79,18 @@
         "search_trending_creatives"
       ]
     ],
+    "expected_tool_args": {
+      "search_trending_creatives": [
+        {
+          "platform": "TikTok",
+          "game_genre": "casual"
+        },
+        {
+          "platform": "TikTok",
+          "game_genre": "puzzle"
+        }
+      ]
+    },
     "notes": "parallel creative search for two genres on same platform",
     "rlvr_split": "eval"
   },
@@ -76,6 +110,18 @@
         "get_platform_policy"
       ]
     ],
+    "expected_tool_args": {
+      "get_platform_policy": [
+        {
+          "platform": "Google",
+          "policy_type": "content_restriction"
+        },
+        {
+          "platform": "Meta",
+          "policy_type": "content_restriction"
+        }
+      ]
+    },
     "notes": "same policy type queried for two platforms in parallel",
     "rlvr_split": "eval"
   }

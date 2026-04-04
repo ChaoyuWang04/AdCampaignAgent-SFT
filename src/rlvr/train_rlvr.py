@@ -57,7 +57,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--beta", type=float, default=0.01)
     parser.add_argument("--max_completion_length", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=0.8)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for training/sampling. RLVR train/eval split is loaded from precomputed directories.",
+    )
     parser.add_argument("--tools_file", type=str, default=str(tools_schema_path()))
     parser.add_argument("--use_peft", action="store_true")
     parser.add_argument("--lora_r", type=int, default=16)
@@ -97,8 +102,8 @@ def main() -> None:
     """训练入口主流程。"""
     args = parse_args()
 
-    train_cases = load_rlvr_cases(split=TRAIN_SPLIT, seed=args.seed)
-    eval_cases = load_rlvr_cases(split=EVAL_SPLIT, seed=args.seed)
+    train_cases = load_rlvr_cases(split=TRAIN_SPLIT)
+    eval_cases = load_rlvr_cases(split=EVAL_SPLIT)
     case_lookup = {case.id: case for case in train_cases + eval_cases}
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -110,7 +115,6 @@ def main() -> None:
         tokenizer.pad_token = tokenizer.eos_token
 
     train_dataset = build_train_dataset(train_cases)
-    eval_dataset = build_train_dataset(eval_cases)
     reward_func = build_trl_reward_func(case_lookup)
     tool_schemas = load_tool_schemas(args.tools_file)
 
@@ -144,14 +148,12 @@ def main() -> None:
         model=args.model_path,
         args=config,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
         processing_class=tokenizer,
-        reward_funcs=reward_func,
+        reward_funcs=[reward_func],
         reward_processing_classes=None,
         case_lookup=case_lookup,
         max_tool_rounds=args.max_tool_rounds,
         tool_schemas=tool_schemas,
-        reward_func=reward_func,
         peft_config=maybe_build_peft_config(args),
     )
     trainer.train()

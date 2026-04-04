@@ -2,10 +2,8 @@
   {
     "id": "par_001",
     "case_type": "parallel",
-    "user_input": "同时帮我查一下 iOS 和 Android 平台最近 7 天的投放数据。",
-    "context": {
-      "campaign_id": "CMP_2048"
-    },
+    "user_input": "同时帮我查一下 CMP_2048 和 CMP_2049 最近 7 天的投放数据。",
+    "context": {},
     "expected_behavior": "tool_call",
     "expected_tools": [
       "get_campaign_metrics",
@@ -17,6 +15,16 @@
         "get_campaign_metrics"
       ]
     ],
+    "expected_tool_args": {
+      "get_campaign_metrics": [
+        {
+          "campaign_id": "CMP_2048"
+        },
+        {
+          "campaign_id": "CMP_2049"
+        }
+      ]
+    },
     "notes": "same tool with different platform args in one assistant turn",
     "rlvr_split": "train"
   },
@@ -25,7 +33,7 @@
     "case_type": "parallel",
     "user_input": "请同时查一下 Meta 和 TikTok 上这个游戏的热门素材趋势。",
     "context": {
-      "genre": "casual"
+      "game_genre": "casual"
     },
     "expected_behavior": "tool_call",
     "expected_tools": [
@@ -38,6 +46,18 @@
         "search_trending_creatives"
       ]
     ],
+    "expected_tool_args": {
+      "search_trending_creatives": [
+        {
+          "platform": "Meta",
+          "game_genre": "casual"
+        },
+        {
+          "platform": "TikTok",
+          "game_genre": "casual"
+        }
+      ]
+    },
     "notes": "parallel same-family searches across platforms",
     "rlvr_split": "train"
   },
@@ -59,6 +79,18 @@
         "search_competitor_ads"
       ]
     ],
+    "expected_tool_args": {
+      "search_competitor_ads": [
+        {
+          "competitor_name": "Playrix",
+          "platform": "Meta"
+        },
+        {
+          "competitor_name": "Voodoo",
+          "platform": "Meta"
+        }
+      ]
+    },
     "notes": "parallel competitor ad search for two competitors",
     "rlvr_split": "train"
   },
@@ -78,6 +110,20 @@
         "get_benchmark_data"
       ]
     ],
+    "expected_tool_args": {
+      "get_benchmark_data": [
+        {
+          "metric": "roas",
+          "game_genre": "casual",
+          "region": "US"
+        },
+        {
+          "metric": "roas",
+          "game_genre": "casual",
+          "region": "SEA"
+        }
+      ]
+    },
     "notes": "parallel benchmark queries for two regions",
     "rlvr_split": "train"
   },
@@ -99,6 +145,14 @@
         "get_campaign_metrics"
       ]
     ],
+    "expected_tool_args": {
+      "get_creative_performance": {
+        "campaign_id": "CMP_3001"
+      },
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_3001"
+      }
+    },
     "notes": "two different tools on the same campaign, no dependency between them",
     "rlvr_split": "train"
   },
@@ -121,6 +175,14 @@
         "get_campaign_metrics"
       ]
     ],
+    "expected_tool_args": {
+      "get_appsflyer_report": {
+        "app_id": "APP_9001"
+      },
+      "get_campaign_metrics": {
+        "campaign_id": "CMP_4068"
+      }
+    },
     "notes": "attribution report and metrics are independent, can be fetched in parallel",
     "rlvr_split": "train"
   },
@@ -138,6 +200,15 @@
         "compare_campaigns"
       ]
     ],
+    "expected_tool_args": {
+      "compare_campaigns": {
+        "campaign_ids": [
+          "CMP_1024",
+          "CMP_2048",
+          "CMP_3001"
+        ]
+      }
+    },
     "notes": "compare_campaigns accepts multiple IDs in one call; single tool call is correct here",
     "rlvr_split": "train"
   },
@@ -159,16 +230,22 @@
         "get_creative_performance"
       ]
     ],
+    "expected_tool_args": {
+      "detect_anomalies": {
+        "campaign_id": "CMP_5001"
+      },
+      "get_creative_performance": {
+        "campaign_id": "CMP_5001"
+      }
+    },
     "notes": "anomaly detection and creative performance are independent reads",
     "rlvr_split": "train"
   },
   {
     "id": "par_013",
     "case_type": "parallel",
-    "user_input": "帮我同时查 CMP_6001 和 CMP_6002 的 AppsFlyer 留存数据。",
-    "context": {
-      "app_id": "APP_9001"
-    },
+    "user_input": "帮我同时查 APP_9001 和 APP_9002 的 AppsFlyer 留存数据。",
+    "context": {},
     "expected_behavior": "tool_call",
     "expected_tools": [
       "get_appsflyer_report",
@@ -180,6 +257,16 @@
         "get_appsflyer_report"
       ]
     ],
+    "expected_tool_args": {
+      "get_appsflyer_report": [
+        {
+          "app_id": "APP_9001"
+        },
+        {
+          "app_id": "APP_9002"
+        }
+      ]
+    },
     "notes": "retention reports for two campaigns fetched in parallel",
     "rlvr_split": "train"
   },
@@ -199,6 +286,20 @@
         "get_benchmark_data"
       ]
     ],
+    "expected_tool_args": {
+      "get_benchmark_data": [
+        {
+          "metric": "roas",
+          "game_genre": "rpg",
+          "region": "US"
+        },
+        {
+          "metric": "retention_d1",
+          "game_genre": "rpg",
+          "region": "US"
+        }
+      ]
+    },
     "notes": "two different metrics benchmarked in parallel for same genre and region",
     "rlvr_split": "train"
   },
@@ -222,6 +323,16 @@
         "get_benchmark_data"
       ]
     ],
+    "expected_tool_args": {
+      "get_creative_performance": {
+        "campaign_id": "CMP_7001"
+      },
+      "get_benchmark_data": {
+        "metric": "roas",
+        "game_genre": "casual",
+        "region": "US"
+      }
+    },
     "notes": "creative data and benchmark are independent, typical analysis starting point",
     "rlvr_split": "train"
   }
