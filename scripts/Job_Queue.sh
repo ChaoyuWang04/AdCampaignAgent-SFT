@@ -36,29 +36,6 @@ MULTI_TEST="${REPO_ROOT}/data/ready2train/ad_agent_sft_20260403_222022_zh_test_m
 BASE_MODEL="${BASE_MODEL:-${REPO_ROOT}/models/Qwen3-1.7B}"
 MODEL_TAG="$(basename "${BASE_MODEL}")"
 
-# ═════════════════════════════════════════════════════════════
-# 步骤 1: 训练 nonmulti_all（完整对话 + all assistant loss）
-# ═════════════════════════════════════════════════════════════
-echo ""
-echo "════════════════════════════════════════════════════════"
-echo "  步骤 1: 训练 nonmulti_all"
-echo "  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "════════════════════════════════════════════════════════"
-
-EXPERIMENT="nonmulti_all" \
-ONLY_LAST_ASSISTANT="false" \
-TRAIN_FILE="${SFT_TRAIN}" \
-EVAL_FILE="${SFT_TEST}" \
-MODEL_PATH="${BASE_MODEL}" \
-LEARNING_RATE="2e-4" \
-NUM_TRAIN_EPOCHS="3" \
-EVAL_STEPS="50" \
-SAVE_STEPS="50" \
-EARLY_STOPPING_PATIENCE="5" \
-  bash "${SCRIPT_DIR}/train_model.sh"
-
-echo "  ✅ nonmulti_all 训练完成"
-notify "步骤1完成 ✅" "nonmulti_all 训练完成\n$(date '+%Y-%m-%d %H:%M:%S')" "default" "white_check_mark"
 
 # ═════════════════════════════════════════════════════════════
 # 步骤 2: 训练 multi_last（切分对话 + last assistant loss）
@@ -74,11 +51,11 @@ ONLY_LAST_ASSISTANT="true" \
 TRAIN_FILE="${MULTI_TRAIN}" \
 EVAL_FILE="${MULTI_TEST}" \
 MODEL_PATH="${BASE_MODEL}" \
-LEARNING_RATE="2e-5" \
+LEARNING_RATE="2e-4" \
 NUM_TRAIN_EPOCHS="2" \
 EVAL_STEPS="50" \
 SAVE_STEPS="50" \
-EARLY_STOPPING_PATIENCE="5" \
+EARLY_STOPPING_PATIENCE="3" \
   bash "${SCRIPT_DIR}/train_model.sh"
 
 echo "  ✅ multi_last 训练完成"
