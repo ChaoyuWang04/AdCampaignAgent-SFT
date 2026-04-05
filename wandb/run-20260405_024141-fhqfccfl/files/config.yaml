@@ -1,0 +1,519 @@
+_name_or_path:
+    value: /workspace/AdCampaign/models/Qwen3-1.7B
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            he3lfr0jfgdkzycqslz6f3yvduzcji77:
+                args:
+                    - --train_file
+                    - /workspace/AdCampaign/data/ready2train/ad_agent_sft_20260403_222022_zh_train_multiturn.json
+                    - --model_name_or_path
+                    - /workspace/AdCampaign/models/Qwen3-1.7B
+                    - --output_dir
+                    - /workspace/AdCampaign/models/Qwen3-1.7B_lora_multi_last
+                    - --max_seq_length
+                    - "4096"
+                    - --learning_rate
+                    - "2e-4"
+                    - --num_train_epochs
+                    - "2"
+                    - --warmup_ratio
+                    - "0.03"
+                    - --weight_decay
+                    - "0.0"
+                    - --max_steps
+                    - "-1"
+                    - --lr_scheduler_type
+                    - cosine
+                    - --per_device_train_batch_size
+                    - "4"
+                    - --per_device_eval_batch_size
+                    - "4"
+                    - --gradient_accumulation_steps
+                    - "4"
+                    - --logging_steps
+                    - "10"
+                    - --save_steps
+                    - "50"
+                    - --save_total_limit
+                    - "10"
+                    - --eval_steps
+                    - "50"
+                    - --eval_accumulation_steps
+                    - "4"
+                    - --dataloader_num_workers
+                    - "2"
+                    - --seed
+                    - "42"
+                    - --lora_r
+                    - "32"
+                    - --lora_alpha
+                    - "64"
+                    - --lora_dropout
+                    - "0.05"
+                    - --target_modules
+                    - q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+                    - --eval_file
+                    - /workspace/AdCampaign/data/ready2train/ad_agent_sft_20260403_222022_zh_test_multiturn.json
+                    - --resume_from_checkpoint
+                    - /workspace/AdCampaign/models/Qwen3-1.7B_lora_multi_last/checkpoint-150
+                    - --tools_file
+                    - /workspace/AdCampaign/src/tools/all_tools.json
+                    - --early_stopping_patience
+                    - "3"
+                    - --early_stopping_threshold
+                    - "0.001"
+                    - --only_last_assistant
+                    - --bf16
+                    - --gradient_checkpointing
+                    - --local_files_only
+                codePath: src/train/train_qwen.py
+                codePathLocal: src/train/train_qwen.py
+                cpu_count: 16
+                cpu_count_logical: 32
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "32212254720"
+                        used: "440639488"
+                email: spaemtuerl@gmail.com
+                executable: /workspace/AdCampaign/.venv/bin/python3
+                git:
+                    commit: 7bfda3b1fe8f4c882876d09aeba8ed3dabcd3ae6
+                    remote: https://github.com/ChaoyuWang04/AdCampaignAgent-SFT.git
+                gpu: NVIDIA GeForce RTX 5090
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 21760
+                      memoryTotal: "34190917632"
+                      name: NVIDIA GeForce RTX 5090
+                      uuid: GPU-9222f6a6-b48e-434c-3f64-1fddc0e7305c
+                host: e6ebf87be9d0
+                memory:
+                    total: "132536320000"
+                os: Linux-6.8.0-106-generic-x86_64-with-glibc2.39
+                program: /workspace/AdCampaign/src/train/train_qwen.py
+                python: CPython 3.14.3
+                root: /workspace/AdCampaign
+                startedAt: "2026-04-05T02:41:41.318175Z"
+                writerId: he3lfr0jfgdkzycqslz6f3yvduzcji77
+        m:
+            - "1": train/global_step
+              "6":
+                - 3
+              "7": []
+            - "2": '*'
+              "5": 1
+              "6":
+                - 1
+              "7": []
+        python_version: 3.14.3
+        t:
+            "1":
+                - 1
+                - 11
+                - 49
+                - 51
+                - 71
+                - 98
+            "2":
+                - 1
+                - 11
+                - 49
+                - 51
+                - 71
+                - 98
+            "3":
+                - 7
+                - 13
+                - 19
+                - 62
+                - 66
+            "4": 3.14.3
+            "5": 0.25.1
+            "6": 5.3.0
+            "9":
+                "1": transformers_trainer
+            "12": 0.25.1
+            "13": linux-x86_64
+accelerator_config:
+    value:
+        dispatch_batches: null
+        even_batches: true
+        gradient_accumulation_kwargs: null
+        non_blocking: false
+        split_batches: false
+        use_seedable_sampler: true
+adam_beta1:
+    value: 0.9
+adam_beta2:
+    value: 0.999
+adam_epsilon:
+    value: 1e-08
+architectures:
+    value:
+        - Qwen3ForCausalLM
+attention_bias:
+    value: false
+attention_dropout:
+    value: 0
+auto_find_batch_size:
+    value: false
+average_tokens_across_devices:
+    value: true
+batch_eval_metrics:
+    value: false
+bf16:
+    value: true
+bf16_full_eval:
+    value: false
+bos_token_id:
+    value: null
+chunk_size_feed_forward:
+    value: 0
+data_seed:
+    value: null
+dataloader_drop_last:
+    value: false
+dataloader_num_workers:
+    value: 2
+dataloader_persistent_workers:
+    value: false
+dataloader_pin_memory:
+    value: true
+dataloader_prefetch_factor:
+    value: null
+ddp_backend:
+    value: null
+ddp_broadcast_buffers:
+    value: null
+ddp_bucket_cap_mb:
+    value: null
+ddp_find_unused_parameters:
+    value: null
+ddp_timeout:
+    value: 1800
+debug:
+    value: []
+deepspeed:
+    value: null
+disable_tqdm:
+    value: false
+do_eval:
+    value: true
+do_predict:
+    value: false
+do_train:
+    value: false
+dtype:
+    value: bfloat16
+enable_jit_checkpoint:
+    value: false
+eos_token_id:
+    value: 151645
+eval_accumulation_steps:
+    value: 4
+eval_delay:
+    value: 0
+eval_do_concat_batches:
+    value: true
+eval_on_start:
+    value: false
+eval_steps:
+    value: 50
+eval_strategy:
+    value: steps
+eval_use_gather_object:
+    value: false
+fp16:
+    value: false
+fp16_full_eval:
+    value: false
+fsdp:
+    value: []
+fsdp_config:
+    value:
+        min_num_params: 0
+        xla: false
+        xla_fsdp_grad_ckpt: false
+        xla_fsdp_v2: false
+full_determinism:
+    value: false
+gradient_accumulation_steps:
+    value: 4
+gradient_checkpointing:
+    value: false
+gradient_checkpointing_kwargs:
+    value: null
+greater_is_better:
+    value: false
+head_dim:
+    value: 128
+hidden_act:
+    value: silu
+hidden_size:
+    value: 2048
+hub_always_push:
+    value: false
+hub_model_id:
+    value: null
+hub_private_repo:
+    value: null
+hub_revision:
+    value: null
+hub_strategy:
+    value: every_save
+hub_token:
+    value: <HUB_TOKEN>
+id2label:
+    value:
+        "0": LABEL_0
+        "1": LABEL_1
+ignore_data_skip:
+    value: false
+include_for_metrics:
+    value: []
+include_num_input_tokens_seen:
+    value: "no"
+initializer_range:
+    value: 0.02
+intermediate_size:
+    value: 6144
+is_encoder_decoder:
+    value: false
+label_names:
+    value: null
+label_smoothing_factor:
+    value: 0
+label2id:
+    value:
+        LABEL_0: 0
+        LABEL_1: 1
+layer_types:
+    value:
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+        - full_attention
+learning_rate:
+    value: 0.0002
+length_column_name:
+    value: length
+liger_kernel_config:
+    value: null
+load_best_model_at_end:
+    value: true
+local_rank:
+    value: -1
+log_level:
+    value: passive
+log_level_replica:
+    value: warning
+log_on_each_node:
+    value: true
+logging_dir:
+    value: null
+logging_first_step:
+    value: false
+logging_nan_inf_filter:
+    value: true
+logging_steps:
+    value: 10
+logging_strategy:
+    value: steps
+lr_scheduler_kwargs:
+    value: null
+lr_scheduler_type:
+    value: cosine
+max_grad_norm:
+    value: 1
+max_position_embeddings:
+    value: 40960
+max_steps:
+    value: -1
+max_window_layers:
+    value: 28
+metric_for_best_model:
+    value: eval_loss
+model/num_parameters:
+    value: 2066605056
+model_type:
+    value: qwen3
+neftune_noise_alpha:
+    value: null
+num_attention_heads:
+    value: 16
+num_hidden_layers:
+    value: 28
+num_key_value_heads:
+    value: 8
+num_train_epochs:
+    value: 2
+optim:
+    value: adamw_torch
+optim_args:
+    value: null
+optim_target_modules:
+    value: null
+output_attentions:
+    value: false
+output_dir:
+    value: /workspace/AdCampaign/models/Qwen3-1.7B_lora_multi_last
+output_hidden_states:
+    value: false
+pad_token_id:
+    value: 151643
+parallelism_config:
+    value: null
+peft_config:
+    value:
+        default:
+            alora_invocation_tokens: null
+            arrow_config: null
+            auto_mapping: null
+            base_model_name_or_path: /workspace/AdCampaign/models/Qwen3-1.7B
+            bias: none
+            corda_config: null
+            ensure_weight_tying: false
+            eva_config: null
+            exclude_modules: null
+            fan_in_fan_out: false
+            inference_mode: false
+            init_lora_weights: true
+            layer_replication: null
+            layers_pattern: null
+            layers_to_transform: null
+            lora_alpha: 64
+            lora_bias: false
+            lora_dropout: 0.05
+            megatron_config: null
+            megatron_core: megatron.core
+            modules_to_save: null
+            peft_type: LORA
+            peft_version: 0.18.1
+            qalora_group_size: 16
+            r: 32
+            revision: null
+            runtime_config:
+                ephemeral_gpu_offload: false
+            target_modules:
+                - v_proj
+                - up_proj
+                - o_proj
+                - down_proj
+                - q_proj
+                - k_proj
+                - gate_proj
+            target_parameters: null
+            task_type: CAUSAL_LM
+            trainable_token_indices: null
+            use_dora: false
+            use_qalora: false
+            use_rslora: false
+per_device_eval_batch_size:
+    value: 4
+per_device_train_batch_size:
+    value: 4
+prediction_loss_only:
+    value: false
+problem_type:
+    value: null
+project:
+    value: huggingface
+push_to_hub:
+    value: false
+remove_unused_columns:
+    value: false
+report_to:
+    value:
+        - wandb
+restore_callback_states_from_checkpoint:
+    value: false
+resume_from_checkpoint:
+    value: null
+return_dict:
+    value: true
+rms_norm_eps:
+    value: 1e-06
+rope_parameters:
+    value:
+        rope_theta: 1000000
+        rope_type: default
+run_name:
+    value: null
+save_on_each_node:
+    value: false
+save_only_model:
+    value: false
+save_steps:
+    value: 50
+save_strategy:
+    value: steps
+save_total_limit:
+    value: 10
+seed:
+    value: 42
+skip_memory_metrics:
+    value: true
+sliding_window:
+    value: null
+tf32:
+    value: null
+tie_word_embeddings:
+    value: true
+torch_compile:
+    value: false
+torch_compile_backend:
+    value: null
+torch_compile_mode:
+    value: null
+torch_empty_cache_steps:
+    value: null
+trackio_space_id:
+    value: trackio
+train_sampling_strategy:
+    value: random
+transformers_version:
+    value: 5.3.0
+use_cache:
+    value: false
+use_cpu:
+    value: false
+use_liger_kernel:
+    value: false
+use_sliding_window:
+    value: false
+vocab_size:
+    value: 151936
+warmup_ratio:
+    value: 0.03
+warmup_steps:
+    value: 0.03
+weight_decay:
+    value: 0

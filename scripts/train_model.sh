@@ -122,7 +122,7 @@ export WANDB_RUN_NAME="${MODEL_TAG}-${EXPERIMENT}-$(date +%Y%m%d-%H%M)"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 CMD=(
-  python3 "${PYTHON_TRAIN_SCRIPT}"
+  uv run python "${PYTHON_TRAIN_SCRIPT}"
   --train_file                   "${TRAIN_FILE}"
   --model_name_or_path           "${MODEL_PATH}"
   --output_dir                   "${OUTPUT_DIR}"
