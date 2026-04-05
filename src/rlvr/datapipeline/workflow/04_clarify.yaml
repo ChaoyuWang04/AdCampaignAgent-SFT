@@ -1,0 +1,40 @@
+workflow_id: 4
+workflow_name: "信息补全"
+case_type: "clarify"
+count: 120
+id_prefix: "clarify"
+rlvr_max_tool_rounds: 1
+intent_buckets:
+  missing_campaign_metrics:
+    scene_tag: "missing_campaign_metrics"
+    expected_behavior: "clarify"
+    required_slots: ["campaign_id"]
+    rlvr_tags: ["clarify", "metrics"]
+    queries:
+      - "帮我分析一下最近的投放效果。"
+      - "ROAS达标了吗？"
+  upload_missing_fields:
+    scene_tag: "upload_missing_fields"
+    expected_behavior: "clarify"
+    required_slots: ["file_path", "campaign_id"]
+    rlvr_tags: ["clarify", "upload"]
+    queries:
+      - "帮我上传素材。"
+      - "把素材传上去。"
+  policy_missing_platform:
+    scene_tag: "policy_missing_platform"
+    expected_behavior: "clarify"
+    required_slots: ["platform"]
+    rlvr_tags: ["clarify", "policy"]
+    queries:
+      - "帮我查一下平台政策。"
+      - "这个平台的广告限制是什么？"
+  benchmark_missing_scope:
+    scene_tag: "benchmark_missing_scope"
+    expected_behavior: "clarify"
+    required_slots: ["platform", "region", "genre"]
+    rlvr_tags: ["clarify", "benchmark"]
+    queries:
+      - "帮我看一下行业benchmark。"
+      - "这个品类的基准大概是多少？"
+

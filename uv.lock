@@ -69,7 +69,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.5.0" },
     { name = "tqdm", specifier = ">=4.67.3" },
     { name = "transformers", specifier = ">=4.51.0" },
-    { name = "trl", specifier = ">=0.12.0" },
+    { name = "trl", specifier = ">=0.29.1,<0.30.0" },
     { name = "wandb", specifier = ">=0.25.1" },
 ]
 

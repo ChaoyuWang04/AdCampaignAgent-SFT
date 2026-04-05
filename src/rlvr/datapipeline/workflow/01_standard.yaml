@@ -1,0 +1,48 @@
+workflow_id: 1
+workflow_name: "标准工具调用"
+case_type: "standard"
+count: 240
+id_prefix: "std"
+rlvr_max_tool_rounds: 2
+intent_buckets:
+  campaign_metrics_lookup:
+    scene_tag: "campaign_metrics_lookup"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["standard", "metrics"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_campaign_metrics"]
+    queries:
+      - "帮我看一下{campaign_id}最近7天的投放表现。"
+      - "查一下{campaign_id}这周的ROAS和花费。"
+      - "帮我拉一下{campaign_id}近一周的CTR表现。"
+  competitor_ads_lookup:
+    scene_tag: "competitor_ads_lookup"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["standard", "creative_search"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["search_competitor_ads"]
+    queries:
+      - "帮我查一下{competitor}最近在{platform}上投了什么广告。"
+      - "搜一下竞品{competitor}在{platform}上的广告创意。"
+  benchmark_lookup:
+    scene_tag: "benchmark_lookup"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["standard", "benchmark"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_benchmark_data"]
+    queries:
+      - "帮我查一下{platform}上{region}市场{genre}品类的ROAS benchmark。"
+      - "看看{platform}在{region}的{genre}行业ROAS基准数据。"
+  policy_lookup:
+    scene_tag: "policy_lookup"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["standard", "policy"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_platform_policy"]
+    queries:
+      - "帮我查一下{platform}的内容限制政策。"
+      - "看看{platform}对游戏广告的内容限制要求。"

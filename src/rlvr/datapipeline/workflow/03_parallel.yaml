@@ -1,0 +1,38 @@
+workflow_id: 3
+workflow_name: "并行工具调用"
+case_type: "parallel"
+count: 140
+id_prefix: "par"
+rlvr_max_tool_rounds: 2
+intent_buckets:
+  parallel_campaign_metrics:
+    scene_tag: "parallel_campaign_metrics"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["parallel", "metrics"]
+    tool_plan:
+      - mode: "parallel"
+        tools: ["get_campaign_metrics", "get_campaign_metrics"]
+    queries:
+      - "帮我同时查一下{campaign_id}和{campaign_id_alt}最近7天的投放数据。"
+      - "把{campaign_id}和{campaign_id_alt}的核心指标一起拉出来。"
+  parallel_policy_dual_lookup:
+    scene_tag: "parallel_policy_dual_lookup"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["parallel", "policy"]
+    tool_plan:
+      - mode: "parallel"
+        tools: ["get_platform_policy", "get_platform_policy"]
+    queries:
+      - "同时帮我查一下{platform}的广告格式政策和内容限制政策。"
+      - "把{platform}的素材规格政策和内容限制政策一起查一下。"
+  parallel_metrics_and_creatives:
+    scene_tag: "parallel_metrics_and_creatives"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["parallel", "analysis"]
+    tool_plan:
+      - mode: "parallel"
+        tools: ["get_campaign_metrics", "get_creative_performance"]
+    queries:
+      - "同时帮我看一下{campaign_id}的整体指标和素材表现。"
+      - "把{campaign_id}的campaign指标和creative表现并行查一下。"
+

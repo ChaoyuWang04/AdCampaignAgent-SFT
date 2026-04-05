@@ -337,7 +337,8 @@ src/rlvr/
 ├── reward_components.py    # reward 各项分数拆分
 ├── dataset.py              # 训练任务采样封装
 ├── prompt_builder.py       # BenchmarkCase -> message list
-└── trainer.py              # MultiTurn GRPO trainer
+├── trainer.py              # MultiTurn GRPO trainer
+└── datapipeline/           # RLVR rule-based case generation / split / validation
 
 scripts/
 ├── train_rlvr.py           # RLVR / GRPO 训练入口
@@ -362,6 +363,37 @@ RLVR case 的 JSON 主结构沿用 `BenchmarkCase`，只额外增加 4 个可选
 - benchmark evaluator 仍然理解主体字段
 - RLVR 训练可以增加自己的采样权重、标签和 rollout 约束
 - prompt 仍在运行时由 `prompt_builder.py` 构造，而不是写死进 JSON
+
+### 8.1 Current Rule-Based RLVR Datapipeline
+
+当前仓库已经补充了一条独立的 RLVR rule-based datapipeline，路径为：
+
+```text
+src/rlvr/datapipeline/
+├── workflow/*.yaml             # RLVR workflow / intent bucket 定义
+├── workflow_loader.py          # YAML 加载与结构校验
+├── 00_generate_rlvr_seeds.py   # 生成结构化 RLVR seed
+├── 01_build_rlvr_cases.py      # seed -> BenchmarkCase 风格 JSON
+├── 02_split_rlvr_cases.py      # 分层切分 train / eval
+└── validate_rlvr_cases.py      # RLVR case 一致性校验
+```
+
+设计原则与 SFT datapipeline 保持一致：
+
+- 先用 `workflow + intent bucket` 控制任务分布
+- 再用 `required_slots` 决定 clarify case
+- 再用 `tool_plan` 显式定义 sequential / parallel gold workflow
+- 最终输出 `BenchmarkCase` 兼容字段，而不是 OpenAI Messages 对话格式
+
+第一版目标规模为 800 条 case，按以下五类 workflow 生成：
+
+- `standard`
+- `sequential`
+- `parallel`
+- `clarify`
+- `oos / reject`
+
+clarify 类 case 在 seed 阶段会显式移除缺失槽位对应的 `context` 字段，避免 prompt 构造时通过 system context 泄露答案。
 
 
 ## 9. Minimal Implementation Strategy

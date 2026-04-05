@@ -1,0 +1,37 @@
+workflow_id: 2
+workflow_name: "顺序工具调用"
+case_type: "sequential"
+count: 180
+id_prefix: "seq"
+rlvr_max_tool_rounds: 4
+intent_buckets:
+  validate_then_upload:
+    scene_tag: "validate_then_upload"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["sequential", "upload"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["validate_creative_spec", "upload_creative_asset"]
+    queries:
+      - "先帮我检查这条素材是否合规，如果没问题再上传到{campaign_id}。"
+      - "先校验素材规格，再把它传到{campaign_id}。"
+  diagnose_then_optimize:
+    scene_tag: "diagnose_then_optimize"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["sequential", "diagnosis"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["detect_anomalies", "get_optimization_playbook"]
+    queries:
+      - "先帮我诊断{campaign_id}最近的异常，再给一份优化建议。"
+      - "先排查{campaign_id}的问题，再告诉我怎么优化。"
+  analyze_then_benchmark:
+    scene_tag: "analyze_then_benchmark"
+    expected_behavior: "tool_call"
+    rlvr_tags: ["sequential", "analysis"]
+    tool_plan:
+      - mode: "serial"
+        tools: ["get_campaign_metrics", "get_benchmark_data"]
+    queries:
+      - "先看一下{campaign_id}最近7天的ROAS数据，再帮我对照行业ROAS基准判断。"
+      - "先拉{campaign_id}表现数据，再结合ROAS benchmark帮我判断。"
